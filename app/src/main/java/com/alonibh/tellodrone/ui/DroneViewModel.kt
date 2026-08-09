@@ -1,19 +1,22 @@
 package com.alonibh.tellodrone.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.alonibh.tellodrone.data.MockDroneController
+import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.TrackingMode
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 
-class DroneViewModel(private val controller: DroneController = MockDroneController()) : ViewModel() {
+class DroneViewModel(private val controller: DroneController) : ViewModel() {
     val uiState: StateFlow<DroneSessionState> = controller.state.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5_000), controller.state.value,
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        controller.state.value,
     )
     fun connect() = controller.connect()
     fun disconnect() = controller.disconnect()
@@ -25,4 +28,11 @@ class DroneViewModel(private val controller: DroneController = MockDroneControll
     fun setTargetLock(locked: Boolean) = controller.setTargetLock(locked)
     fun setManualVector(vector: ManualControlVector) = controller.setManualControlVector(vector)
     fun setSpeed(percent: Int) = controller.setSpeed(percent)
+    fun setControllerMode(mode: ControllerMode) = controller.setControllerMode(mode)
+    fun onNetworkPermissionsResult(granted: Boolean) = controller.onNetworkPermissionsResult(granted)
+
+    class Factory(private val controller: DroneController) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = DroneViewModel(controller) as T
+    }
 }

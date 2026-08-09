@@ -2,33 +2,53 @@ package com.alonibh.tellodrone.data
 
 import androidx.compose.ui.geometry.Rect
 import com.alonibh.tellodrone.domain.ControlAuthority
+import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.NetworkSelectionState
+import com.alonibh.tellodrone.domain.TelemetrySnapshot
 import com.alonibh.tellodrone.domain.TrackedTarget
 import com.alonibh.tellodrone.domain.TrackingMode
+import com.alonibh.tellodrone.domain.VideoAvailability
+import com.alonibh.tellodrone.domain.VideoState
+import com.alonibh.tellodrone.domain.isZero
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Interactive Phase 1 simulation. It contains no hardware, network, video, or ML code. */
-class MockDroneController(initialState: DroneSessionState = DroneSessionState()) : DroneController {
+/** Interactive development simulation. It contains no hardware, network, video, or ML code. */
+class MockDroneController(initialState: DroneSessionState = mockInitialState()) : DroneController {
     private val mutableState = MutableStateFlow(initialState)
     override val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
 
-    override fun connect() = update { it.copy(connection = DroneConnectionState.Connected, lastMessage = "Mock drone connected") }
+    override fun connect() = update {
+        it.copy(
+            controllerMode = ControllerMode.Mock,
+            connection = DroneConnectionState.Connected,
+            networkSelection = NetworkSelectionState.Available,
+            telemetry = it.telemetry.copy(isFresh = true),
+            lastMessage = "Mock drone connected",
+        )
+    }
 
     override fun disconnect() = update {
         it.copy(
             connection = DroneConnectionState.Disconnected,
+            networkSelection = NetworkSelectionState.Idle,
             flight = FlightState.Grounded,
             tracking = TrackingMode.Off,
             authority = ControlAuthority.Manual,
             target = null,
             manualVector = ManualControlVector(),
-            telemetry = it.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f, flightTimeSeconds = 0),
+            telemetry = it.telemetry.copy(
+                heightMeters = 0f,
+                speedMetersPerSecond = 0f,
+                flightTimeSeconds = 0,
+                isFresh = false,
+            ),
             lastMessage = "Mock session disconnected",
         )
     }
@@ -119,16 +139,32 @@ class MockDroneController(initialState: DroneSessionState = DroneSessionState())
         }
     }
 
-    override fun setSpeed(percent: Int) = update { it.copy(speedPercent = percent.coerceIn(0, 100)) }
+    override fun setSpeed(percent: Int) = update { it.copy(speedPercent = percent.coerceIn(10, 40)) }
 
     private fun update(transform: (DroneSessionState) -> DroneSessionState) { mutableState.value = transform(mutableState.value) }
     private fun DroneSessionState.invalid(message: String) = copy(lastMessage = message)
-    private fun ManualControlVector.isZero() = lateral == 0f && forward == 0f && vertical == 0f && yaw == 0f
-
     private fun mockTarget(locked: Boolean) = TrackedTarget(
         boundingBox = Rect(left = .40f, top = .20f, right = .62f, bottom = .82f),
         confidence = .92f,
         estimatedDistanceMeters = 1.8f,
         locked = locked,
     )
+
+    companion object {
+        fun mockInitialState() = DroneSessionState(
+            controllerMode = ControllerMode.Mock,
+            telemetry = TelemetrySnapshot(
+                batteryPercent = 78,
+                heightMeters = 0f,
+                speedMetersPerSecond = 0f,
+                velocityXCentimetersPerSecond = 0,
+                velocityYCentimetersPerSecond = 0,
+                velocityZCentimetersPerSecond = 0,
+                flightTimeSeconds = 0,
+                temperatureCelsius = 31f,
+                isFresh = false,
+            ),
+            video = VideoState(VideoAvailability.Mock, measuredFps = 30f),
+        )
+    }
 }

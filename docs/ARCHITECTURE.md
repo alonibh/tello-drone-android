@@ -1,46 +1,90 @@
 # Architecture and safety contracts
 
-Phase 0/1 is a mock-only Compose app. `DroneController` is the UI boundary and
-`MockDroneController` is its only implementation. Screens render immutable `StateFlow` state
-from `DroneViewModel`; neither Compose nor the ViewModel owns a socket, decoder, or flight loop.
+## Phase 2 runtime ownership
 
-## Future flight-session contract
+`DroneController` remains the UI boundary. `AppDroneController` selects either the retained
+`MockDroneController` or `RealDroneController`; mode changes are allowed only while disconnected.
+The application owns this adapter, so Activity recreation and screen rotation do not replace it.
 
-The production flight session will be owned by a long-lived Android **connected-device foreground
-service**, not by an Activity, Compose tree, or ViewModel. The service must explicitly select the
-Tello Wi-Fi `Network` and bind every Tello UDP socket to it; default routing is not sufficient.
-When targeting API 37, Phase 2 must account for Android 17's `ACCESS_LOCAL_NETWORK` permission.
+`RealDroneController` is intentionally thin. The physical session, Wi-Fi request, UDP sockets,
+command sequencing, telemetry receiver, health monitor, and RC loop are owned by
+`TelloDroneService`. The service runs as a `connectedDevice` foreground service from the moment a
+user starts real connection selection until a safe disconnect or terminal connection failure.
+Compose and `DroneViewModel` never own these resources.
 
-Blocking SDK commands/acknowledgements and continuous RC control are separate responsibilities.
-A dedicated RC loop, independent of video rendering and inference, receives desired vectors from
-manual/tracking systems and sends only fresh vectors. Every vector has TTL/freshness semantics;
-an expired command is a zero/hover command, never a continued movement command.
+## Android network and permission contract
 
-## Video and ML contract
+Permissions are requested only after **CONNECT TELLO** is pressed. Android 10–12 request the
+platform-required coarse+fine location pair for the Wi-Fi selection API, Android 13+ use `NEARBY_WIFI_DEVICES` with
+`neverForLocation`, and target/API 37 also requests `ACCESS_LOCAL_NETWORK`. Denial is visible and
+does not start a physical session.
 
-Video and inference use latest-frame semantics: bounded flows drop old frames rather than building
-latency queues. The Phase 3 H.264 design must support both low-latency preview and sampled decoded
-frames for analysis, without making ML frame access prohibitively expensive.
+The service requests an SSID beginning `TELLO-` through `WifiNetworkSpecifier` and retains the
+`Network` returned by `ConnectivityManager`. It does not bind the app process or change the
+default route. Every command and state `DatagramSocket` is individually bound with
+`Network.bindSocket`. User cancellation, request timeout, permission revocation, `onLost`, and
+socket failure all become explicit UI errors and release the network callback.
 
-The app will define a `PersonDetector` interface. It must not depend directly on Ultralytics or
-YOLO. The runtime/model is selected only after physical-tablet performance, latency/thermal, and
-license review. A later dry-run mode will calculate/display control vectors without sending them,
-and recorded video plus telemetry should support offline replay for detector/controller tuning.
+## Tello transport and state contract
 
-## Authority and autonomy contract
+The UDP layer has a testable datagram endpoint. A mutex permits only one acknowledgement-bearing
+SDK command at a time. RC datagrams use the same endpoint but do not wait for acknowledgements, so
+a zero vector is not blocked behind a long takeoff/landing response wait. All socket work uses an
+IO dispatcher.
 
-Manual input always immediately preempts autonomous Follow. A production Follow session requires
-explicit target lock; detection alone cannot receive flight authority. Target loss, stale frames,
-or stale commands must fail safe to hover. Person bounding-box area is not a depth sensor: any
-shown distance is estimated/calibrated, never authoritative.
+A real connection is not reported until both `command` mode returns `ok` and a real state packet
+has arrived. Takeoff/land transition through `TakingOff`/`Landing` and complete only on an SDK
+acknowledgement. A timeout or socket failure makes the result uncertain: connection becomes
+`Error`, flight becomes `Unknown`, controls are inhibited, resources are closed, and there is no
+automatic reconnect. A normal disconnect is allowed only when grounded (or after terminal
+Emergency cleanup); users must explicitly land first.
 
-Autonomous output is introduced only in validated gates: detection only; PID calculations with no
-output; yaw only; yaw plus altitude; and forward/back only last. No obstacle-avoidance capability
-may be claimed unless independently implemented and validated.
+## RC/manual safety contract
 
-## Safety-action contract
+Phase 2 real flight authority is always `Manual`. Tracking controls remain disabled for real mode.
 
-**STOP/HOVER** is the normal, immediate safety action: it cancels motion/autonomy and commands a
-hover in a future real controller. **EMERGENCY MOTOR KILL** is deliberately destructive and
-separate; Phase 1 protects it with a 0.9-second press-and-hold. Its current implementation only
-changes mock state and never accesses hardware.
+The service-owned RC loop runs at 20 Hz only while flying. Compose hold controls publish a full
+desired vector and refresh it every 100 ms. The service stamps each publication with a monotonic
+timestamp and accepts it for 250 ms. Each normalized axis is clamped to `-1..1`; the selected
+manual magnitude is limited to 10–40 Tello RC units.
+
+If refreshes stop for any reason, the next RC cycle sends zero. Releasing any control immediately
+publishes the combined vector with that axis zeroed; releasing the final axis sends all zero.
+Screen disposal also publishes zero. These are conveniences—the service TTL is the independent
+backstop when UI/lifecycle delivery fails.
+
+**STOP / HOVER** clears the desired vector, immediately sends `rc 0 0 0 0`, cancels non-manual
+authority state, and keeps `Flying`. It never sends `emergency`.
+
+**EMERGENCY MOTOR KILL** first sends zero, locks the RC loop, sends the real Tello `emergency`
+command, enters terminal `Emergency`, and refuses later flight commands. It remains protected by
+the existing 0.9-second hold interaction.
+
+## Telemetry and connection health
+
+Tello state packets expose battery, height, flight time, low/high temperature, and `vgx/vgy/vgz`.
+Speed is derived from those three velocity components. Unsupported or absent values remain null;
+there is no fabricated signal strength.
+
+Every sample has wall-clock and monotonic receipt timestamps. Exact Phase 2 health rules:
+
+- At 1.5 seconds without telemetry, the sample becomes stale, desired RC is cleared, an immediate
+  zero is attempted, non-zero RC output is inhibited, and flight controls requiring freshness are
+  disabled.
+- If telemetry resumes before terminal loss, it becomes fresh again, but the old movement does
+  not resume because the desired vector was cleared and its TTL expired.
+- At 4.0 seconds without telemetry, the connection becomes `Error`, flight becomes `Unknown`, a
+  final zero is attempted, sockets/network callbacks are released, the foreground session ends,
+  and no reconnect is attempted.
+- Command timeout, socket failure, Android `Network` loss, and service destruction take the same
+  conservative zero/unknown/cleanup path. Service destruction performs best-effort zero and close.
+
+A partial wake lock is held only while a real session is in `TakingOff`, `Flying`, `Landing`, or an
+airborne `Unknown` state, and is released on grounded/disconnected cleanup.
+
+## Phase boundaries
+
+No video socket, H.264, decoder, camera preview, frame processing, detector, target lock, PID,
+autonomous control, recording, screenshots, MCP, LLM, or cloud integration exists in Phase 2.
+Future video and autonomous producers must preserve the same session ownership and RC freshness
+contract; manual input remains the highest-priority authority.

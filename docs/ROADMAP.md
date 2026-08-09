@@ -1,15 +1,18 @@
 # Roadmap
 
-## Phase 0/1 — current
+## Phase 0/1 — complete
 
 Android foundation, architecture contracts, adaptive tablet UI, and mock state/controller.
 
-## Phase 2 — Tello connectivity + manual flight
+## Phase 2 — implemented; awaiting physical validation
 
-- Android Wi-Fi selection/request and binding sockets to the Tello `Network`
-- required permissions, UDP command transport, serialized command/response, telemetry receiver
-- connected-device foreground service, takeoff/land/manual RC, STOP/HOVER, motor kill
-- connection-loss, battery, and safety behavior; no video
+- Android Wi-Fi selection/request with per-socket `Network` binding and API 37 local-network access
+- testable UDP command transport, serialized acknowledgements, timeouts, and state receiver
+- `connectedDevice` foreground service, real telemetry, takeoff/land, manual RC, STOP/HOVER, motor kill
+- fixed-rate RC freshness/clamping, connection-loss behavior, wake lock, real/mock mode
+
+See [the staged physical validation procedure](PHYSICAL_TESTING.md). Phase 2 is not considered
+physically verified until those checks are completed with a real tablet and Tello.
 
 ## Phase 3 — video pipeline
 
@@ -28,8 +31,9 @@ Android foundation, architecture contracts, adaptive tablet UI, and mock state/c
 
 ## Phase 6 — autonomous flight
 
-Enable only after previous gates: yaw; yaw plus altitude; then forward/back last. Include manual
-override, lost-target and stale-frame failsafes, conservative speed limits, and open-area testing.
+Enable only after previous gates: detection only; PID calculations without output; yaw; yaw plus
+altitude; then forward/back last. Include manual override, lost-target and stale-frame failsafes,
+conservative speed limits, and open-area testing.
 
 ## Phase 7 — media + polish
 
