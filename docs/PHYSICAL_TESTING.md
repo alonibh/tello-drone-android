@@ -3,14 +3,15 @@
 ## Grounded validation status
 
 - **Xiaomi Mi A1, Android 9 / API 28:** manual TELLO Wi-Fi connection, SDK command-mode
-  acknowledgement, 30+ seconds of fresh grounded telemetry, correct `Grounded` state, and safe
-  disconnect all passed. No flight test was performed.
+  acknowledgement, fresh grounded telemetry, correct `Grounded` state, safe disconnect, and the
+  adaptive phone UI check all passed. Flight validation remains unverified.
 - **Blaupunkt BP_6010 tablet:** grounded connection / SDK handshake, 30+ seconds of fresh
-  telemetry, safe disconnect, and Takeoff → immediate Land passed. The state progression behaved
-  correctly.
+  telemetry, safe disconnect, adaptive landscape UI check, and Takeoff → immediate Land passed.
+  The state progression behaved correctly.
 
-RC movement, STOP/HOVER, connection-loss handling, Emergency Motor Kill, video, tracking, and
-autonomous flight are not physically verified on either device.
+Directional RC movement, altitude/yaw movement, STOP/HOVER, combined controls, connection-loss
+handling, Emergency Motor Kill, video, tracking, and autonomous flight are not physically verified
+on either device.
 
 Use a propeller guard, a fully charged phone or tablet and Tello, and an open indoor area free of people,
 pets, loose objects, mirrors, fans, and ceiling hazards. Keep the Tello on the floor for steps 1–2.
