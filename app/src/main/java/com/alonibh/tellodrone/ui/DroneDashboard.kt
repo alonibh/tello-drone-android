@@ -412,21 +412,29 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
     val stickDiameter = if (compact) 112.dp else 156.dp
     BoxWithConstraints {
         val sticks: @Composable () -> Unit = {
-            VirtualJoystick("ALTITUDE / YAW", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
-            VirtualJoystick("DIRECTION", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
+            VirtualJoystick("LEFT\nALTITUDE / YAW", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
+            VirtualJoystick("RIGHT\nDIRECTION", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
         }
         if (maxWidth < 520.dp && !compact) {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(sectionSpacing), horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(horizontalArrangement = Arrangement.spacedBy(sectionSpacing)) { sticks() }
-                SpeedControl(state, vm, Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { sticks() }
+                ManualFlightCenter(state, vm, Modifier.fillMaxWidth())
             }
         } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                sticks()
-                SpeedControl(state, vm, Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                VirtualJoystick("LEFT\nALTITUDE / YAW", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
+                ManualFlightCenter(state, vm, Modifier.weight(1f).padding(horizontal = if (compact) 12.dp else 28.dp))
+                VirtualJoystick("RIGHT\nDIRECTION", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
             }
         }
     }
+}
+
+@Composable
+private fun ManualFlightCenter(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Text("FLIGHT", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+    OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying, vm::stopAndHover, Modifier.fillMaxWidth().testTag("manual_stop_hover"), compact = true)
+    SpeedControl(state, vm, Modifier.fillMaxWidth())
 }
 
 @Composable private fun SpeedControl(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = Column(modifier) { Text("SPEED  ${state.speedPercent}%", color = TelloGreen, fontWeight = FontWeight.Medium); Slider(value = state.speedPercent.toFloat(), onValueChange = { vm.setSpeed(it.roundToInt()) }, valueRange = 10f..40f); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("10%", fontSize = 11.sp, color = TelloTextMuted); Text("40% max", fontSize = 11.sp, color = TelloTextMuted) } }
@@ -498,13 +506,13 @@ private fun DroneSessionState.canEmergency() = connection == DroneConnectionStat
     flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
 private const val MANUAL_HEARTBEAT_MILLIS = 100L
 
-@Preview(name = "Expanded – connected grounded", widthDp = 1280, heightDp = 800)
+@Preview(name = "Tablet landscape – flying controls", widthDp = 1280, heightDp = 800)
 @Composable private fun ExpandedGroundedPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected))
 @Preview(name = "Portrait – disconnected", widthDp = 420, heightDp = 900)
 @Composable private fun PortraitDisconnectedPreview() = PreviewDashboard(DroneSessionState())
-@Preview(name = "Mi A1 phone portrait", widthDp = 360, heightDp = 640)
+@Preview(name = "Phone portrait – flying controls", widthDp = 360, heightDp = 640)
 @Composable private fun MiA1PortraitPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Grounded))
-@Preview(name = "Mi A1 phone landscape", widthDp = 640, heightDp = 360)
+@Preview(name = "Phone landscape – flying controls", widthDp = 640, heightDp = 360)
 @Composable private fun CompactLandscapePreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
 @Preview(name = "Medium window", widthDp = 700, heightDp = 600)
 @Composable private fun MediumPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
