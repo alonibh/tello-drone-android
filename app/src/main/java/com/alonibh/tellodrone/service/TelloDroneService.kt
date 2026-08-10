@@ -39,7 +39,8 @@ import kotlinx.coroutines.runBlocking
 class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var networkManager: TelloWifiNetworkManager
-    private var session: TelloFlightSession? = null
+    private val connectionGate = ConnectionAttemptGate()
+    @Volatile private var session: TelloFlightSession? = null
     private var stateCollection: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var foreground = false
@@ -81,7 +82,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     }
 
     private fun beginConnect() {
-        if (foreground || session != null) return
+        if (!connectionGate.begin()) return
         startConnectedDeviceForeground("Select the TELLO Wi-Fi network")
         TelloSessionStore.update {
             it.copy(
@@ -98,8 +99,8 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     }
 
     override fun onAvailable(network: Network) {
+        if (!connectionGate.claimNetwork()) return
         scope.launch {
-            if (session != null) return@launch
             try {
                 val transport = NetworkTelloTransport(network, scope, SystemMonotonicClock)
                 val newSession = TelloFlightSession(
@@ -113,7 +114,10 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                     ),
                     onFatalConnectionLoss = { scope.launch { finishService() } },
                 )
-                session = newSession
+                if (!connectionGate.activate { session = newSession }) {
+                    transport.close()
+                    return@launch
+                }
                 stateCollection = scope.launch {
                     newSession.state.collect { value ->
                         TelloSessionStore.set(value)
@@ -121,16 +125,24 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                         updateNotification(value.lastMessage ?: value.connection.name)
                     }
                 }
-                if (!newSession.connect()) finishService()
+                if (!newSession.connect()) {
+                    TelloSessionStore.set(newSession.state.value)
+                    finishService()
+                }
             } catch (error: Throwable) {
-                failAndStop("Could not open Tello UDP transport: ${error.message ?: error.javaClass.simpleName}")
+                if (connectionGate.isRequested()) {
+                    failAndStop("Could not open Tello UDP transport: ${error.message ?: error.javaClass.simpleName}")
+                }
             }
         }
     }
 
-    override fun onUnavailable(message: String) = failAndStop(message)
+    override fun onUnavailable(message: String) {
+        if (connectionGate.isRequested()) failAndStop(message)
+    }
 
     override fun onLost(network: Network) {
+        if (!connectionGate.isRequested()) return
         scope.launch {
             session?.networkLost("Tello Wi-Fi network was lost")
                 ?: TelloSessionStore.update {
@@ -147,6 +159,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
 
     private fun failAndStop(message: String) {
         scope.launch {
+            if (!connectionGate.isRequested()) return@launch
             TelloSessionStore.update {
                 it.copy(
                     connection = DroneConnectionState.Error,
@@ -161,10 +174,15 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     }
 
     private fun finishService() {
+        var active: TelloFlightSession? = null
+        connectionGate.finish {
+            active = session
+            session = null
+        }
         networkManager.cancel()
         stateCollection?.cancel()
         stateCollection = null
-        session = null
+        active?.let { closing -> runBlocking(Dispatchers.IO) { closing.networkLost("Tello service stopping") } }
         releaseWakeLock()
         if (foreground) {
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -251,9 +269,12 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     override fun onDestroy() {
         TelloServiceGateway.detach(this)
         networkManager.cancel()
-        val active = session
-        session = null
-        if (active != null) runBlocking(Dispatchers.IO) { active.networkLost("Tello service stopped") }
+        var active: TelloFlightSession? = null
+        connectionGate.finish {
+            active = session
+            session = null
+        }
+        active?.let { closing -> runBlocking(Dispatchers.IO) { closing.networkLost("Tello service stopped") } }
         releaseWakeLock()
         scope.cancel()
         super.onDestroy()

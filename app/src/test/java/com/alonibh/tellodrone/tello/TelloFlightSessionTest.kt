@@ -29,7 +29,7 @@ class TelloFlightSessionTest {
         assertEquals(DroneConnectionState.Connected, fixture.session.state.value.connection)
         assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
 
-        fixture.session.takeOff()
+        takeOffAndVerify(fixture)
         assertEquals(FlightState.Flying, fixture.session.state.value.flight)
         fixture.session.publishManualControl(ManualControlVector(forward = 1f))
         fixture.session.stopAndHover()
@@ -37,7 +37,7 @@ class TelloFlightSessionTest {
         assertEquals(ManualControlVector(), fixture.session.state.value.manualVector)
         assertEquals(RcVector.Zero, fixture.transport.rc.last())
 
-        fixture.session.land()
+        landAndVerify(fixture)
         assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
         assertTrue(fixture.session.disconnect())
         assertEquals(DroneConnectionState.Disconnected, fixture.session.state.value.connection)
@@ -47,7 +47,7 @@ class TelloFlightSessionTest {
 
     @Test fun `disconnect is rejected while flying and does not clean up transport`() = runTest {
         val fixture = connectedFixture()
-        fixture.session.takeOff()
+        takeOffAndVerify(fixture)
         assertFalse(fixture.session.disconnect())
         assertFalse(fixture.transport.closed)
         assertEquals(FlightState.Flying, fixture.session.state.value.flight)
@@ -55,7 +55,7 @@ class TelloFlightSessionTest {
 
     @Test fun `emergency clears RC and permanently locks flight state`() = runTest {
         val fixture = connectedFixture()
-        fixture.session.takeOff()
+        takeOffAndVerify(fixture)
         fixture.session.publishManualControl(ManualControlVector(lateral = 1f))
         fixture.session.emergencyMotorKill()
         assertEquals(FlightState.Emergency, fixture.session.state.value.flight)
@@ -68,7 +68,7 @@ class TelloFlightSessionTest {
 
     @Test fun `telemetry becomes stale then connection loss clears and closes`() = runTest {
         val fixture = connectedFixture()
-        fixture.session.takeOff()
+        takeOffAndVerify(fixture)
         fixture.session.publishManualControl(ManualControlVector(yaw = 1f))
 
         fixture.clock.value += TelloFlightSession.TELEMETRY_STALE_MILLIS
@@ -86,7 +86,7 @@ class TelloFlightSessionTest {
 
     @Test fun `new telemetry restores freshness without restoring stale movement`() = runTest {
         val fixture = connectedFixture()
-        fixture.session.takeOff()
+        takeOffAndVerify(fixture)
         fixture.session.publishManualControl(ManualControlVector(forward = 1f))
         fixture.clock.value += TelloFlightSession.TELEMETRY_STALE_MILLIS
         fixture.session.refreshConnectionHealth()
@@ -95,12 +95,83 @@ class TelloFlightSessionTest {
         runCurrent()
         assertTrue(fixture.session.state.value.telemetry.isFresh)
         assertEquals(ManualControlVector(), fixture.session.state.value.manualVector)
+
+        fixture.session.publishManualControl(ManualControlVector(forward = 1f))
+        assertEquals(ManualControlVector(), fixture.session.state.value.manualVector)
+        fixture.session.publishManualControl(ManualControlVector())
+        fixture.session.publishManualControl(ManualControlVector(forward = 1f))
+        assertEquals(ManualControlVector(forward = 1f), fixture.session.state.value.manualVector)
+    }
+
+    @Test fun `missing or invalid initial height leaves flight state unknown and prohibits takeoff`() = runTest {
+        listOf<Float?>(null, -0.01f, Float.NaN).forEach { height ->
+            val fixture = fixture()
+            fixture.transport.emitTelemetry(fixture.clock.value, height)
+            assertTrue(fixture.session.connect())
+            runCurrent()
+
+            assertEquals(DroneConnectionState.Connected, fixture.session.state.value.connection)
+            assertEquals(FlightState.Unknown, fixture.session.state.value.flight)
+            fixture.session.takeOff()
+            assertEquals(listOf("command"), fixture.transport.commands)
+        }
+    }
+
+    @Test fun `flight acknowledgements require post acknowledgement height verification`() = runTest {
+        val fixture = connectedFixture()
+
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        fixture.transport.emitTelemetry(fixture.clock.value, TelloFlightSession.GROUNDED_HEIGHT_THRESHOLD_METERS)
+        runCurrent()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        fixture.transport.emitTelemetry(fixture.clock.value, TelloFlightSession.GROUNDED_HEIGHT_THRESHOLD_METERS + 0.01f)
+        runCurrent()
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+
+        fixture.session.land()
+        assertEquals(FlightState.Landing, fixture.session.state.value.flight)
+        fixture.transport.emitTelemetry(fixture.clock.value, 1f)
+        runCurrent()
+        assertEquals(FlightState.Landing, fixture.session.state.value.flight)
+        fixture.transport.emitTelemetry(fixture.clock.value, TelloFlightSession.GROUNDED_HEIGHT_THRESHOLD_METERS)
+        runCurrent()
+        assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
+    }
+
+    @Test fun `later telemetry cannot overwrite terminal emergency state`() = runTest {
+        val fixture = connectedFixture()
+        takeOffAndVerify(fixture)
+        fixture.session.emergencyMotorKill()
+        fixture.transport.emitTelemetry(fixture.clock.value, 0f)
+        runCurrent()
+
+        assertEquals(FlightState.Emergency, fixture.session.state.value.flight)
+        val commandCount = fixture.transport.commands.size
+        fixture.session.land()
+        assertEquals(commandCount, fixture.transport.commands.size)
     }
 
     private suspend fun TestScope.connectedFixture(): Fixture = fixture().also {
         it.transport.emitTelemetry(it.clock.value)
         assertTrue(it.session.connect())
         runCurrent()
+    }
+
+    private suspend fun TestScope.takeOffAndVerify(fixture: Fixture) {
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        fixture.transport.emitTelemetry(fixture.clock.value, TelloFlightSession.GROUNDED_HEIGHT_THRESHOLD_METERS + 0.01f)
+        runCurrent()
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+    }
+
+    private suspend fun TestScope.landAndVerify(fixture: Fixture) {
+        fixture.session.land()
+        assertEquals(FlightState.Landing, fixture.session.state.value.flight)
+        fixture.transport.emitTelemetry(fixture.clock.value, 0f)
+        runCurrent()
+        assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
     }
 
     private fun TestScope.fixture(): Fixture {
@@ -135,11 +206,11 @@ class TelloFlightSessionTest {
         override suspend fun sendRc(vector: RcVector) { rc += vector }
         override suspend fun close() { closed = true }
 
-        suspend fun emitTelemetry(at: Long) {
+        suspend fun emitTelemetry(at: Long, heightMeters: Float? = 0f) {
             samples.emit(
                 TelloTelemetry(
                     batteryPercent = 80,
-                    heightMeters = 0f,
+                    heightMeters = heightMeters,
                     flightTimeSeconds = 0,
                     temperatureCelsius = 30f,
                     velocityXCentimetersPerSecond = 0,

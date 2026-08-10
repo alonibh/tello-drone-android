@@ -7,6 +7,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.math.roundToInt
 
 class RcControlLoop(
@@ -21,6 +23,8 @@ class RcControlLoop(
     private data class Desired(val vector: RcVector, val publishedAtMillis: Long)
 
     private val lock = Any()
+    /** Serializes physical sends so a safety zero cannot be overtaken by an already-selected RC vector. */
+    private val sendMutex = Mutex()
     private var desired = Desired(RcVector.Zero, -inputTtlMillis - 1L)
     private var enabled = false
     private var healthy = false
@@ -57,7 +61,7 @@ class RcControlLoop(
     }
 
     fun currentVector(nowMillis: Long = clock.nowMillis()): RcVector = synchronized(lock) {
-        if (!enabled || !healthy || lockedOut || nowMillis - desired.publishedAtMillis > inputTtlMillis) {
+        if (!enabled || !healthy || lockedOut || nowMillis - desired.publishedAtMillis >= inputTtlMillis) {
             RcVector.Zero
         } else desired.vector
     }
@@ -65,24 +69,30 @@ class RcControlLoop(
     suspend fun sendCycle(nowMillis: Long = clock.nowMillis()) {
         val shouldSend = synchronized(lock) { enabled && !lockedOut }
         if (!shouldSend) return
-        try {
-            sender(currentVector(nowMillis))
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Throwable) {
-            setHealthy(false)
-            onSendFailure(error)
+        sendMutex.withLock {
+            try {
+                // Read only after taking the send lock. A concurrent STOP/stale transition therefore
+                // either sends its zero first or waits for this already-sent vector and finishes with zero.
+                sender(currentVector(nowMillis))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                setHealthy(false)
+                onSendFailure(error)
+            }
         }
     }
 
     suspend fun clearAndSendZero() {
         synchronized(lock) { desired = Desired(RcVector.Zero, clock.nowMillis()) }
-        try {
-            sender(RcVector.Zero)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (error: Throwable) {
-            onSendFailure(error)
+        sendMutex.withLock {
+            try {
+                sender(RcVector.Zero)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                onSendFailure(error)
+            }
         }
     }
 

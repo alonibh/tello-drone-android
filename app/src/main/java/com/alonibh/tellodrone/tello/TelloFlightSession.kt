@@ -9,6 +9,7 @@ import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
 import com.alonibh.tellodrone.domain.TrackingMode
+import com.alonibh.tellodrone.domain.isZero
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -16,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -39,12 +41,18 @@ class TelloFlightSession(
     val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
 
     private val commandStateMutex = Mutex()
+    private val resourceCloseMutex = Mutex()
     private val firstTelemetry = CompletableDeferred<TelloTelemetry>()
     private var telemetryJob: Job? = null
     private var healthJob: Job? = null
-    private var lastTelemetryAtMillis: Long? = null
-    private var closed = false
+    @Volatile private var lastTelemetryAtMillis: Long? = null
+    @Volatile private var closed = false
+    private val fatalReportLock = Any()
     private var fatalReported = false
+    @Volatile private var takeoffAcknowledged = false
+    @Volatile private var landingAcknowledged = false
+    private val manualInputLock = Any()
+    private var manualInputRequiresNeutral = false
 
     private val rcLoop = RcControlLoop(
         scope = scope,
@@ -55,14 +63,18 @@ class TelloFlightSession(
 
     suspend fun connect(): Boolean = commandStateMutex.withLock {
         if (closed) return@withLock false
-        mutableState.value = mutableState.value.copy(
-            connection = DroneConnectionState.Connecting,
-            networkSelection = NetworkSelectionState.Available,
-            flight = FlightState.Unknown,
-            authority = ControlAuthority.Manual,
-            tracking = TrackingMode.Off,
-            lastMessage = "Tello Wi-Fi selected; entering SDK mode",
-        )
+        takeoffAcknowledged = false
+        landingAcknowledged = false
+        mutableState.update {
+            it.copy(
+                connection = DroneConnectionState.Connecting,
+                networkSelection = NetworkSelectionState.Available,
+                flight = FlightState.Unknown,
+                authority = ControlAuthority.Manual,
+                tracking = TrackingMode.Off,
+                lastMessage = "Tello Wi-Fi selected; entering SDK mode",
+            )
+        }
         startTelemetryCollection()
         when (val result = transport.sendCommand("command", COMMAND_MODE_TIMEOUT_MILLIS)) {
             is TelloCommandResult.Success -> Unit
@@ -76,15 +88,18 @@ class TelloFlightSession(
             failConnection("SDK mode acknowledged, but no Tello telemetry was received")
             return@withLock false
         }
+        if (closed || mutableState.value.connection == DroneConnectionState.Error) return@withLock false
 
-        val grounded = (first.heightMeters ?: 0f) <= GROUNDED_HEIGHT_THRESHOLD_METERS
-        mutableState.value = mutableState.value.copy(
-            connection = DroneConnectionState.Connected,
-            flight = if (grounded) FlightState.Grounded else FlightState.Unknown,
-            telemetry = first.asSnapshot(isFresh = true),
-            lastMessage = if (grounded) "Tello connected and telemetry verified" else
-                "Tello connected, but airborne state is uncertain; land before normal commands",
-        )
+        val grounded = first.isVerifiedGrounded()
+        mutableState.update {
+            it.copy(
+                connection = DroneConnectionState.Connected,
+                flight = if (grounded) FlightState.Grounded else FlightState.Unknown,
+                telemetry = first.asSnapshot(isFresh = true),
+                lastMessage = if (grounded) "Tello connected and telemetry verified" else
+                    "Tello connected, but airborne state is uncertain; land before normal commands",
+            )
+        }
         rcLoop.setHealthy(true)
         rcLoop.start()
         startHealthMonitor()
@@ -94,14 +109,27 @@ class TelloFlightSession(
     suspend fun takeOff() = commandStateMutex.withLock {
         val current = mutableState.value
         if (!current.canTakeOff()) return@withLock invalid("Takeoff requires fresh telemetry from a connected, grounded drone")
-        mutableState.value = current.copy(flight = FlightState.TakingOff, lastMessage = "Takeoff in progress")
+        takeoffAcknowledged = false
+        landingAcknowledged = false
+        requireManualNeutral()
+        mutableState.update {
+            it.copy(flight = FlightState.TakingOff, manualVector = ManualControlVector(), lastMessage = "Takeoff in progress")
+        }
         when (val result = transport.sendCommand("takeoff", FLIGHT_COMMAND_TIMEOUT_MILLIS)) {
             is TelloCommandResult.Success -> {
-                rcLoop.setEnabled(true)
-                mutableState.value = mutableState.value.copy(flight = FlightState.Flying, lastMessage = "Takeoff acknowledged")
+                takeoffAcknowledged = true
+                mutableState.update { state ->
+                    if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.TakingOff) {
+                        state.copy(lastMessage = "Takeoff acknowledged; waiting for airborne telemetry")
+                    } else state
+                }
             }
             is TelloCommandResult.Rejected -> {
-                mutableState.value = mutableState.value.copy(flight = FlightState.Grounded, lastMessage = "Takeoff rejected: ${result.response}")
+                mutableState.update { state ->
+                    if (state.flight == FlightState.TakingOff) {
+                        state.copy(flight = FlightState.Grounded, lastMessage = "Takeoff rejected: ${result.response}")
+                    } else state
+                }
             }
             else -> failConnection("Takeoff result is uncertain: ${result.description()}")
         }
@@ -113,40 +141,57 @@ class TelloFlightSession(
             current.flight !in setOf(FlightState.Flying, FlightState.Unknown)
         ) return@withLock invalid("Land requires a connected flying or uncertain-state drone")
 
+        takeoffAcknowledged = false
+        landingAcknowledged = false
+        requireManualNeutral()
         rcLoop.clearAndSendZero()
         rcLoop.setEnabled(false)
-        mutableState.value = current.copy(
-            flight = FlightState.Landing,
-            manualVector = ManualControlVector(),
-            lastMessage = "Landing in progress",
-        )
-        when (val result = transport.sendCommand("land", FLIGHT_COMMAND_TIMEOUT_MILLIS)) {
-            is TelloCommandResult.Success -> mutableState.value = mutableState.value.copy(
-                flight = FlightState.Grounded,
+        mutableState.update {
+            it.copy(
+                flight = FlightState.Landing,
                 manualVector = ManualControlVector(),
-                lastMessage = "Landing acknowledged",
+                lastMessage = "Landing in progress",
             )
-            is TelloCommandResult.Rejected -> mutableState.value = mutableState.value.copy(
-                flight = FlightState.Unknown,
-                lastMessage = "Landing rejected; aircraft state is uncertain: ${result.response}",
-            )
+        }
+        when (val result = transport.sendCommand("land", FLIGHT_COMMAND_TIMEOUT_MILLIS)) {
+            is TelloCommandResult.Success -> {
+                landingAcknowledged = true
+                mutableState.update { state ->
+                    if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Landing) {
+                        state.copy(lastMessage = "Landing acknowledged; waiting for grounded telemetry")
+                    } else state
+                }
+            }
+            is TelloCommandResult.Rejected -> mutableState.update { state ->
+                if (state.flight == FlightState.Landing) {
+                    state.copy(
+                        flight = FlightState.Unknown,
+                        lastMessage = "Landing rejected; aircraft state is uncertain: ${result.response}",
+                    )
+                } else state
+            }
             else -> failConnection("Landing result is uncertain: ${result.description()}")
         }
     }
 
-    suspend fun stopAndHover() {
+    suspend fun stopAndHover() = commandStateMutex.withLock {
         val current = mutableState.value
         if (current.connection != DroneConnectionState.Connected || current.flight != FlightState.Flying) {
             invalid("STOP / HOVER requires a connected flying drone")
-            return
+            return@withLock
         }
+        requireManualNeutral()
         rcLoop.clearAndSendZero()
-        mutableState.value = current.copy(
-            authority = ControlAuthority.Manual,
-            tracking = TrackingMode.Off,
-            manualVector = ManualControlVector(),
-            lastMessage = "STOP / HOVER: zero movement sent; aircraft remains flying",
-        )
+        mutableState.update { state ->
+            if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying) {
+                state.copy(
+                    authority = ControlAuthority.Manual,
+                    tracking = TrackingMode.Off,
+                    manualVector = ManualControlVector(),
+                    lastMessage = "STOP / HOVER: zero movement sent; aircraft remains flying",
+                )
+            } else state
+        }
     }
 
     suspend fun emergencyMotorKill() = commandStateMutex.withLock {
@@ -155,52 +200,69 @@ class TelloFlightSession(
             current.flight !in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
         ) return@withLock invalid("Emergency motor kill is unavailable while safely grounded or disconnected")
 
+        takeoffAcknowledged = false
+        landingAcknowledged = false
+        requireManualNeutral()
         rcLoop.lockOutAfterZero()
-        mutableState.value = current.copy(
-            flight = FlightState.Emergency,
-            authority = ControlAuthority.Manual,
-            tracking = TrackingMode.Off,
-            manualVector = ManualControlVector(),
-            lastMessage = "EMERGENCY MOTOR KILL sent; further flight commands are locked out",
-        )
+        mutableState.update {
+            it.copy(
+                flight = FlightState.Emergency,
+                authority = ControlAuthority.Manual,
+                tracking = TrackingMode.Off,
+                manualVector = ManualControlVector(),
+                lastMessage = "EMERGENCY MOTOR KILL sent; further flight commands are locked out",
+            )
+        }
         // Emergency remains terminal even when its acknowledgement is lost.
         transport.sendCommand("emergency", EMERGENCY_TIMEOUT_MILLIS)
-        mutableState.value = mutableState.value.copy(flight = FlightState.Emergency)
     }
 
     fun publishManualControl(vector: ManualControlVector) {
+        if (requiresNeutralInput(vector)) return
         val current = mutableState.value
-        if (current.connection == DroneConnectionState.Connected &&
-            current.flight == FlightState.Flying && current.telemetry.isFresh
-        ) {
+        if (current.connection == DroneConnectionState.Connected && current.flight == FlightState.Flying && current.telemetry.isFresh) {
             rcLoop.publish(vector, current.speedPercent)
-            if (current.manualVector != vector || current.tracking != TrackingMode.Off) {
-                mutableState.value = current.copy(
+            mutableState.update { state ->
+                if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying && state.telemetry.isFresh &&
+                    (state.manualVector != vector || state.tracking != TrackingMode.Off)
+                ) {
+                    state.copy(
                     authority = ControlAuthority.Manual,
                     tracking = TrackingMode.Off,
                     manualVector = vector,
                 )
+                } else state
             }
         }
     }
 
     fun setSpeed(percent: Int) {
-        mutableState.value = mutableState.value.copy(speedPercent = percent.coerceIn(10, 40))
+        mutableState.update { it.copy(speedPercent = percent.coerceIn(10, 40)) }
     }
 
     suspend fun refreshConnectionHealth(nowMillis: Long = clock.nowMillis()) {
         val last = lastTelemetryAtMillis ?: return
         val age = nowMillis - last
+        // A receive that arrived after this health check started wins; never turn a fresh link into
+        // a false terminal loss based on an obsolete timestamp.
+        if (lastTelemetryAtMillis != last) return
         if (age >= TELEMETRY_STALE_MILLIS && mutableState.value.telemetry.isFresh) {
+            requireManualNeutral()
             rcLoop.setHealthy(false)
             rcLoop.clearAndSendZero()
-            mutableState.value = mutableState.value.copy(
-                telemetry = mutableState.value.telemetry.copy(isFresh = false),
-                manualVector = ManualControlVector(),
-                lastMessage = "Telemetry stale; non-zero RC output inhibited",
-            )
+            mutableState.update { state ->
+                if (state.telemetry.isFresh) {
+                    state.copy(
+                        telemetry = state.telemetry.copy(isFresh = false),
+                        manualVector = ManualControlVector(),
+                        lastMessage = "Telemetry stale; non-zero RC output inhibited",
+                    )
+                } else state
+            }
         }
-        if (age >= CONNECTION_LOST_MILLIS) failConnection("Tello telemetry connection lost")
+        if (age >= CONNECTION_LOST_MILLIS && lastTelemetryAtMillis == last) {
+            failConnection("Tello telemetry connection lost")
+        }
     }
 
     suspend fun disconnect(): Boolean = commandStateMutex.withLock {
@@ -210,14 +272,16 @@ class TelloFlightSession(
             return@withLock false
         }
         closeResources(sendFinalZero = current.flight != FlightState.Emergency)
-        mutableState.value = current.copy(
-            connection = DroneConnectionState.Disconnected,
-            networkSelection = NetworkSelectionState.Idle,
-            flight = if (current.flight == FlightState.Emergency) FlightState.Emergency else FlightState.Grounded,
-            telemetry = current.telemetry.copy(isFresh = false),
-            manualVector = ManualControlVector(),
-            lastMessage = "Tello session disconnected",
-        )
+        mutableState.update { state ->
+            state.copy(
+                connection = DroneConnectionState.Disconnected,
+                networkSelection = NetworkSelectionState.Idle,
+                flight = if (state.flight == FlightState.Emergency) FlightState.Emergency else FlightState.Grounded,
+                telemetry = state.telemetry.copy(isFresh = false),
+                manualVector = ManualControlVector(),
+                lastMessage = "Tello session disconnected",
+            )
+        }
         true
     }
 
@@ -227,11 +291,46 @@ class TelloFlightSession(
         if (telemetryJob?.isActive == true) return
         telemetryJob = scope.launch {
             transport.telemetry.collect { sample ->
+                if (closed) return@collect
                 lastTelemetryAtMillis = sample.receivedAtMonotonicMillis
                 firstTelemetry.complete(sample)
-                val current = mutableState.value
-                mutableState.value = current.copy(telemetry = sample.asSnapshot(isFresh = true))
-                if (current.connection == DroneConnectionState.Connected) rcLoop.setHealthy(true)
+                var becameFlying = false
+                var becameGrounded = false
+                mutableState.update { current ->
+                    if (closed || current.connection !in setOf(DroneConnectionState.Connecting, DroneConnectionState.Connected)) {
+                        current
+                    } else {
+                        val nextFlight = when {
+                            current.connection == DroneConnectionState.Connected &&
+                                current.flight == FlightState.TakingOff && takeoffAcknowledged && sample.isVerifiedAirborne() -> {
+                                becameFlying = true
+                                FlightState.Flying
+                            }
+                            current.connection == DroneConnectionState.Connected &&
+                                current.flight == FlightState.Landing && landingAcknowledged && sample.isVerifiedGrounded() -> {
+                                becameGrounded = true
+                                FlightState.Grounded
+                            }
+                            else -> current.flight
+                        }
+                        current.copy(
+                            telemetry = sample.asSnapshot(isFresh = true),
+                            flight = nextFlight,
+                            manualVector = if (nextFlight == FlightState.Flying) current.manualVector else ManualControlVector(),
+                            lastMessage = when {
+                                becameFlying -> "Takeoff verified by airborne telemetry"
+                                becameGrounded -> "Landing verified by grounded telemetry"
+                                else -> current.lastMessage
+                            },
+                        )
+                    }
+                }
+                if (becameFlying) {
+                    takeoffAcknowledged = false
+                    rcLoop.setEnabled(true)
+                }
+                if (becameGrounded) landingAcknowledged = false
+                if (!closed && mutableState.value.connection == DroneConnectionState.Connected) rcLoop.setHealthy(true)
             }
         }
     }
@@ -248,41 +347,76 @@ class TelloFlightSession(
 
     private suspend fun failConnection(message: String) {
         if (closed || mutableState.value.connection == DroneConnectionState.Error) return
-        val wasEmergency = mutableState.value.flight == FlightState.Emergency
+        var failed = false
+        var wasEmergency = false
+        takeoffAcknowledged = false
+        landingAcknowledged = false
+        requireManualNeutral()
+        mutableState.update { state ->
+            if (state.connection == DroneConnectionState.Error || closed) state else {
+                failed = true
+                wasEmergency = state.flight == FlightState.Emergency
+                state.copy(
+                    connection = DroneConnectionState.Error,
+                    networkSelection = NetworkSelectionState.Lost,
+                    flight = if (wasEmergency) FlightState.Emergency else FlightState.Unknown,
+                    telemetry = state.telemetry.copy(isFresh = false),
+                    authority = ControlAuthority.Manual,
+                    tracking = TrackingMode.Off,
+                    manualVector = ManualControlVector(),
+                    lastMessage = message,
+                )
+            }
+        }
+        if (!failed) return
         rcLoop.setHealthy(false)
         if (!wasEmergency) rcLoop.clearAndSendZero()
-        mutableState.value = mutableState.value.copy(
-            connection = DroneConnectionState.Error,
-            networkSelection = NetworkSelectionState.Lost,
-            flight = if (wasEmergency) FlightState.Emergency else FlightState.Unknown,
-            telemetry = mutableState.value.telemetry.copy(isFresh = false),
-            authority = ControlAuthority.Manual,
-            tracking = TrackingMode.Off,
-            manualVector = ManualControlVector(),
-            lastMessage = message,
-        )
         closeResources(sendFinalZero = false)
-        if (!fatalReported) {
-            fatalReported = true
-            onFatalConnectionLoss(message)
+        val shouldReportFatal = synchronized(fatalReportLock) {
+            if (fatalReported) false else {
+                fatalReported = true
+                true
+            }
         }
+        if (shouldReportFatal) onFatalConnectionLoss(message)
     }
 
     private suspend fun closeResources(sendFinalZero: Boolean) {
-        if (closed) return
-        closed = true
-        healthJob?.cancel()
-        telemetryJob?.cancel()
-        rcLoop.shutdown(sendFinalZero)
-        transport.close()
+        resourceCloseMutex.withLock {
+            if (closed) return@withLock
+            closed = true
+            takeoffAcknowledged = false
+            landingAcknowledged = false
+            requireManualNeutral()
+            healthJob?.cancel()
+            telemetryJob?.cancel()
+            rcLoop.shutdown(sendFinalZero)
+            transport.close()
+        }
     }
 
     private fun invalid(message: String) {
-        mutableState.value = mutableState.value.copy(lastMessage = message)
+        mutableState.update { it.copy(lastMessage = message) }
     }
 
     private fun DroneSessionState.canTakeOff() =
         connection == DroneConnectionState.Connected && flight == FlightState.Grounded && telemetry.isFresh
+
+    private fun TelloTelemetry.isVerifiedGrounded(): Boolean =
+        heightMeters?.let { it.isFinite() && it >= 0f && it <= GROUNDED_HEIGHT_THRESHOLD_METERS } == true
+
+    private fun TelloTelemetry.isVerifiedAirborne(): Boolean =
+        heightMeters?.let { it.isFinite() && it > GROUNDED_HEIGHT_THRESHOLD_METERS } == true
+
+    private fun requireManualNeutral() = synchronized(manualInputLock) { manualInputRequiresNeutral = true }
+
+    private fun requiresNeutralInput(vector: ManualControlVector): Boolean = synchronized(manualInputLock) {
+        if (!manualInputRequiresNeutral) false
+        else if (vector.isZero()) {
+            manualInputRequiresNeutral = false
+            false
+        } else true
+    }
 
     private fun TelloTelemetry.asSnapshot(isFresh: Boolean) = TelemetrySnapshot(
         batteryPercent = batteryPercent,

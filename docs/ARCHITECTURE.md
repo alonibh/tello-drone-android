@@ -33,8 +33,10 @@ a zero vector is not blocked behind a long takeoff/landing response wait. All so
 IO dispatcher.
 
 A real connection is not reported until both `command` mode returns `ok` and a real state packet
-has arrived. Takeoff/land transition through `TakingOff`/`Landing` and complete only on an SDK
-acknowledgement. A timeout or socket failure makes the result uncertain: connection becomes
+has arrived. It is Grounded only when that packet includes a finite, non-negative height at or
+below 0.20 m; absent, malformed, or otherwise invalid height remains Unknown. Takeoff/land enter
+`TakingOff`/`Landing` on command submission, require their SDK acknowledgement, and complete only
+after a later valid height sample verifies airborne/grounded state. A timeout or socket failure makes the result uncertain: connection becomes
 `Error`, flight becomes `Unknown`, controls are inhibited, resources are closed, and there is no
 automatic reconnect. A normal disconnect is allowed only when grounded (or after terminal
 Emergency cleanup); users must explicitly land first.
@@ -48,12 +50,14 @@ desired vector and refresh it every 100 ms. The service stamps each publication 
 timestamp and accepts it for 250 ms. Each normalized axis is clamped to `-1..1`; the selected
 manual magnitude is limited to 10–40 Tello RC units.
 
-If refreshes stop for any reason, the next RC cycle sends zero. Releasing any control immediately
+If refreshes stop for any reason, the next RC cycle sends zero. The 250 ms TTL expires at its exact
+boundary. Releasing any control immediately
 publishes the combined vector with that axis zeroed; releasing the final axis sends all zero.
 Screen disposal also publishes zero. These are conveniences—the service TTL is the independent
 backstop when UI/lifecycle delivery fails.
 
-**STOP / HOVER** clears the desired vector, immediately sends `rc 0 0 0 0`, cancels non-manual
+**STOP / HOVER** clears the desired vector, serializes its immediate `rc 0 0 0 0` after any
+already-started packet, and prevents a selected non-zero vector from being sent afterwards. It cancels non-manual
 authority state, and keeps `Flying`. It never sends `emergency`.
 
 **EMERGENCY MOTOR KILL** first sends zero, locks the RC loop, sends the real Tello `emergency`
@@ -72,7 +76,8 @@ Every sample has wall-clock and monotonic receipt timestamps. Exact Phase 2 heal
   zero is attempted, non-zero RC output is inhibited, and flight controls requiring freshness are
   disabled.
 - If telemetry resumes before terminal loss, it becomes fresh again, but the old movement does
-  not resume because the desired vector was cleared and its TTL expired.
+  not resume because the desired vector was cleared and a neutral input is required before another
+  non-zero vector is accepted.
 - At 4.0 seconds without telemetry, the connection becomes `Error`, flight becomes `Unknown`, a
   final zero is attempted, sockets/network callbacks are released, the foreground session ends,
   and no reconnect is attempted.

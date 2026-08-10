@@ -28,4 +28,17 @@ class TelloTelemetryParserTest {
         assertEquals(.2f, sample.heightMeters)
         assertNull(TelloTelemetryParser.parse("not-state", receivedAtMonotonicMillis = 1))
     }
+
+    @Test fun `rejects unrecognized packets and preserves invalid fields as unknown`() {
+        assertNull(TelloTelemetryParser.parse("unexpected:1;", receivedAtMonotonicMillis = 1))
+
+        val sample = TelloTelemetryParser.parse(
+            "h:-1;time:-4;templ:NaN;temph:Infinity;bat:101;",
+            receivedAtMonotonicMillis = 1,
+        )!!
+        assertNull(sample.heightMeters)
+        assertNull(sample.flightTimeSeconds)
+        assertNull(sample.temperatureCelsius)
+        assertNull(sample.batteryPercent)
+    }
 }

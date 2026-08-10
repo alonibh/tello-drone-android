@@ -32,7 +32,7 @@ object TelloTelemetryParser {
                 else item.substring(0, separator) to item.substring(separator + 1)
             }
             .toMap()
-        if (fields.isEmpty()) return null
+        if (fields.keys.none { it in KNOWN_STATE_FIELDS }) return null
 
         val velocityX = fields["vgx"]?.toIntOrNull()
         val velocityY = fields["vgy"]?.toIntOrNull()
@@ -44,8 +44,8 @@ object TelloTelemetryParser {
                     velocityZ.toDouble() * velocityZ,
             ).toFloat() / 100f
         } else null
-        val lowTemperature = fields["templ"]?.toFloatOrNull()
-        val highTemperature = fields["temph"]?.toFloatOrNull()
+        val lowTemperature = fields["templ"]?.toFiniteFloatOrNull()
+        val highTemperature = fields["temph"]?.toFiniteFloatOrNull()
         val temperature = when {
             lowTemperature != null && highTemperature != null -> (lowTemperature + highTemperature) / 2f
             lowTemperature != null -> lowTemperature
@@ -54,8 +54,8 @@ object TelloTelemetryParser {
 
         return TelloTelemetry(
             batteryPercent = fields["bat"]?.toIntOrNull()?.takeIf { it in 0..100 },
-            heightMeters = fields["h"]?.toFloatOrNull()?.div(100f),
-            flightTimeSeconds = fields["time"]?.toIntOrNull(),
+            heightMeters = fields["h"]?.toNonNegativeIntOrNull()?.div(100f),
+            flightTimeSeconds = fields["time"]?.toNonNegativeIntOrNull(),
             temperatureCelsius = temperature,
             velocityXCentimetersPerSecond = velocityX,
             velocityYCentimetersPerSecond = velocityY,
@@ -66,6 +66,14 @@ object TelloTelemetryParser {
             fields = fields,
         )
     }
+
+    private fun String.toFiniteFloatOrNull(): Float? = toFloatOrNull()?.takeIf { it.isFinite() }
+
+    private fun String.toNonNegativeIntOrNull(): Int? = toIntOrNull()?.takeIf { it >= 0 }
+
+    private val KNOWN_STATE_FIELDS = setOf(
+        "bat", "h", "time", "templ", "temph", "vgx", "vgy", "vgz",
+    )
 }
 
 data class RcVector(val lateral: Int = 0, val forward: Int = 0, val vertical: Int = 0, val yaw: Int = 0) {
