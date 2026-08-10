@@ -1,6 +1,21 @@
 # Phase 2 physical validation
 
-Use a propeller guard, a fully charged tablet and Tello, and an open indoor area free of people,
+## Completed grounded checkpoint
+
+The following connection-only validation passed on real hardware: **Xiaomi Mi A1**, **Android 9 / API 28**.
+
+- Manual connection to the `TELLO-` Wi-Fi network.
+- App detection of the connected Wi-Fi `Network`.
+- Explicit Tello connection / SDK handshake.
+- Grounded telemetry reception that remained fresh for at least 30 seconds.
+- Correct `Grounded` state reporting.
+- Safe disconnect.
+
+This checkpoint does **not** physically verify takeoff, landing, RC movement, STOP/HOVER,
+connection-loss handling, Emergency Motor Kill, or video. Those remain unverified and must follow
+the staged procedure below.
+
+Use a propeller guard, a fully charged phone or tablet and Tello, and an open indoor area free of people,
 pets, loose objects, mirrors, fans, and ceiling hazards. Keep the Tello on the floor for steps 1–2.
 Begin flight steps at 10% speed. Keep a second person ready to catch hazards by clearing the area,
 not by grabbing a powered aircraft.
