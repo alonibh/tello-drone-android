@@ -1,19 +1,15 @@
 # Phase 2 physical validation
 
-## Completed grounded checkpoint
+## Grounded validation status
 
-The following connection-only validation passed on real hardware: **Xiaomi Mi A1**, **Android 9 / API 28**.
+- **Blaupunkt BP_6010 tablet:** grounded Tello SDK connection and telemetry passed. No flight
+  validation has been performed.
+- **Xiaomi Mi A1, Android 9 / API 28:** manual TELLO Wi-Fi selection and app `Network` detection
+  work, and telemetry packets containing battery and height were received. The SDK command-mode
+  acknowledgement timed out, so grounded validation **failed and remains pending**.
 
-- Manual connection to the `TELLO-` Wi-Fi network.
-- App detection of the connected Wi-Fi `Network`.
-- Explicit Tello connection / SDK handshake.
-- Grounded telemetry reception that remained fresh for at least 30 seconds.
-- Correct `Grounded` state reporting.
-- Safe disconnect.
-
-This checkpoint does **not** physically verify takeoff, landing, RC movement, STOP/HOVER,
-connection-loss handling, Emergency Motor Kill, or video. Those remain unverified and must follow
-the staged procedure below.
+Takeoff, landing, RC movement, STOP/HOVER, connection-loss handling, Emergency Motor Kill, and
+video are not physically verified on either device.
 
 Use a propeller guard, a fully charged phone or tablet and Tello, and an open indoor area free of people,
 pets, loose objects, mirrors, fans, and ceiling hazards. Keep the Tello on the floor for steps 1–2.

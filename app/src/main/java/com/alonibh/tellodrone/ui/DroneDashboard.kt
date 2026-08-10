@@ -153,7 +153,7 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
                 if (destination == "Dashboard") {
                     Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         VideoPanel(state, Modifier.weight(1f).fillMaxHeight())
-                        RightControls(state, vm, Modifier.width(274.dp).fillMaxHeight())
+                        RightControls(state, vm, Modifier.widthIn(min = 300.dp, max = 420.dp).fillMaxHeight())
                     }
                     BottomControls(state, vm)
                 } else DestinationPlaceholder(destination, Modifier.fillMaxSize())
@@ -262,6 +262,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
     val active = state.connection == DroneConnectionState.Connected
     val transition = state.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.AwaitingPermission)
     val unsafeDisconnect = active && state.flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
     OutlinedButton(
         onClick = if (active) vm::disconnect else vm::connect,
         enabled = !transition && !unsafeDisconnect,
@@ -286,6 +287,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
             modifier = Modifier.testTag("open_wifi_settings"),
         ) { Text("OPEN WI-FI SETTINGS", fontSize = 10.sp) }
         state.lastMessage?.let { Text(it, color = TelloTextMuted, fontSize = 10.sp, textAlign = TextAlign.Center) }
+    }
     }
 }
 
@@ -334,10 +336,36 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
 @Composable private fun RightControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) { item { CriticalFlightControls(state, vm) }; item { TrackingControls(state, vm) }; item { MediaControls() }; item { StatusPanel(state) } }
 @Composable private fun ControlCard(title: String, content: @Composable ColumnScope.() -> Unit) = Card(colors = CardDefaults.cardColors(containerColor = TelloPanel), shape = panelShape) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Text(title, color = TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Medium); content() } }
 
-@Composable private fun CriticalFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT CONTROLS") { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { ActionButton("TAKE OFF", Icons.Default.ArrowUpward, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded && state.telemetry.isFresh, vm::takeOff, Modifier.weight(1f)); OutlineAction("LAND", Icons.Default.ArrowDownward, state.connection == DroneConnectionState.Connected && state.flight in setOf(FlightState.Flying, FlightState.Unknown), vm::land, Modifier.weight(1f)) }; OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying, vm::stopAndHover, Modifier.fillMaxWidth().testTag("stop_hover")) }
+@Composable private fun CriticalFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT CONTROLS") {
+    AdaptiveActionPair(
+        { ActionButton("TAKE OFF", Icons.Default.ArrowUpward, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded && state.telemetry.isFresh, vm::takeOff, Modifier.fillMaxWidth()) },
+        { OutlineAction("LAND", Icons.Default.ArrowDownward, state.connection == DroneConnectionState.Connected && state.flight in setOf(FlightState.Flying, FlightState.Unknown), vm::land, Modifier.fillMaxWidth()) },
+    )
+    OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying, vm::stopAndHover, Modifier.fillMaxWidth().testTag("stop_hover"))
+}
 
-@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("TRACKING • PHASE 3+") { val mock = state.controllerMode == ControllerMode.Mock; ActionButton("DETECT PERSON", Icons.Default.PersonSearch, mock && state.connection == DroneConnectionState.Connected, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly); Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { OutlineAction("TARGET LOCK", Icons.Default.Lock, mock && state.flight == FlightState.Flying && state.target != null, { vm.setTargetLock(state.target?.locked != true) }, Modifier.weight(1f), active = state.target?.locked == true); ActionButton("FOLLOW", Icons.Default.PlayArrow, mock && state.flight == FlightState.Flying && state.target?.locked == true, { vm.setTrackingMode(TrackingMode.Follow) }, Modifier.weight(1f), active = state.tracking == TrackingMode.Follow) }; if (!mock) Text("Unavailable for real flight in Phase 2; authority remains Manual", color = TelloTextMuted, fontSize = 11.sp) }
-@Composable private fun MediaControls() = ControlCard("MEDIA") { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { OutlineAction("RECORD", Icons.Default.Videocam, false, {}, Modifier.weight(1f)); OutlineAction("TAKE PHOTO", Icons.Default.CameraAlt, false, {}, Modifier.weight(1f)) }; Text("Available in a future media phase", color = TelloTextMuted, fontSize = 11.sp) }
+@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("TRACKING • PHASE 3+") {
+    val mock = state.controllerMode == ControllerMode.Mock
+    ActionButton("DETECT PERSON", Icons.Default.PersonSearch, mock && state.connection == DroneConnectionState.Connected, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly)
+    AdaptiveActionPair(
+        { OutlineAction("TARGET LOCK", Icons.Default.Lock, mock && state.flight == FlightState.Flying && state.target != null, { vm.setTargetLock(state.target?.locked != true) }, Modifier.fillMaxWidth(), active = state.target?.locked == true) },
+        { ActionButton("FOLLOW", Icons.Default.PlayArrow, mock && state.flight == FlightState.Flying && state.target?.locked == true, { vm.setTrackingMode(TrackingMode.Follow) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.Follow) },
+    )
+    if (!mock) Text("Unavailable for real flight in Phase 2; authority remains Manual", color = TelloTextMuted, fontSize = 11.sp)
+}
+@Composable private fun MediaControls() = ControlCard("MEDIA") {
+    AdaptiveActionPair(
+        { OutlineAction("RECORD", Icons.Default.Videocam, false, {}, Modifier.fillMaxWidth()) },
+        { OutlineAction("TAKE PHOTO", Icons.Default.CameraAlt, false, {}, Modifier.fillMaxWidth()) },
+    )
+    Text("Available in a future media phase", color = TelloTextMuted, fontSize = 11.sp)
+}
+
+@Composable
+private fun AdaptiveActionPair(first: @Composable () -> Unit, second: @Composable () -> Unit) = BoxWithConstraints {
+    if (maxWidth < 340.dp) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { first(); second() }
+    else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Box(Modifier.weight(1f)) { first() }; Box(Modifier.weight(1f)) { second() } }
+}
 
 @Composable private fun StatusPanel(state: DroneSessionState) = ControlCard("STATUS") { StatusLine("Battery", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }, if (state.telemetry.isFresh) TelloGreen else TelloTextMuted); StatusLine("Temperature", telemetryValue(state) { it.temperatureCelsius?.let { value -> "%.0f°C".format(value) } }); StatusLine("Velocity X/Y/Z", telemetryValue(state) { telemetry -> listOf(telemetry.velocityXCentimetersPerSecond, telemetry.velocityYCentimetersPerSecond, telemetry.velocityZCentimetersPerSecond).takeIf { values -> values.all { it != null } }?.joinToString(" / ") { "${it}cm/s" } }); StatusLine("Network", state.networkSelection.name); StatusLine("Connection", connectionLabel(state.connection)); StatusLine("Flight", state.flight.name); state.lastMessage?.let { Text(it, color = if (state.connection == DroneConnectionState.Error) TelloRed else TelloTextMuted, fontSize = 11.sp) } }
 @Composable private fun StatusLine(label: String, value: String, color: Color = Color.White) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = TelloTextMuted, fontSize = 13.sp); Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
@@ -406,8 +434,8 @@ private fun HoldCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector
     ) { Icon(icon, null, tint = if (enabled) Color.White else TelloTextMuted) }
 }
 
-@Composable private fun ActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false) = Button(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = 48.dp).testTag(label.lowercase().replace(' ', '_')), colors = ButtonDefaults.buttonColors(containerColor = if (active) TelloGreenDark else TelloGreen, disabledContainerColor = TelloLine.copy(alpha = .55f), disabledContentColor = TelloTextMuted)) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(label, fontSize = 12.sp) }
-@Composable private fun OutlineAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false) = OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = 48.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (active) TelloGreen else TelloLine)) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(label, fontSize = 12.sp, textAlign = TextAlign.Center) }
+@Composable private fun ActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false) = Button(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = 48.dp).testTag(label.lowercase().replace(' ', '_')), colors = ButtonDefaults.buttonColors(containerColor = if (active) TelloGreenDark else TelloGreen, disabledContainerColor = TelloLine.copy(alpha = .55f), disabledContentColor = TelloTextMuted)) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(label, fontSize = 12.sp, maxLines = 1) }
+@Composable private fun OutlineAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false) = OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = 48.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (active) TelloGreen else TelloLine)) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(label, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 1) }
 
 @Composable
 private fun EmergencyHoldButton(enabled: Boolean, onTriggered: () -> Unit, modifier: Modifier = Modifier) {
@@ -433,6 +461,8 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
 @Composable private fun ExpandedGroundedPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected))
 @Preview(name = "Portrait – disconnected", widthDp = 420, heightDp = 900)
 @Composable private fun PortraitDisconnectedPreview() = PreviewDashboard(DroneSessionState())
+@Preview(name = "Mi A1 phone portrait", widthDp = 393, heightDp = 786)
+@Composable private fun MiA1PortraitPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Grounded))
 @Preview(name = "Compact-height phone landscape", widthDp = 800, heightDp = 360)
 @Composable private fun CompactLandscapePreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
 @Preview(name = "Medium window", widthDp = 700, heightDp = 800)

@@ -11,6 +11,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TelloCommandTransportTest {
+    @Test fun `Tello control endpoint uses the SDK reply port locally`() {
+        assertEquals(NetworkTelloTransport.COMMAND_PORT, NetworkTelloTransport.CONTROL_LOCAL_PORT)
+    }
+
     @Test fun `blocking commands are serialized`() = runTest {
         val endpoint = FakeEndpoint()
         val transport = SerializedTelloCommandTransport(endpoint)

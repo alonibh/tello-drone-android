@@ -60,7 +60,7 @@ class NetworkTelloTransport(
 ) : TelloTransport {
     private val commandEndpoint = NetworkDatagramEndpoint(
         network = network,
-        localPort = 0,
+        localPort = CONTROL_LOCAL_PORT,
         remoteAddress = InetSocketAddress(InetAddress.getByName(TELLO_IP), COMMAND_PORT),
         dispatcher = dispatcher,
     )
@@ -101,6 +101,8 @@ class NetworkTelloTransport(
     companion object {
         const val TELLO_IP = "192.168.10.1"
         const val COMMAND_PORT = 8_889
+        /** Tello SDK commands and acknowledgements share UDP port 8889. */
+        const val CONTROL_LOCAL_PORT = COMMAND_PORT
         const val STATE_PORT = 8_890
     }
 }

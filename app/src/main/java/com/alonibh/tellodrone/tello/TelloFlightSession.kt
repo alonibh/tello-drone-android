@@ -434,7 +434,7 @@ class TelloFlightSession(
     private fun TelloCommandResult.description(): String = when (this) {
         is TelloCommandResult.Success -> response
         is TelloCommandResult.Rejected -> response.ifBlank { "rejected" }
-        TelloCommandResult.Timeout -> "timed out"
+        TelloCommandResult.Timeout -> "response timed out"
         is TelloCommandResult.Failure -> cause.safeMessage()
     }
 
