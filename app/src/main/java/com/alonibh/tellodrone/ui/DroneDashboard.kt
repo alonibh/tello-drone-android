@@ -10,6 +10,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -126,8 +127,6 @@ private val compactCardPadding = 10.dp
 private val standardCardPadding = 12.dp
 private val actionHeight = 48.dp
 private val compactActionHeight = 44.dp
-private val controlCircleDiameter = 46.dp
-private val compactControlCircleDiameter = 42.dp
 private val sectionSpacing = 10.dp
 
 @Composable
@@ -392,99 +391,88 @@ private fun AdaptiveActionPair(first: @Composable () -> Unit, second: @Composabl
 @Composable private fun StatusLine(label: String, value: String, color: Color = Color.White) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = TelloTextMuted, fontSize = 13.sp); Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
 
 @Composable
-private fun BottomControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL") {
-    val enabled = state.connection == DroneConnectionState.Connected &&
-        state.flight == FlightState.Flying &&
-        (state.controllerMode == ControllerMode.Mock || state.telemetry.isFresh)
-    var desired by remember { mutableStateOf(ManualControlVector()) }
-    fun publish(next: ManualControlVector) {
-        desired = next
-        vm.setManualVector(next)
-    }
-    DisposableEffect(enabled) {
-        onDispose {
-            if (enabled) vm.setManualVector(ManualControlVector())
-        }
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Joystick(
-            enabled,
-            onLateral = { publish(desired.copy(lateral = it)) },
-            onForward = { publish(desired.copy(forward = it)) },
-            heartbeat = { vm.setManualVector(desired) },
-            modifier = Modifier.weight(1f),
-        )
-        AxisControls(enabled, { publish(desired.copy(vertical = it)) }, { vm.setManualVector(desired) }, Modifier.weight(1f))
-        YawControls(enabled, { publish(desired.copy(yaw = it)) }, { vm.setManualVector(desired) }, Modifier.weight(1f))
-        SpeedControl(state, vm, Modifier.weight(1f))
-    }
-}
+private fun BottomControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL") { ManualControlPanel(state, vm) }
 
 @Composable
-private fun CompactLandscapeManualControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL", compact = true) {
+private fun CompactLandscapeManualControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL", compact = true) { ManualControlPanel(state, vm, compact = true) }
+
+@Composable
+private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, compact: Boolean = false) {
     val enabled = state.connection == DroneConnectionState.Connected &&
         state.flight == FlightState.Flying &&
         (state.controllerMode == ControllerMode.Mock || state.telemetry.isFresh)
-    var desired by remember { mutableStateOf(ManualControlVector()) }
-    fun publish(next: ManualControlVector) {
-        desired = next
-        vm.setManualVector(next)
+    var leftStick by remember { mutableStateOf(JoystickVector()) }
+    var rightStick by remember { mutableStateOf(JoystickVector()) }
+    fun publish() {
+        vm.setManualVector(manualVectorFromSticks(leftStick, rightStick))
     }
     DisposableEffect(enabled) {
         onDispose { if (enabled) vm.setManualVector(ManualControlVector()) }
     }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        CompactJoystick(
-            enabled,
-            onLateral = { publish(desired.copy(lateral = it)) },
-            onForward = { publish(desired.copy(forward = it)) },
-            heartbeat = { vm.setManualVector(desired) },
-            modifier = Modifier.weight(1.25f),
-        )
-        CompactAxisControls(enabled, { publish(desired.copy(vertical = it)) }, { vm.setManualVector(desired) }, Modifier.weight(.8f))
-        CompactYawControls(enabled, { publish(desired.copy(yaw = it)) }, { vm.setManualVector(desired) }, Modifier.weight(.8f))
-        CompactSpeedControl(state, vm, Modifier.weight(1f))
+    val stickDiameter = if (compact) 112.dp else 156.dp
+    BoxWithConstraints {
+        val sticks: @Composable () -> Unit = {
+            VirtualJoystick("ALTITUDE / YAW", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
+            VirtualJoystick("DIRECTION", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
+        }
+        if (maxWidth < 520.dp && !compact) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(sectionSpacing), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(horizontalArrangement = Arrangement.spacedBy(sectionSpacing)) { sticks() }
+                SpeedControl(state, vm, Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                sticks()
+                SpeedControl(state, vm, Modifier.weight(1f))
+            }
+        }
     }
 }
 
-@Composable private fun Joystick(enabled: Boolean, onLateral: (Float) -> Unit, onForward: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("DIRECTION", fontSize = 11.sp, color = TelloTextMuted); Row(verticalAlignment = Alignment.CenterVertically) { HoldCircleIcon(Icons.AutoMirrored.Filled.ArrowBack, enabled, -1f, onLateral, heartbeat); Column(horizontalAlignment = Alignment.CenterHorizontally) { HoldCircleIcon(Icons.Default.KeyboardArrowUp, enabled, 1f, onForward, heartbeat); HoldCircleIcon(Icons.Default.KeyboardArrowDown, enabled, -1f, onForward, heartbeat) }; HoldCircleIcon(Icons.AutoMirrored.Filled.ArrowForward, enabled, 1f, onLateral, heartbeat) } }
-@Composable private fun AxisControls(enabled: Boolean, onAxis: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("ALTITUDE", fontSize = 11.sp, color = TelloTextMuted); Row { HoldCircleIcon(Icons.Default.ArrowUpward, enabled, 1f, onAxis, heartbeat); HoldCircleIcon(Icons.Default.ArrowDownward, enabled, -1f, onAxis, heartbeat) } }
-@Composable private fun YawControls(enabled: Boolean, onAxis: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("ROTATE / YAW", fontSize = 11.sp, color = TelloTextMuted); Row { HoldCircleIcon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, enabled, -1f, onAxis, heartbeat); HoldCircleIcon(Icons.AutoMirrored.Filled.KeyboardArrowRight, enabled, 1f, onAxis, heartbeat) } }
 @Composable private fun SpeedControl(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = Column(modifier) { Text("SPEED  ${state.speedPercent}%", color = TelloGreen, fontWeight = FontWeight.Medium); Slider(value = state.speedPercent.toFloat(), onValueChange = { vm.setSpeed(it.roundToInt()) }, valueRange = 10f..40f); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("10%", fontSize = 11.sp, color = TelloTextMuted); Text("40% max", fontSize = 11.sp, color = TelloTextMuted) } }
 
-@Composable private fun CompactJoystick(enabled: Boolean, onLateral: (Float) -> Unit, onForward: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("DIRECTION", fontSize = 10.sp, color = TelloTextMuted); Row(verticalAlignment = Alignment.CenterVertically) { HoldCircleIcon(Icons.AutoMirrored.Filled.ArrowBack, enabled, -1f, onLateral, heartbeat, compactControlCircleDiameter); Column(horizontalAlignment = Alignment.CenterHorizontally) { HoldCircleIcon(Icons.Default.KeyboardArrowUp, enabled, 1f, onForward, heartbeat, compactControlCircleDiameter); HoldCircleIcon(Icons.Default.KeyboardArrowDown, enabled, -1f, onForward, heartbeat, compactControlCircleDiameter) }; HoldCircleIcon(Icons.AutoMirrored.Filled.ArrowForward, enabled, 1f, onLateral, heartbeat, compactControlCircleDiameter) } }
-@Composable private fun CompactAxisControls(enabled: Boolean, onAxis: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("ALT", fontSize = 10.sp, color = TelloTextMuted); Row { HoldCircleIcon(Icons.Default.ArrowUpward, enabled, 1f, onAxis, heartbeat, compactControlCircleDiameter); HoldCircleIcon(Icons.Default.ArrowDownward, enabled, -1f, onAxis, heartbeat, compactControlCircleDiameter) } }
-@Composable private fun CompactYawControls(enabled: Boolean, onAxis: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("YAW", fontSize = 10.sp, color = TelloTextMuted); Row { HoldCircleIcon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, enabled, -1f, onAxis, heartbeat, compactControlCircleDiameter); HoldCircleIcon(Icons.AutoMirrored.Filled.KeyboardArrowRight, enabled, 1f, onAxis, heartbeat, compactControlCircleDiameter) } }
-@Composable private fun CompactSpeedControl(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = Column(modifier) { Text("SPEED ${state.speedPercent}%", color = TelloGreen, fontSize = 11.sp, fontWeight = FontWeight.Medium); Slider(value = state.speedPercent.toFloat(), onValueChange = { vm.setSpeed(it.roundToInt()) }, valueRange = 10f..40f); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("10", fontSize = 10.sp, color = TelloTextMuted); Text("40%", fontSize = 10.sp, color = TelloTextMuted) } }
-
 @Composable
-private fun HoldCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, activeValue: Float, onAxis: (Float) -> Unit, heartbeat: () -> Unit, diameter: Dp = controlCircleDiameter) {
-    val currentOnAxis by rememberUpdatedState(onAxis)
-    val currentHeartbeat by rememberUpdatedState(heartbeat)
-    DisposableEffect(Unit) { onDispose { currentOnAxis(0f) } }
-    Box(
-        Modifier
-            .size(diameter)
-            .border(1.dp, TelloLine, CircleShape)
-            .pointerInput(enabled) {
-                detectTapGestures(onPress = {
-                    if (enabled) coroutineScope {
-                        currentOnAxis(activeValue)
-                        val heartbeatJob = launch {
-                            while (true) {
-                                delay(MANUAL_HEARTBEAT_MILLIS)
-                                currentHeartbeat()
-                            }
-                        }
-                        try { tryAwaitRelease() } finally {
-                            heartbeatJob.cancel()
-                            currentOnAxis(0f)
-                        }
+private fun VirtualJoystick(label: String, value: JoystickVector, enabled: Boolean, diameter: Dp, onVector: (JoystickVector) -> Unit, onHeartbeat: () -> Unit, onReleased: () -> Unit) {
+    val currentVector by rememberUpdatedState(onVector)
+    val currentHeartbeat by rememberUpdatedState(onHeartbeat)
+    val currentReleased by rememberUpdatedState(onReleased)
+    val activeColor = if (enabled) TelloGreen else TelloLine
+    DisposableEffect(Unit) { onDispose { currentReleased() } }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 11.sp, color = TelloTextMuted)
+        Canvas(
+            Modifier.size(diameter).pointerInput(enabled) {
+                coroutineScope {
+                    var heartbeatJob: kotlinx.coroutines.Job? = null
+                    fun update(position: Offset) {
+                        val radius = size.width / 2f
+                        currentVector(normalizedJoystickVector((position.x - radius) / radius, (radius - position.y) / radius))
                     }
-                })
+                    detectDragGestures(
+                        onDragStart = { position ->
+                            if (enabled) {
+                                update(position)
+                                heartbeatJob = launch { while (true) { delay(MANUAL_HEARTBEAT_MILLIS); currentHeartbeat() } }
+                            }
+                        },
+                        onDrag = { change, _ -> if (enabled) { change.consume(); update(change.position) } },
+                        onDragEnd = { heartbeatJob?.cancel(); currentReleased() },
+                        onDragCancel = { heartbeatJob?.cancel(); currentReleased() },
+                    )
+                }
             },
-        contentAlignment = Alignment.Center,
-    ) { Icon(icon, null, tint = if (enabled) Color.White else TelloTextMuted) }
+        ) {
+            val radius = size.minDimension / 2f
+            val center = Offset(size.width / 2f, size.height / 2f)
+            drawCircle(TelloPanelRaised, radius, center)
+            drawCircle(activeColor.copy(alpha = if (value == JoystickVector()) .65f else 1f), radius, center, style = Stroke(width = 3.dp.toPx()))
+            drawLine(TelloLine, Offset(center.x - radius * .65f, center.y), Offset(center.x + radius * .65f, center.y), strokeWidth = 1.dp.toPx())
+            drawLine(TelloLine, Offset(center.x, center.y - radius * .65f), Offset(center.x, center.y + radius * .65f), strokeWidth = 1.dp.toPx())
+            val thumb = Offset(center.x + value.horizontal * radius * .68f, center.y - value.vertical * radius * .68f)
+            drawCircle(if (enabled) TelloGreen else TelloTextMuted, radius * .23f, thumb)
+            drawCircle(TelloInk.copy(alpha = .5f), radius * .23f, thumb, style = Stroke(width = 2.dp.toPx()))
+        }
+    }
 }
 
 @Composable private fun ActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = Button(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight).testTag(label.lowercase().replace(' ', '_')), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), colors = ButtonDefaults.buttonColors(containerColor = if (active) TelloGreenDark else TelloGreen, disabledContainerColor = TelloLine.copy(alpha = .55f), disabledContentColor = TelloTextMuted)) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, maxLines = 1) }
