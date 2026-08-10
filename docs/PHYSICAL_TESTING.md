@@ -7,17 +7,18 @@
   adaptive phone UI check all passed. Flight validation remains unverified.
 - **Blaupunkt BP_6010 tablet:** grounded connection / SDK handshake, 30+ seconds of fresh
   telemetry, safe disconnect, adaptive landscape UI check, and Takeoff → immediate Land passed.
-  The state progression behaved correctly. A manual RC test was attempted, but is inconclusive
-  because the arrow controls were too difficult to operate reliably.
+  The state progression behaved correctly. At 10%, right-stick forward/back and lateral movement
+  each released to hover; left-stick altitude and yaw each released to hover; brief movement followed
+  by STOP/HOVER returned to hover; and safe landing passed.
 
-Directional RC movement, altitude/yaw movement, STOP/HOVER, combined controls, connection-loss
-handling, Emergency Motor Kill, video, tracking, and autonomous flight are not physically verified
-on either device.
+Combined-stick control, connection-loss handling, Emergency Motor Kill, video, tracking, and
+autonomous flight are not physically verified. Mi A1 manual flight also remains unverified.
 
 After the dual-joystick update, validate manual movement only at 10% speed: take off; move the right
 stick slightly forward for less than one second; release and confirm hover; repeat laterally; make a
 brief left-stick altitude change, then a brief yaw; make one brief movement and press STOP/HOVER;
-then land. Do not test combined-stick movement until every individual axis passes.
+then land. Individual-axis validation is now complete on the Blaupunkt; combined-stick movement
+remains the next unverified manual-control test. Mi A1 manual flight remains pending.
 
 Use a propeller guard, a fully charged phone or tablet and Tello, and an open indoor area free of people,
 pets, loose objects, mirrors, fans, and ceiling hazards. Keep the Tello on the floor for steps 1–2.
