@@ -32,6 +32,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -119,11 +122,21 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 private val panelShape = RoundedCornerShape(12.dp)
+private val compactCardPadding = 10.dp
+private val standardCardPadding = 12.dp
+private val actionHeight = 48.dp
+private val compactActionHeight = 44.dp
+private val controlCircleDiameter = 46.dp
+private val compactControlCircleDiameter = 42.dp
+private val sectionSpacing = 10.dp
 
 @Composable
 fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier: Modifier = Modifier) {
     var destination by remember { mutableStateOf("Dashboard") }
-    BoxWithConstraints(modifier.fillMaxSize().background(TelloInk).padding(12.dp)) {
+    BoxWithConstraints(
+        modifier.fillMaxSize().background(TelloInk)
+            .windowInsetsPadding(WindowInsets.safeDrawing).padding(12.dp),
+    ) {
         when (windowLayout(maxWidth, maxHeight)) {
             WindowLayout.Expanded -> ExpandedDashboard(state, viewModel, destination) { destination = it }
             WindowLayout.Medium -> MediumDashboard(state, viewModel, destination) { destination = it }
@@ -174,7 +187,7 @@ private fun CompactDashboard(state: DroneSessionState, vm: DroneViewModel, desti
         if (destination == "Dashboard") {
             item { VideoPanel(state, Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 460.dp)) }
             item { CriticalFlightControls(state, vm) }
-            item { TrackingControls(state, vm) }
+            item { CompactFutureControlsNotice() }
             item { BottomControls(state, vm) }
             item { StatusPanel(state) }
             item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
@@ -210,12 +223,11 @@ private fun LandscapeDashboard(state: DroneSessionState, vm: DroneViewModel, des
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 VideoPanel(state, Modifier.weight(1.4f).fillMaxHeight())
                 Column(Modifier.weight(.85f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CriticalFlightControls(state, vm)
+                    LandscapeFlightControls(state, vm)
                     EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth())
-                    CompactNav(destination, onDestination)
                 }
             }
-            BottomControls(state, vm)
+            CompactLandscapeManualControls(state, vm)
         } else {
             CompactNav(destination, onDestination)
             DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
@@ -230,7 +242,7 @@ private fun Header(state: DroneSessionState, vm: DroneViewModel, expanded: Boole
             Brand(state, Modifier.width(205.dp)); HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
             HeaderMetric("HEIGHT", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }); HeaderMetric("SPEED", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } })
             HeaderMetric("FLIGHT TIME", telemetryValue(state) { it.flightTimeSeconds?.let(::formatTime) }); Spacer(Modifier.weight(1f)); ControllerModeSelector(state, vm); ConnectionButton(state, vm); Icon(Icons.Default.Settings, null, tint = TelloTextMuted); Text(" Settings", modifier = Modifier.padding(start = 4.dp))
-        } else Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        } else Column(Modifier.padding(standardCardPadding), verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
             Brand(state); FlowRow(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }); HeaderMetric("HEIGHT", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }); HeaderMetric("SPEED", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } })
             }
@@ -303,7 +315,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
     Text("TELLO DRONE", fontWeight = FontWeight.Bold, fontSize = 20.sp)
     Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(9.dp).clip(CircleShape).background(connectionColor(state.connection))); Spacer(Modifier.width(7.dp)); Text(connectionLabel(state.connection).uppercase(), color = connectionColor(state.connection), fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
 }
-@Composable private fun HeaderMetric(label: String, value: String) = Column(Modifier.padding(horizontal = 12.dp)) { Text(label, fontSize = 11.sp, color = TelloTextMuted); Text(value, fontSize = 19.sp, fontWeight = FontWeight.Medium) }
+@Composable private fun HeaderMetric(label: String, value: String) = Column(Modifier.padding(horizontal = 10.dp)) { Text(label, fontSize = 11.sp, color = TelloTextMuted); Text(value, fontSize = 19.sp, fontWeight = FontWeight.Medium) }
 
 @Composable private fun NavigationRail(state: DroneSessionState, vm: DroneViewModel, destination: String, onDestination: (String) -> Unit, modifier: Modifier = Modifier) = Surface(modifier, shape = panelShape, color = TelloPanel) {
     Column(Modifier.padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -334,7 +346,7 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
 }
 
 @Composable private fun RightControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) { item { CriticalFlightControls(state, vm) }; item { TrackingControls(state, vm) }; item { MediaControls() }; item { StatusPanel(state) } }
-@Composable private fun ControlCard(title: String, content: @Composable ColumnScope.() -> Unit) = Card(colors = CardDefaults.cardColors(containerColor = TelloPanel), shape = panelShape) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { Text(title, color = TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Medium); content() } }
+@Composable private fun ControlCard(title: String, compact: Boolean = false, content: @Composable ColumnScope.() -> Unit) = Card(colors = CardDefaults.cardColors(containerColor = TelloPanel), shape = panelShape) { Column(Modifier.padding(if (compact) compactCardPadding else standardCardPadding), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else sectionSpacing)) { Text(title, color = TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Medium); content() } }
 
 @Composable private fun CriticalFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT CONTROLS") {
     AdaptiveActionPair(
@@ -342,6 +354,14 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
         { OutlineAction("LAND", Icons.Default.ArrowDownward, state.connection == DroneConnectionState.Connected && state.flight in setOf(FlightState.Flying, FlightState.Unknown), vm::land, Modifier.fillMaxWidth()) },
     )
     OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying, vm::stopAndHover, Modifier.fillMaxWidth().testTag("stop_hover"))
+}
+
+@Composable private fun LandscapeFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT", compact = true) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ActionButton("TAKE OFF", Icons.Default.ArrowUpward, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded && state.telemetry.isFresh, vm::takeOff, Modifier.weight(1f), compact = true)
+        OutlineAction("LAND", Icons.Default.ArrowDownward, state.connection == DroneConnectionState.Connected && state.flight in setOf(FlightState.Flying, FlightState.Unknown), vm::land, Modifier.weight(1f), compact = true)
+    }
+    OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying, vm::stopAndHover, Modifier.fillMaxWidth().testTag("stop_hover"), compact = true)
 }
 
 @Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("TRACKING • PHASE 3+") {
@@ -360,6 +380,7 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
     )
     Text("Available in a future media phase", color = TelloTextMuted, fontSize = 11.sp)
 }
+@Composable private fun CompactFutureControlsNotice() = Surface(color = TelloPanel, shape = panelShape, modifier = Modifier.fillMaxWidth()) { Text("Tracking and media controls remain available from the navigation bar.", modifier = Modifier.padding(compactCardPadding), color = TelloTextMuted, fontSize = 11.sp) }
 
 @Composable
 private fun AdaptiveActionPair(first: @Composable () -> Unit, second: @Composable () -> Unit) = BoxWithConstraints {
@@ -399,19 +420,51 @@ private fun BottomControls(state: DroneSessionState, vm: DroneViewModel) = Contr
     }
 }
 
+@Composable
+private fun CompactLandscapeManualControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL", compact = true) {
+    val enabled = state.connection == DroneConnectionState.Connected &&
+        state.flight == FlightState.Flying &&
+        (state.controllerMode == ControllerMode.Mock || state.telemetry.isFresh)
+    var desired by remember { mutableStateOf(ManualControlVector()) }
+    fun publish(next: ManualControlVector) {
+        desired = next
+        vm.setManualVector(next)
+    }
+    DisposableEffect(enabled) {
+        onDispose { if (enabled) vm.setManualVector(ManualControlVector()) }
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        CompactJoystick(
+            enabled,
+            onLateral = { publish(desired.copy(lateral = it)) },
+            onForward = { publish(desired.copy(forward = it)) },
+            heartbeat = { vm.setManualVector(desired) },
+            modifier = Modifier.weight(1.25f),
+        )
+        CompactAxisControls(enabled, { publish(desired.copy(vertical = it)) }, { vm.setManualVector(desired) }, Modifier.weight(.8f))
+        CompactYawControls(enabled, { publish(desired.copy(yaw = it)) }, { vm.setManualVector(desired) }, Modifier.weight(.8f))
+        CompactSpeedControl(state, vm, Modifier.weight(1f))
+    }
+}
+
 @Composable private fun Joystick(enabled: Boolean, onLateral: (Float) -> Unit, onForward: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("DIRECTION", fontSize = 11.sp, color = TelloTextMuted); Row(verticalAlignment = Alignment.CenterVertically) { HoldCircleIcon(Icons.AutoMirrored.Filled.ArrowBack, enabled, -1f, onLateral, heartbeat); Column(horizontalAlignment = Alignment.CenterHorizontally) { HoldCircleIcon(Icons.Default.KeyboardArrowUp, enabled, 1f, onForward, heartbeat); HoldCircleIcon(Icons.Default.KeyboardArrowDown, enabled, -1f, onForward, heartbeat) }; HoldCircleIcon(Icons.AutoMirrored.Filled.ArrowForward, enabled, 1f, onLateral, heartbeat) } }
 @Composable private fun AxisControls(enabled: Boolean, onAxis: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("ALTITUDE", fontSize = 11.sp, color = TelloTextMuted); Row { HoldCircleIcon(Icons.Default.ArrowUpward, enabled, 1f, onAxis, heartbeat); HoldCircleIcon(Icons.Default.ArrowDownward, enabled, -1f, onAxis, heartbeat) } }
 @Composable private fun YawControls(enabled: Boolean, onAxis: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("ROTATE / YAW", fontSize = 11.sp, color = TelloTextMuted); Row { HoldCircleIcon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, enabled, -1f, onAxis, heartbeat); HoldCircleIcon(Icons.AutoMirrored.Filled.KeyboardArrowRight, enabled, 1f, onAxis, heartbeat) } }
 @Composable private fun SpeedControl(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = Column(modifier) { Text("SPEED  ${state.speedPercent}%", color = TelloGreen, fontWeight = FontWeight.Medium); Slider(value = state.speedPercent.toFloat(), onValueChange = { vm.setSpeed(it.roundToInt()) }, valueRange = 10f..40f); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("10%", fontSize = 11.sp, color = TelloTextMuted); Text("40% max", fontSize = 11.sp, color = TelloTextMuted) } }
 
+@Composable private fun CompactJoystick(enabled: Boolean, onLateral: (Float) -> Unit, onForward: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("DIRECTION", fontSize = 10.sp, color = TelloTextMuted); Row(verticalAlignment = Alignment.CenterVertically) { HoldCircleIcon(Icons.AutoMirrored.Filled.ArrowBack, enabled, -1f, onLateral, heartbeat, compactControlCircleDiameter); Column(horizontalAlignment = Alignment.CenterHorizontally) { HoldCircleIcon(Icons.Default.KeyboardArrowUp, enabled, 1f, onForward, heartbeat, compactControlCircleDiameter); HoldCircleIcon(Icons.Default.KeyboardArrowDown, enabled, -1f, onForward, heartbeat, compactControlCircleDiameter) }; HoldCircleIcon(Icons.AutoMirrored.Filled.ArrowForward, enabled, 1f, onLateral, heartbeat, compactControlCircleDiameter) } }
+@Composable private fun CompactAxisControls(enabled: Boolean, onAxis: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("ALT", fontSize = 10.sp, color = TelloTextMuted); Row { HoldCircleIcon(Icons.Default.ArrowUpward, enabled, 1f, onAxis, heartbeat, compactControlCircleDiameter); HoldCircleIcon(Icons.Default.ArrowDownward, enabled, -1f, onAxis, heartbeat, compactControlCircleDiameter) } }
+@Composable private fun CompactYawControls(enabled: Boolean, onAxis: (Float) -> Unit, heartbeat: () -> Unit, modifier: Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) { Text("YAW", fontSize = 10.sp, color = TelloTextMuted); Row { HoldCircleIcon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, enabled, -1f, onAxis, heartbeat, compactControlCircleDiameter); HoldCircleIcon(Icons.AutoMirrored.Filled.KeyboardArrowRight, enabled, 1f, onAxis, heartbeat, compactControlCircleDiameter) } }
+@Composable private fun CompactSpeedControl(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = Column(modifier) { Text("SPEED ${state.speedPercent}%", color = TelloGreen, fontSize = 11.sp, fontWeight = FontWeight.Medium); Slider(value = state.speedPercent.toFloat(), onValueChange = { vm.setSpeed(it.roundToInt()) }, valueRange = 10f..40f); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("10", fontSize = 10.sp, color = TelloTextMuted); Text("40%", fontSize = 10.sp, color = TelloTextMuted) } }
+
 @Composable
-private fun HoldCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, activeValue: Float, onAxis: (Float) -> Unit, heartbeat: () -> Unit) {
+private fun HoldCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, activeValue: Float, onAxis: (Float) -> Unit, heartbeat: () -> Unit, diameter: Dp = controlCircleDiameter) {
     val currentOnAxis by rememberUpdatedState(onAxis)
     val currentHeartbeat by rememberUpdatedState(heartbeat)
     DisposableEffect(Unit) { onDispose { currentOnAxis(0f) } }
     Box(
         Modifier
-            .size(46.dp)
+            .size(diameter)
             .border(1.dp, TelloLine, CircleShape)
             .pointerInput(enabled) {
                 detectTapGestures(onPress = {
@@ -434,8 +487,8 @@ private fun HoldCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector
     ) { Icon(icon, null, tint = if (enabled) Color.White else TelloTextMuted) }
 }
 
-@Composable private fun ActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false) = Button(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = 48.dp).testTag(label.lowercase().replace(' ', '_')), colors = ButtonDefaults.buttonColors(containerColor = if (active) TelloGreenDark else TelloGreen, disabledContainerColor = TelloLine.copy(alpha = .55f), disabledContentColor = TelloTextMuted)) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(label, fontSize = 12.sp, maxLines = 1) }
-@Composable private fun OutlineAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false) = OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = 48.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (active) TelloGreen else TelloLine)) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(label, fontSize = 12.sp, textAlign = TextAlign.Center, maxLines = 1) }
+@Composable private fun ActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = Button(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight).testTag(label.lowercase().replace(' ', '_')), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), colors = ButtonDefaults.buttonColors(containerColor = if (active) TelloGreenDark else TelloGreen, disabledContainerColor = TelloLine.copy(alpha = .55f), disabledContentColor = TelloTextMuted)) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, maxLines = 1) }
+@Composable private fun OutlineAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (active) TelloGreen else TelloLine)) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, textAlign = TextAlign.Center, maxLines = 1) }
 
 @Composable
 private fun EmergencyHoldButton(enabled: Boolean, onTriggered: () -> Unit, modifier: Modifier = Modifier) {
@@ -461,11 +514,11 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
 @Composable private fun ExpandedGroundedPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected))
 @Preview(name = "Portrait – disconnected", widthDp = 420, heightDp = 900)
 @Composable private fun PortraitDisconnectedPreview() = PreviewDashboard(DroneSessionState())
-@Preview(name = "Mi A1 phone portrait", widthDp = 393, heightDp = 786)
+@Preview(name = "Mi A1 phone portrait", widthDp = 360, heightDp = 640)
 @Composable private fun MiA1PortraitPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Grounded))
-@Preview(name = "Compact-height phone landscape", widthDp = 800, heightDp = 360)
+@Preview(name = "Mi A1 phone landscape", widthDp = 640, heightDp = 360)
 @Composable private fun CompactLandscapePreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
-@Preview(name = "Medium window", widthDp = 700, heightDp = 800)
+@Preview(name = "Medium window", widthDp = 700, heightDp = 600)
 @Composable private fun MediumPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
 @Preview(name = "Flying manual", widthDp = 1280, heightDp = 800)
 @Composable private fun FlyingManualPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
