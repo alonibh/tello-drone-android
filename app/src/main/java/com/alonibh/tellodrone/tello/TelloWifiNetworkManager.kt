@@ -5,12 +5,12 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.net.wifi.WifiNetworkSpecifier
-import android.os.PatternMatcher
+import android.os.Build
 
 class TelloWifiNetworkManager(context: Context) {
     interface Listener {
         fun onAvailable(network: Network)
+        fun onManualSelectionRequired(message: String)
         fun onUnavailable(message: String)
         fun onLost(network: Network)
     }
@@ -21,14 +21,6 @@ class TelloWifiNetworkManager(context: Context) {
 
     fun request(listener: Listener) {
         cancel()
-        val specifier = WifiNetworkSpecifier.Builder()
-            .setSsidPattern(PatternMatcher(TELLO_SSID_PREFIX, PatternMatcher.PATTERN_PREFIX))
-            .build()
-        val request = NetworkRequest.Builder()
-            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-            .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .setNetworkSpecifier(specifier)
-            .build()
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
                 retainedNetwork = network
@@ -46,13 +38,37 @@ class TelloWifiNetworkManager(context: Context) {
         }
         callback = networkCallback
         try {
-            connectivityManager.requestNetwork(request, networkCallback, NETWORK_REQUEST_TIMEOUT_MILLIS)
+            if (Build.VERSION.SDK_INT >= 29) {
+                Api29TelloNetworkRequest.request(connectivityManager, networkCallback)
+            } else {
+                requestExistingWifi(networkCallback, listener)
+            }
         } catch (security: SecurityException) {
             callback = null
             listener.onUnavailable("Wi-Fi permission missing or revoked: ${security.message ?: "access denied"}")
         } catch (error: RuntimeException) {
             callback = null
             listener.onUnavailable("Could not request Tello Wi-Fi: ${error.message ?: error.javaClass.simpleName}")
+        }
+    }
+
+    /** Android 9 cannot select an SSID; watch actual Wi-Fi Networks and validate via the SDK handshake. */
+    private fun requestExistingWifi(networkCallback: ConnectivityManager.NetworkCallback, listener: Listener) {
+        val request = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .build()
+        connectivityManager.registerNetworkCallback(request, networkCallback)
+        val existingWifi = connectivityManager.allNetworks.firstOrNull { network ->
+            connectivityManager.getNetworkCapabilities(network)
+                ?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        }
+        if (existingWifi == null) {
+            listener.onManualSelectionRequired(
+                "Connect to the TELLO Wi-Fi network in Android Wi-Fi settings, then return to the app.",
+            )
+        } else {
+            retainedNetwork = existingWifi
+            listener.onAvailable(existingWifi)
         }
     }
 

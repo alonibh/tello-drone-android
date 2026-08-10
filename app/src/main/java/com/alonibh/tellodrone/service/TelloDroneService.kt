@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.Network
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
@@ -137,6 +138,18 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
         }
     }
 
+    override fun onManualSelectionRequired(message: String) {
+        TelloSessionStore.update {
+            it.copy(
+                connection = DroneConnectionState.Connecting,
+                networkSelection = NetworkSelectionState.Requesting,
+                flight = FlightState.Unknown,
+                lastMessage = message,
+            )
+        }
+        updateNotification(message)
+    }
+
     override fun onUnavailable(message: String) {
         if (connectionGate.isRequested()) failAndStop(message)
     }
@@ -193,24 +206,29 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
 
     private fun startConnectedDeviceForeground(message: String) {
         val notification = notification(message)
+        startForegroundCompat(notification)
+        foreground = true
+    }
+
+    private fun updateNotification(message: String) {
+        if (foreground) {
+            startForegroundCompat(notification(message))
+        }
+    }
+
+    private fun startForegroundCompat(notification: Notification) {
+        if (Build.VERSION.SDK_INT >= 29) startConnectedDeviceForegroundApi29(notification)
+        else startForeground(NOTIFICATION_ID, notification)
+    }
+
+    @androidx.annotation.RequiresApi(29)
+    private fun startConnectedDeviceForegroundApi29(notification: Notification) {
         ServiceCompat.startForeground(
             this,
             NOTIFICATION_ID,
             notification,
             ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
         )
-        foreground = true
-    }
-
-    private fun updateNotification(message: String) {
-        if (foreground) {
-            ServiceCompat.startForeground(
-                this,
-                NOTIFICATION_ID,
-                notification(message),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE,
-            )
-        }
     }
 
     private fun notification(message: String): Notification {

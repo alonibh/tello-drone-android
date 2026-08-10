@@ -2,6 +2,9 @@
 
 package com.alonibh.tellodrone.ui
 
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -83,6 +86,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -254,6 +258,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
 }
 
 @Composable private fun ConnectionButton(state: DroneSessionState, vm: DroneViewModel) {
+    val context = LocalContext.current
     val active = state.connection == DroneConnectionState.Connected
     val transition = state.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.AwaitingPermission)
     val unsafeDisconnect = active && state.flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
@@ -270,6 +275,17 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
             },
             fontSize = 11.sp,
         )
+    }
+    if (Build.VERSION.SDK_INT == 28 && state.controllerMode == ControllerMode.Real &&
+        state.connection != DroneConnectionState.Connected
+    ) {
+        OutlinedButton(
+            onClick = {
+                context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            },
+            modifier = Modifier.testTag("open_wifi_settings"),
+        ) { Text("OPEN WI-FI SETTINGS", fontSize = 10.sp) }
+        state.lastMessage?.let { Text(it, color = TelloTextMuted, fontSize = 10.sp, textAlign = TextAlign.Center) }
     }
 }
 

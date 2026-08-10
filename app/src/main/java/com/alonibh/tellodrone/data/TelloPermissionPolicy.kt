@@ -7,15 +7,15 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 
 object TelloPermissionPolicy {
-    fun requiredRuntimePermissions(): Array<String> = buildList {
+    fun requiredRuntimePermissions(sdkInt: Int = Build.VERSION.SDK_INT): Array<String> = buildList {
         when {
-            Build.VERSION.SDK_INT >= 33 -> add(Manifest.permission.NEARBY_WIFI_DEVICES)
-            else -> {
+            sdkInt >= 33 -> add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            sdkInt >= 29 -> {
                 add(Manifest.permission.ACCESS_COARSE_LOCATION)
                 add(Manifest.permission.ACCESS_FINE_LOCATION)
             }
         }
-        if (Build.VERSION.SDK_INT >= 37) add(Manifest.permission.ACCESS_LOCAL_NETWORK)
+        if (sdkInt >= 37) add(Manifest.permission.ACCESS_LOCAL_NETWORK)
     }.toTypedArray()
 
     fun missingPermissions(context: Context): List<String> = requiredRuntimePermissions().filter {
