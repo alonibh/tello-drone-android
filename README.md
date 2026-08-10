@@ -1,6 +1,7 @@
 # Tello Drone Android
 
-Native Android tablet control station for a Ryze/DJI Tello. Phase 2 provides real Wi-Fi/UDP
+Native Android control station for a Ryze/DJI Tello, designed for adaptive Android windows on
+phones, tablets, foldables, and resizable/split-screen displays. Phase 2 provides real Wi-Fi/UDP
 connectivity, telemetry, conservative manual flight controls, STOP/HOVER, and a protected
 Emergency Motor Kill. MCP, LLM integration, video, detection, tracking, and autonomous movement
 are explicitly absent.
@@ -8,7 +9,7 @@ are explicitly absent.
 ## Requirements
 
 - Android Studio (current stable), Android SDK Platform 37, and JDK 17
-- Android 10/API 29 or newer tablet
+- Android 10/API 29 or newer phone or tablet
 - a standard Tello Wi-Fi network whose SSID begins `TELLO-`
 
 Open the project in Android Studio, select a device, and run `app`. REAL is the default controller;

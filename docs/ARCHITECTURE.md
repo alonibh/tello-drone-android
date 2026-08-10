@@ -12,6 +12,16 @@ command sequencing, telemetry receiver, health monitor, and RC loop are owned by
 user starts real connection selection until a safe disconnect or terminal connection failure.
 Compose and `DroneViewModel` never own these resources.
 
+## Adaptive window UI
+
+The Compose dashboard adapts to the current application window, not device type. Compact windows
+are under 600 dp wide, medium windows are 600-839 dp, and expanded windows are 840 dp and wider.
+Compact-height windows use a landscape flight layout that keeps video and critical controls
+adjacent. Expanded windows preserve the dashboard rail, dominant video area, right-side controls,
+and bottom manual controls. UI reflow only rearranges composables: it neither recreates the
+application-owned controller nor publishes movement. Manual and emergency hold controls clear
+their pressed state on pointer cancellation and disposal.
+
 ## Android network and permission contract
 
 Permissions are requested only after **CONNECT TELLO** is pressed. Android 10–12 request the

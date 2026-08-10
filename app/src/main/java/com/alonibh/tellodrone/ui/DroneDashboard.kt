@@ -120,15 +120,28 @@ private val panelShape = RoundedCornerShape(12.dp)
 fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier: Modifier = Modifier) {
     var destination by remember { mutableStateOf("Dashboard") }
     BoxWithConstraints(modifier.fillMaxSize().background(TelloInk).padding(12.dp)) {
-        val expanded = maxWidth >= 960.dp
-        if (expanded) ExpandedDashboard(state, viewModel, destination) { destination = it }
-        else CompactDashboard(state, viewModel, destination) { destination = it }
+        when (windowLayout(maxWidth, maxHeight)) {
+            WindowLayout.Expanded -> ExpandedDashboard(state, viewModel, destination) { destination = it }
+            WindowLayout.Medium -> MediumDashboard(state, viewModel, destination) { destination = it }
+            WindowLayout.CompactHeight -> LandscapeDashboard(state, viewModel, destination) { destination = it }
+            WindowLayout.Compact -> CompactDashboard(state, viewModel, destination) { destination = it }
+        }
     }
 }
 
+/** Material window-size-class breakpoints, evaluated from the current app window. */
+private fun windowLayout(width: Dp, height: Dp): WindowLayout = when {
+    width >= 840.dp -> WindowLayout.Expanded
+    height < 480.dp -> WindowLayout.CompactHeight
+    width >= 600.dp -> WindowLayout.Medium
+    else -> WindowLayout.Compact
+}
+
+private enum class WindowLayout { Compact, CompactHeight, Medium, Expanded }
+
 @Composable
 private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, destination: String, onDestination: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.testTag("layout_expanded"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Header(state, vm, expanded = true)
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             NavigationRail(state, vm, destination, onDestination, Modifier.width(176.dp).fillMaxHeight())
@@ -148,6 +161,7 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
 @Composable
 private fun CompactDashboard(state: DroneSessionState, vm: DroneViewModel, destination: String, onDestination: (String) -> Unit) {
     LazyColumn(
+        modifier = Modifier.testTag("layout_compact"),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         contentPadding = PaddingValues(bottom = 16.dp),
     ) {
@@ -165,6 +179,47 @@ private fun CompactDashboard(state: DroneSessionState, vm: DroneViewModel, desti
 }
 
 @Composable
+private fun MediumDashboard(state: DroneSessionState, vm: DroneViewModel, destination: String, onDestination: (String) -> Unit) {
+    Column(Modifier.testTag("layout_medium"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Header(state, vm, expanded = false)
+        CompactNav(destination, onDestination)
+        if (destination == "Dashboard") {
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                VideoPanel(state, Modifier.weight(1.25f).fillMaxHeight())
+                LazyColumn(Modifier.weight(.75f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    item { CriticalFlightControls(state, vm) }
+                    item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
+                    item { TrackingControls(state, vm) }
+                    item { StatusPanel(state) }
+                }
+            }
+            BottomControls(state, vm)
+        } else DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
+    }
+}
+
+@Composable
+private fun LandscapeDashboard(state: DroneSessionState, vm: DroneViewModel, destination: String, onDestination: (String) -> Unit) {
+    Column(Modifier.testTag("layout_compact_height"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        CompactHeader(state, vm)
+        if (destination == "Dashboard") {
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                VideoPanel(state, Modifier.weight(1.4f).fillMaxHeight())
+                Column(Modifier.weight(.85f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CriticalFlightControls(state, vm)
+                    EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth())
+                    CompactNav(destination, onDestination)
+                }
+            }
+            BottomControls(state, vm)
+        } else {
+            CompactNav(destination, onDestination)
+            DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
+        }
+    }
+}
+
+@Composable
 private fun Header(state: DroneSessionState, vm: DroneViewModel, expanded: Boolean) {
     Surface(shape = panelShape, color = TelloPanelRaised, modifier = Modifier.fillMaxWidth()) {
         if (expanded) Row(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -178,6 +233,23 @@ private fun Header(state: DroneSessionState, vm: DroneViewModel, expanded: Boole
             ControllerModeSelector(state, vm)
             ConnectionButton(state, vm)
         }
+    }
+}
+
+@Composable
+private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surface(
+    shape = panelShape,
+    color = TelloPanelRaised,
+    modifier = Modifier.fillMaxWidth(),
+) {
+    Row(
+        Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Brand(state, Modifier.weight(1f))
+        HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
+        ConnectionButton(state, vm)
     }
 }
 
@@ -264,8 +336,11 @@ private fun BottomControls(state: DroneSessionState, vm: DroneViewModel) = Contr
         desired = next
         vm.setManualVector(next)
     }
-    LaunchedEffect(enabled) { if (!enabled) publish(ManualControlVector()) }
-    DisposableEffect(Unit) { onDispose { vm.setManualVector(ManualControlVector()) } }
+    DisposableEffect(enabled) {
+        onDispose {
+            if (enabled) vm.setManualVector(ManualControlVector())
+        }
+    }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Joystick(
             enabled,
@@ -289,6 +364,7 @@ private fun BottomControls(state: DroneSessionState, vm: DroneViewModel) = Contr
 private fun HoldCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, activeValue: Float, onAxis: (Float) -> Unit, heartbeat: () -> Unit) {
     val currentOnAxis by rememberUpdatedState(onAxis)
     val currentHeartbeat by rememberUpdatedState(heartbeat)
+    DisposableEffect(Unit) { onDispose { currentOnAxis(0f) } }
     Box(
         Modifier
             .size(46.dp)
@@ -320,6 +396,7 @@ private fun HoldCircleIcon(icon: androidx.compose.ui.graphics.vector.ImageVector
 @Composable
 private fun EmergencyHoldButton(enabled: Boolean, onTriggered: () -> Unit, modifier: Modifier = Modifier) {
     var pressing by remember { mutableStateOf(false) }; var triggered by remember { mutableStateOf(false) }
+    DisposableEffect(Unit) { onDispose { pressing = false } }
     val progress by animateFloatAsState(if (pressing) 1f else 0f, label = "emergency hold")
     LaunchedEffect(pressing) { if (pressing) { delay(900); if (pressing && !triggered) { triggered = true; onTriggered() } } else triggered = false }
     Surface(modifier = modifier.heightIn(min = 64.dp).clip(panelShape).background(if (enabled) TelloRed else TelloLine).pointerInput(enabled) { detectTapGestures(onPress = { if (enabled) { pressing = true; tryAwaitRelease(); pressing = false } }) }.testTag("emergency_motor_kill"), color = Color.Transparent, shape = panelShape) {
@@ -340,6 +417,10 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
 @Composable private fun ExpandedGroundedPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected))
 @Preview(name = "Portrait – disconnected", widthDp = 420, heightDp = 900)
 @Composable private fun PortraitDisconnectedPreview() = PreviewDashboard(DroneSessionState())
+@Preview(name = "Compact-height phone landscape", widthDp = 800, heightDp = 360)
+@Composable private fun CompactLandscapePreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
+@Preview(name = "Medium window", widthDp = 700, heightDp = 800)
+@Composable private fun MediumPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
 @Preview(name = "Flying manual", widthDp = 1280, heightDp = 800)
 @Composable private fun FlyingManualPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
 @Preview(name = "Flying detection", widthDp = 1280, heightDp = 800)
