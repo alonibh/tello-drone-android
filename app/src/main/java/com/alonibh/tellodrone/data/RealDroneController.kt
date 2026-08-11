@@ -43,6 +43,7 @@ class RealDroneController(context: Context) : DroneController {
             it.copy(
                 connection = DroneConnectionState.Error,
                 networkSelection = NetworkSelectionState.PermissionDenied,
+                hoverActive = false,
                 lastMessage = "Tello network permission denied; no drone connection was attempted",
             )
         }
@@ -56,6 +57,7 @@ class RealDroneController(context: Context) : DroneController {
                 networkSelection = NetworkSelectionState.Idle,
                 telemetry = it.telemetry.copy(isFresh = false),
                 manualVector = ManualControlVector(),
+                hoverActive = false,
                 lastMessage = "Tello session cleared",
             )
         }

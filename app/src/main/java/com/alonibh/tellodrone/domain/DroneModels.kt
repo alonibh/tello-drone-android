@@ -64,6 +64,8 @@ data class DroneSessionState(
     val target: TrackedTarget? = null,
     val speedPercent: Int = 20,
     val manualVector: ManualControlVector = ManualControlVector(),
+    /** App command state only: STOP/HOVER completed its explicit RC-zero action. */
+    val hoverActive: Boolean = false,
     val lastMessage: String? = null,
 )
 

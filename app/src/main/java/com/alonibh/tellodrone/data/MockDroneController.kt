@@ -43,6 +43,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             authority = ControlAuthority.Manual,
             target = null,
             manualVector = ManualControlVector(),
+            hoverActive = false,
             telemetry = it.telemetry.copy(
                 heightMeters = 0f,
                 speedMetersPerSecond = 0f,
@@ -57,6 +58,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
         if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded) {
             state.copy(
                 flight = FlightState.Flying,
+                hoverActive = false,
                 telemetry = state.telemetry.copy(heightMeters = 1.2f),
                 lastMessage = "Mock takeoff complete",
             )
@@ -71,6 +73,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                 authority = ControlAuthority.Manual,
                 target = state.target?.copy(locked = false),
                 manualVector = ManualControlVector(),
+                hoverActive = false,
                 telemetry = state.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f),
                 lastMessage = "Mock landing complete",
             )
@@ -83,6 +86,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                 tracking = if (state.target?.locked == true) TrackingMode.TargetLocked else TrackingMode.Off,
                 authority = ControlAuthority.Manual,
                 manualVector = ManualControlVector(),
+                hoverActive = true,
                 telemetry = state.telemetry.copy(speedMetersPerSecond = 0f),
                 lastMessage = "Mock STOP / HOVER: movement cancelled",
             )
@@ -96,6 +100,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             authority = ControlAuthority.Manual,
             target = state.target?.copy(locked = false),
             manualVector = ManualControlVector(),
+            hoverActive = false,
             telemetry = state.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f),
             lastMessage = "Mock EMERGENCY MOTOR KILL activated",
         )
@@ -133,6 +138,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                 tracking = if (wasFollowing) TrackingMode.TargetLocked else state.tracking,
                 authority = ControlAuthority.Manual,
                 manualVector = vector,
+                hoverActive = if (vector.isZero()) state.hoverActive else false,
                 telemetry = state.telemetry.copy(speedMetersPerSecond = if (vector.isZero()) 0f else 0.3f),
                 lastMessage = if (wasFollowing) "Manual override: Follow cancelled" else state.lastMessage,
             )

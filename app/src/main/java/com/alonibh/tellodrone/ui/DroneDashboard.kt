@@ -47,6 +47,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -349,18 +350,30 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
 
 @Composable private fun CriticalFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT CONTROLS") {
     AdaptiveActionPair(
-        { ActionButton("TAKE OFF", Icons.Default.ArrowUpward, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded && state.telemetry.isFresh, vm::takeOff, Modifier.fillMaxWidth()) },
-        { OutlineAction("LAND", Icons.Default.ArrowDownward, state.connection == DroneConnectionState.Connected && state.flight in setOf(FlightState.Flying, FlightState.Unknown), vm::land, Modifier.fillMaxWidth()) },
+        { TakeoffAction(state, vm, Modifier.fillMaxWidth()) },
+        { LandAction(state, vm, Modifier.fillMaxWidth()) },
     )
-    OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying, vm::stopAndHover, Modifier.fillMaxWidth().testTag("stop_hover"))
+    HoverAction(state, vm, Modifier.fillMaxWidth().testTag("stop_hover"))
 }
 
 @Composable private fun LandscapeFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT", compact = true) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        ActionButton("TAKE OFF", Icons.Default.ArrowUpward, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded && state.telemetry.isFresh, vm::takeOff, Modifier.weight(1f), compact = true)
-        OutlineAction("LAND", Icons.Default.ArrowDownward, state.connection == DroneConnectionState.Connected && state.flight in setOf(FlightState.Flying, FlightState.Unknown), vm::land, Modifier.weight(1f), compact = true)
+        TakeoffAction(state, vm, Modifier.weight(1f), compact = true)
+        LandAction(state, vm, Modifier.weight(1f), compact = true)
     }
-    OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying, vm::stopAndHover, Modifier.fillMaxWidth().testTag("stop_hover"), compact = true)
+    HoverAction(state, vm, Modifier.fillMaxWidth().testTag("stop_hover"), compact = true)
+}
+
+@Composable private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier, compact: Boolean = false) = ActionButton(if (state.flight == FlightState.TakingOff) "TAKING OFF…" else "TAKE OFF", Icons.Default.ArrowUpward, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded && state.telemetry.isFresh, vm::takeOff, modifier, active = state.flight == FlightState.TakingOff, compact = compact)
+@Composable private fun LandAction(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier, compact: Boolean = false) {
+    val landing = state.flight == FlightState.Landing
+    if (landing) ActionButton("LANDING…", Icons.Default.ArrowDownward, false, {}, modifier, active = true, compact = compact)
+    else OutlineAction("LAND", Icons.Default.ArrowDownward, state.connection == DroneConnectionState.Connected && state.flight in setOf(FlightState.Flying, FlightState.Unknown), vm::land, modifier, compact = compact)
+}
+@Composable private fun HoverAction(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier, compact: Boolean = false) {
+    val enabled = state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying
+    if (state.hoverActive) ActionButton("HOVER ACTIVE", Icons.Default.CheckCircle, enabled, vm::stopAndHover, modifier, active = true, compact = compact)
+    else OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, enabled, vm::stopAndHover, modifier, compact = compact)
 }
 
 @Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("TRACKING • PHASE 3+") {
@@ -433,7 +446,7 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
 @Composable
 private fun ManualFlightCenter(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
     Text("FLIGHT", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-    OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying, vm::stopAndHover, Modifier.fillMaxWidth().testTag("manual_stop_hover"), compact = true)
+    HoverAction(state, vm, Modifier.fillMaxWidth().testTag("manual_stop_hover"), compact = true)
     SpeedControl(state, vm, Modifier.fillMaxWidth())
 }
 
@@ -483,7 +496,7 @@ private fun VirtualJoystick(label: String, value: JoystickVector, enabled: Boole
     }
 }
 
-@Composable private fun ActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = Button(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight).testTag(label.lowercase().replace(' ', '_')), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), colors = ButtonDefaults.buttonColors(containerColor = if (active) TelloGreenDark else TelloGreen, disabledContainerColor = TelloLine.copy(alpha = .55f), disabledContentColor = TelloTextMuted)) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, maxLines = 1) }
+@Composable private fun ActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = Button(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight).testTag(label.lowercase().replace(' ', '_')), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), colors = ButtonDefaults.buttonColors(containerColor = if (active) TelloGreenDark else TelloGreen, disabledContainerColor = if (active) TelloGreenDark else TelloLine.copy(alpha = .55f), disabledContentColor = if (active) Color.White else TelloTextMuted)) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, maxLines = 1) }
 @Composable private fun OutlineAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (active) TelloGreen else TelloLine)) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, textAlign = TextAlign.Center, maxLines = 1) }
 
 @Composable

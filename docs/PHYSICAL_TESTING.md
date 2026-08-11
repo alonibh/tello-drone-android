@@ -9,16 +9,17 @@
   telemetry, safe disconnect, adaptive landscape UI check, and Takeoff → immediate Land passed.
   The state progression behaved correctly. At 10%, right-stick forward/back and lateral movement
   each released to hover; left-stick altitude and yaw each released to hover; brief movement followed
-  by STOP/HOVER returned to hover; and safe landing passed.
+  by STOP/HOVER returned to hover; both sticks worked simultaneously; releasing one preserved the
+  other; releasing both returned to hover; and safe landing passed.
 
-Combined-stick control, connection-loss handling, Emergency Motor Kill, video, tracking, and
-autonomous flight are not physically verified. Mi A1 manual flight also remains unverified.
+Connection-loss handling, Emergency Motor Kill, video, tracking, and autonomous flight are not
+physically verified. Mi A1 manual flight also remains unverified.
 
 After the dual-joystick update, validate manual movement only at 10% speed: take off; move the right
 stick slightly forward for less than one second; release and confirm hover; repeat laterally; make a
 brief left-stick altitude change, then a brief yaw; make one brief movement and press STOP/HOVER;
-then land. Individual-axis validation is now complete on the Blaupunkt; combined-stick movement
-remains the next unverified manual-control test. Mi A1 manual flight remains pending.
+then land. Individual-axis and combined-stick validation are complete on the Blaupunkt. Mi A1 manual
+flight remains pending.
 
 Use a propeller guard, a fully charged phone or tablet and Tello, and an open indoor area free of people,
 pets, loose objects, mirrors, fans, and ceiling hazards. Keep the Tello on the floor for steps 1–2.

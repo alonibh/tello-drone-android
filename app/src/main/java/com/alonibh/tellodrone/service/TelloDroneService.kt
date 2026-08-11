@@ -93,6 +93,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                 flight = FlightState.Unknown,
                 authority = ControlAuthority.Manual,
                 tracking = TrackingMode.Off,
+                hoverActive = false,
                 lastMessage = "Waiting for Tello Wi-Fi selection",
             )
         }
@@ -112,6 +113,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                         connection = DroneConnectionState.Connecting,
                         networkSelection = NetworkSelectionState.Available,
                         flight = FlightState.Unknown,
+                        hoverActive = false,
                     ),
                     onFatalConnectionLoss = { scope.launch { finishService() } },
                 )
@@ -144,6 +146,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                 connection = DroneConnectionState.Connecting,
                 networkSelection = NetworkSelectionState.Requesting,
                 flight = FlightState.Unknown,
+                hoverActive = false,
                 lastMessage = message,
             )
         }
@@ -163,6 +166,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                         connection = DroneConnectionState.Error,
                         networkSelection = NetworkSelectionState.Lost,
                         flight = FlightState.Unknown,
+                        hoverActive = false,
                         lastMessage = "Tello Wi-Fi network was lost",
                     )
                 }
@@ -179,6 +183,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                     networkSelection = NetworkSelectionState.Error,
                     telemetry = it.telemetry.copy(isFresh = false),
                     manualVector = ManualControlVector(),
+                    hoverActive = false,
                     lastMessage = message,
                 )
             }

@@ -103,6 +103,35 @@ class TelloFlightSessionTest {
         assertEquals(ManualControlVector(forward = 1f), fixture.session.state.value.manualVector)
     }
 
+    @Test fun `hover indication persists for neutral input and clears for movement or safety transitions`() = runTest {
+        val fixture = connectedFixture()
+        takeOffAndVerify(fixture)
+
+        fixture.session.stopAndHover()
+        assertTrue(fixture.session.state.value.hoverActive)
+        fixture.session.publishManualControl(ManualControlVector())
+        assertTrue(fixture.session.state.value.hoverActive)
+        fixture.session.publishManualControl(ManualControlVector(forward = .3f))
+        assertFalse(fixture.session.state.value.hoverActive)
+
+        fixture.session.stopAndHover()
+        assertTrue(fixture.session.state.value.hoverActive)
+        fixture.session.land()
+        assertFalse(fixture.session.state.value.hoverActive)
+
+        val lossFixture = connectedFixture()
+        takeOffAndVerify(lossFixture)
+        lossFixture.session.stopAndHover()
+        lossFixture.session.networkLost()
+        assertFalse(lossFixture.session.state.value.hoverActive)
+
+        val emergencyFixture = connectedFixture()
+        takeOffAndVerify(emergencyFixture)
+        emergencyFixture.session.stopAndHover()
+        emergencyFixture.session.emergencyMotorKill()
+        assertFalse(emergencyFixture.session.state.value.hoverActive)
+    }
+
     @Test fun `missing or invalid initial height leaves flight state unknown and prohibits takeoff`() = runTest {
         listOf<Float?>(null, -0.01f, Float.NaN).forEach { height ->
             val fixture = fixture()

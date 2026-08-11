@@ -113,7 +113,7 @@ class TelloFlightSession(
         landingAcknowledged = false
         requireManualNeutral()
         mutableState.update {
-            it.copy(flight = FlightState.TakingOff, manualVector = ManualControlVector(), lastMessage = "Takeoff in progress")
+            it.copy(flight = FlightState.TakingOff, manualVector = ManualControlVector(), hoverActive = false, lastMessage = "Takeoff in progress")
         }
         when (val result = transport.sendCommand("takeoff", FLIGHT_COMMAND_TIMEOUT_MILLIS)) {
             is TelloCommandResult.Success -> {
@@ -150,6 +150,7 @@ class TelloFlightSession(
             it.copy(
                 flight = FlightState.Landing,
                 manualVector = ManualControlVector(),
+                hoverActive = false,
                 lastMessage = "Landing in progress",
             )
         }
@@ -188,6 +189,7 @@ class TelloFlightSession(
                     authority = ControlAuthority.Manual,
                     tracking = TrackingMode.Off,
                     manualVector = ManualControlVector(),
+                    hoverActive = true,
                     lastMessage = "STOP / HOVER: zero movement sent; aircraft remains flying",
                 )
             } else state
@@ -210,6 +212,7 @@ class TelloFlightSession(
                 authority = ControlAuthority.Manual,
                 tracking = TrackingMode.Off,
                 manualVector = ManualControlVector(),
+                hoverActive = false,
                 lastMessage = "EMERGENCY MOTOR KILL sent; further flight commands are locked out",
             )
         }
@@ -230,6 +233,7 @@ class TelloFlightSession(
                     authority = ControlAuthority.Manual,
                     tracking = TrackingMode.Off,
                     manualVector = vector,
+                    hoverActive = if (vector.isZero()) state.hoverActive else false,
                 )
                 } else state
             }
@@ -255,6 +259,7 @@ class TelloFlightSession(
                     state.copy(
                         telemetry = state.telemetry.copy(isFresh = false),
                         manualVector = ManualControlVector(),
+                        hoverActive = false,
                         lastMessage = "Telemetry stale; non-zero RC output inhibited",
                     )
                 } else state
@@ -279,6 +284,7 @@ class TelloFlightSession(
                 flight = if (state.flight == FlightState.Emergency) FlightState.Emergency else FlightState.Grounded,
                 telemetry = state.telemetry.copy(isFresh = false),
                 manualVector = ManualControlVector(),
+                hoverActive = false,
                 lastMessage = "Tello session disconnected",
             )
         }
@@ -364,6 +370,7 @@ class TelloFlightSession(
                     authority = ControlAuthority.Manual,
                     tracking = TrackingMode.Off,
                     manualVector = ManualControlVector(),
+                    hoverActive = false,
                     lastMessage = message,
                 )
             }
