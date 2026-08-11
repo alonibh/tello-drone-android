@@ -65,6 +65,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -79,6 +80,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -197,7 +199,7 @@ private fun CompactDashboard(state: DroneSessionState, vm: DroneViewModel, desti
             item { CriticalFlightControls(state, vm) }
             item { CompactFutureControlsNotice() }
             item { BottomControls(state, vm) }
-            item { StatusPanel(state) }
+            item { StatusPanel(state, previewSurfaceAttached = true) }
             item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
         } else item {
             if (destination == "Status") StatusPanel(state, Modifier.fillMaxWidth())
@@ -218,7 +220,7 @@ private fun MediumDashboard(state: DroneSessionState, vm: DroneViewModel, destin
                     item { CriticalFlightControls(state, vm) }
                     item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
                     item { TrackingControls(state, vm) }
-                    item { StatusPanel(state) }
+                    item { StatusPanel(state, previewSurfaceAttached = true) }
                 }
             }
             BottomControls(state, vm)
@@ -368,6 +370,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
 @Composable
 private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = Surface(modifier.clip(panelShape), color = Color(0xFF252A2C)) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF42403B), Color(0xFF171B1D))))) {
+        val analysis = rememberAnalysisDiagnostics(state.video, previewSurfaceAttached = true)
         if (state.controllerMode == ControllerMode.Real) {
             AndroidView(
                 factory = { context -> TelloVideoSurfaceView(context, vm) },
@@ -378,17 +381,30 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
             Canvas(Modifier.fillMaxSize()) { for (x in 0..size.width.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(x.toFloat(), 0f), Offset(x.toFloat(), size.height)); for (y in 0..size.height.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(0f, y.toFloat()), Offset(size.width, y.toFloat())) }
         }
         Row(Modifier.align(Alignment.TopStart).padding(14.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .64f)).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) { Text(if (state.video.availability == VideoAvailability.Mock) "DEMO" else "VIDEO", color = Color.White, fontWeight = FontWeight.Bold); Text(if (state.video.availability == VideoAvailability.Mock) "  MOCK PREVIEW" else "  LIVE PREVIEW", color = TelloTextMuted, fontSize = 12.sp) }
-        Text(
-            when {
-                state.video.measuredFps != null -> "${state.video.measuredFps.roundToInt()} FPS"
-                state.video.availability == VideoAvailability.Streaming -> "LIVE • WAITING FOR FRAMES"
-                else -> "NO VIDEO"
-            },
-            modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .82f)).padding(horizontal = 12.dp, vertical = 9.dp),
-            color = Color.White,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-        )
+        Column(
+            modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp))
+                .background(Color.Black.copy(alpha = .82f)).padding(horizontal = 10.dp, vertical = 7.dp),
+            horizontalAlignment = Alignment.End,
+        ) {
+            Text(
+                when {
+                    state.video.measuredFps != null -> "PREVIEW ${state.video.measuredFps.roundToInt()} FPS"
+                    state.video.availability == VideoAvailability.Streaming -> "PREVIEW WAITING"
+                    else -> "NO VIDEO"
+                },
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            if (state.controllerMode == ControllerMode.Real && state.video.availability == VideoAvailability.Streaming) {
+                Text(
+                    "ANALYSIS ${analysis.rate} · ${analysis.frame} · ${analysis.age}",
+                    color = TelloTextMuted,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
         state.target?.let { target ->
             val boxWidth = maxWidth * (target.boundingBox.right - target.boundingBox.left)
             val boxHeight = maxHeight * (target.boundingBox.bottom - target.boundingBox.top)
@@ -483,7 +499,42 @@ private class TelloVideoSurfaceView(
     HoverAction(state, vm, Modifier.fillMaxWidth().testTag("stop_hover"), compact = true)
 }
 
-@Composable private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier, compact: Boolean = false) = ActionButton(if (state.flight == FlightState.TakingOff) "TAKING OFF…" else "TAKE OFF", Icons.Default.ArrowUpward, state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded && state.telemetry.isFresh, vm::takeOff, modifier, active = state.flight == FlightState.TakingOff, compact = compact)
+@Composable
+private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier, compact: Boolean = false) {
+    val gate = remember { TakeoffConfirmationGate() }
+    var dialogVisible by remember { mutableStateOf(false) }
+    val eligible = state.isTakeoffEligible()
+    LaunchedEffect(state.controllerMode, eligible, state.flight) {
+        if (!gate.dismissIfIneligible(state)) dialogVisible = false
+    }
+    ActionButton(
+        if (state.flight == FlightState.TakingOff) "TAKING OFF…" else "TAKE OFF",
+        Icons.Default.ArrowUpward,
+        eligible,
+        onClick = {
+            if (state.controllerMode == ControllerMode.Real) dialogVisible = gate.request(state)
+            else vm.takeOff()
+        },
+        modifier = modifier,
+        active = state.flight == FlightState.TakingOff,
+        compact = compact,
+    )
+    if (dialogVisible && state.controllerMode == ControllerMode.Real && eligible) {
+        AlertDialog(
+            onDismissRequest = { gate.cancel(); dialogVisible = false },
+            title = { Text("Confirm takeoff") },
+            text = { Text("Make sure the area above and around the drone is clear. The drone will take off and hover.") },
+            dismissButton = { TextButton(onClick = { gate.cancel(); dialogVisible = false }) { Text("CANCEL") } },
+            confirmButton = {
+                TextButton(onClick = {
+                    val confirmed = gate.confirm(state) { vm.takeOff() }
+                    dialogVisible = false
+                    if (!confirmed) gate.cancel()
+                }) { Text("TAKE OFF") }
+            },
+        )
+    }
+}
 @Composable private fun LandAction(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier, compact: Boolean = false) {
     val landing = state.flight == FlightState.Landing
     if (landing) ActionButton("LANDING…", Icons.Default.ArrowDownward, false, {}, modifier, active = true, compact = compact)
@@ -520,17 +571,12 @@ private fun AdaptiveActionPair(first: @Composable () -> Unit, second: @Composabl
 }
 
 @Composable
-private fun StatusPanel(state: DroneSessionState, modifier: Modifier = Modifier) = ControlCard("STATUS", modifier = modifier) {
-    var statusNowNanos by remember { mutableStateOf(System.nanoTime()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            statusNowNanos = System.nanoTime()
-            delay(STATUS_REFRESH_MILLIS)
-        }
-    }
-    val analysisAgeMillis = state.video.analysisLatestCaptureTimestampNanos?.let { capturedAt ->
-        ((statusNowNanos - capturedAt).coerceAtLeast(0L) / 1_000_000L)
-    }
+private fun StatusPanel(
+    state: DroneSessionState,
+    modifier: Modifier = Modifier,
+    previewSurfaceAttached: Boolean = false,
+) = ControlCard("STATUS", modifier = modifier) {
+    val analysis = rememberAnalysisDiagnostics(state.video, previewSurfaceAttached)
     StatusLine("Battery", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }, if (state.telemetry.isFresh) TelloGreen else TelloTextMuted)
     StatusLine("Temperature", telemetryValue(state) { it.temperatureCelsius?.let { value -> "%.0f°C".format(value) } })
     StatusLine("Velocity X/Y/Z", telemetryValue(state) { telemetry ->
@@ -541,15 +587,26 @@ private fun StatusPanel(state: DroneSessionState, modifier: Modifier = Modifier)
     StatusLine("Network", state.networkSelection.name)
     StatusLine("Connection", connectionLabel(state.connection))
     StatusLine("Flight", state.flight.name)
-    StatusLine("Analysis rate", state.video.analysisMeasuredFps?.let { "%.1f FPS".format(it) } ?: "—")
-    StatusLine(
-        "Analysis frame",
-        if (state.video.analysisFrameWidth != null && state.video.analysisFrameHeight != null) {
-            "${state.video.analysisFrameWidth} × ${state.video.analysisFrameHeight}"
-        } else "—",
-    )
-    StatusLine("Analysis frame age", analysisAgeMillis?.let { "$it ms" } ?: "—")
+    StatusLine("Analysis rate", analysis.rate)
+    StatusLine("Analysis frame", analysis.frame)
+    StatusLine("Analysis frame age", analysis.age)
+    if (analysis.paused) Text("Analysis capture runs with the live preview.", color = TelloTextMuted, fontSize = 11.sp)
     state.lastMessage?.let { Text(it, color = if (state.connection == DroneConnectionState.Error) TelloRed else TelloTextMuted, fontSize = 11.sp) }
+}
+
+@Composable
+private fun rememberAnalysisDiagnostics(
+    video: com.alonibh.tellodrone.domain.VideoState,
+    previewSurfaceAttached: Boolean,
+): AnalysisDiagnosticsPresentation {
+    var nowNanos by remember { mutableStateOf(System.nanoTime()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowNanos = System.nanoTime()
+            delay(STATUS_REFRESH_MILLIS)
+        }
+    }
+    return analysisDiagnosticsPresentation(video, previewSurfaceAttached, nowNanos)
 }
 @Composable private fun StatusLine(label: String, value: String, color: Color = Color.White) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = TelloTextMuted, fontSize = 13.sp); Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
 
