@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.TrackingMode
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,6 +27,8 @@ class DroneViewModel(private val controller: DroneController) : ViewModel() {
     fun stopAndHover() = controller.stopAndHover()
     fun emergencyMotorKill() = controller.emergencyMotorKill()
     fun setTrackingMode(mode: TrackingMode) = controller.setTrackingMode(mode)
+    fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
+        controller.setDetectorBackendPreference(preference)
     fun setTargetLock(locked: Boolean) = controller.setTargetLock(locked)
     fun setManualVector(vector: ManualControlVector) = controller.setManualControlVector(vector)
     fun setSpeed(percent: Int) = controller.setSpeed(percent)

@@ -48,5 +48,7 @@ interface DecodedFrameSource {
     fun stop(surface: Surface)
     fun onFrameRendered(captureTimestampNanos: Long)
     fun setConsumer(consumer: DecodedFrameConsumer?)
+    /** Schedules non-frame detector lifecycle work on the existing consumer thread. */
+    fun executeOnConsumerThread(action: () -> Unit): Boolean
     suspend fun close()
 }

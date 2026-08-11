@@ -16,6 +16,7 @@ interface DroneController {
     fun stopAndHover()
     fun emergencyMotorKill()
     fun setTrackingMode(mode: TrackingMode)
+    fun setDetectorBackendPreference(preference: DetectorBackendPreference) = Unit
     fun setTargetLock(locked: Boolean)
     fun setManualControlVector(vector: ManualControlVector)
     fun setSpeed(percent: Int)

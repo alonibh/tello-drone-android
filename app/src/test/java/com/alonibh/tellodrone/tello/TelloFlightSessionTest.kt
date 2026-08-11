@@ -3,8 +3,10 @@
 package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.DroneConnectionState
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import java.time.Instant
@@ -196,6 +198,37 @@ class TelloFlightSessionTest {
         assertEquals(DroneConnectionState.Error, fixture.session.state.value.connection)
     }
 
+    @Test fun `detector backend switch preserves authority and target`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        val before = fixture.session.state.value
+
+        fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Cpu)
+
+        val after = fixture.session.state.value
+        assertEquals(DetectorBackendPreference.Cpu, video.backendPreference)
+        assertEquals(before.authority, after.authority)
+        assertEquals(before.target, after.target)
+    }
+
+    @Test fun `detector backend switch is rejected while detection is active`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+        fixture.session.setTrackingMode(com.alonibh.tellodrone.domain.TrackingMode.DetectOnly)
+        runCurrent()
+        val before = fixture.session.state.value
+
+        fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Cpu)
+
+        val after = fixture.session.state.value
+        assertEquals(DetectorBackendPreference.Accelerated, video.backendPreference)
+        assertEquals(before.authority, after.authority)
+        assertEquals(before.target, after.target)
+    }
+
     @Test fun `flight acknowledgements require post acknowledgement height verification`() = runTest {
         val fixture = connectedFixture()
 
@@ -310,6 +343,7 @@ class TelloFlightSessionTest {
         override val state: StateFlow<VideoState> = mutableState
         var prepared = false
         var closed = false
+        var backendPreference = DetectorBackendPreference.Accelerated
 
         override suspend fun prepare(): Result<Unit> {
             prepared = true
@@ -322,6 +356,20 @@ class TelloFlightSessionTest {
 
         override fun streamFailed(reason: String) {
             mutableState.value = VideoState(VideoAvailability.Error, errorReason = reason)
+        }
+
+        override fun setPersonDetectorBackendPreference(preference: DetectorBackendPreference): Result<Unit> {
+            backendPreference = preference
+            mutableState.value = mutableState.value.copy(detectorBackendPreference = preference)
+            return Result.success(Unit)
+        }
+
+        override fun setPersonDetectionEnabled(enabled: Boolean): Result<Unit> {
+            mutableState.value = mutableState.value.copy(
+                personDetectionState = if (enabled) PersonDetectionState.Starting else PersonDetectionState.Off,
+                personDetections = emptyList(),
+            )
+            return Result.success(Unit)
         }
 
         override suspend fun close() {

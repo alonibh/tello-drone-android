@@ -117,6 +117,8 @@ import com.alonibh.tellodrone.TelloPanelRaised
 import com.alonibh.tellodrone.TelloRed
 import com.alonibh.tellodrone.TelloTextMuted
 import com.alonibh.tellodrone.domain.ControllerMode
+import com.alonibh.tellodrone.domain.DetectorBackend
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
@@ -602,6 +604,30 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         { OutlineAction("OFF", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Off) },
         { ActionButton("DETECT PEOPLE", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly) },
     )
+    val canSelectBackend = state.tracking == TrackingMode.Off &&
+        state.video.personDetectionState !in setOf(PersonDetectionState.Starting, PersonDetectionState.Detecting)
+    AdaptiveActionPair(
+        {
+            OutlineAction(
+                "GPU PREFERRED",
+                Icons.Default.Settings,
+                canSelectBackend,
+                { vm.setDetectorBackendPreference(DetectorBackendPreference.Accelerated) },
+                Modifier.fillMaxWidth(),
+                active = state.video.detectorBackendPreference == DetectorBackendPreference.Accelerated,
+            )
+        },
+        {
+            OutlineAction(
+                "CPU COMPARE",
+                Icons.Default.Settings,
+                canSelectBackend,
+                { vm.setDetectorBackendPreference(DetectorBackendPreference.Cpu) },
+                Modifier.fillMaxWidth(),
+                active = state.video.detectorBackendPreference == DetectorBackendPreference.Cpu,
+            )
+        },
+    )
     val status = when (state.video.personDetectionState) {
         PersonDetectionState.Off -> "OFF"
         PersonDetectionState.Starting -> "STARTING"
@@ -609,6 +635,11 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         PersonDetectionState.Error -> "ERROR"
     }
     StatusLine("State", status, if (state.video.personDetectionState == PersonDetectionState.Error) TelloRed else TelloGreen)
+    state.video.detectorModelName?.let { StatusLine("Model", it) }
+    state.video.detectorBackend?.let { backend ->
+        StatusLine("Backend", if (backend == DetectorBackend.Gpu) "GPU" else "CPU (4 threads)")
+    }
+    if (state.video.detectorFellBackFromGpu) StatusLine("Fallback", "GPU failed -> CPU")
     state.video.detectorInferenceMillis?.let { StatusLine("Inference", "$it ms") }
     state.video.detectorMeasuredFps?.let { StatusLine("Detector rate", "%.1f FPS".format(it)) }
     state.video.detectorErrorReason?.let { Text(it, color = TelloRed, fontSize = 11.sp) }

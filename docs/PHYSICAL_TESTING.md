@@ -41,25 +41,41 @@ The completed grounded procedure was:
 
 Phase 3 and Phase 3B physical validation are complete.
 
-## Phase 4A grounded person-detection validation — pending
+## Phase 4A grounded person-detection performance validation — failed baseline, replacement pending
 
-Phase 4A has not yet been physically validated. Perform this first validation exactly as a grounded
-test; do not request takeoff:
+The original Phase 4A detector at commit `15c636cfc04fc74f0127ff2d351ee960641e256c` was physically
+tested on the Blaupunkt BP_6010 and failed the performance requirement. The preview remained roughly
+20–30 FPS and detection reached DETECTING, but EfficientDet-Lite0 on the MediaPipe CPU backend took
+approximately 2,400–5,100 ms per inference, delivered only 0.2–0.4 detector FPS, and did not detect a
+clearly visible person reliably. These are observed baseline measurements, not estimates.
+
+The failure is localized to the old synchronous detector path: analysis timing surrounded bitmap
+adaptation plus MediaPipe EfficientDet CPU inference, while PixelCopy capture happened earlier on a
+separate thread and the preview stayed at 20–30 FPS. The existing single-slot/drop-old handoff did
+not accumulate frames. The evidence does not separate model compute from library preprocessing, so
+the grounded record attributes the bottleneck to that combined model/backend path rather than making
+a narrower profiling claim.
+
+The replacement SSD MobileNet V1 Task backend has not yet been measured on the physical tablet, so
+no improved detector FPS or latency is claimed. Perform this grounded comparison exactly; do not
+request takeoff:
 
 1. Blaupunkt landscape, Tello on floor.
 2. Connect REAL and confirm normal ~30 FPS preview.
-3. Enable DETECT PEOPLE.
-4. Put one person clearly in camera view.
-5. Confirm one correctly aligned PERSON box appears.
-6. Move around frame and confirm box follows through new detections without growing lag.
-7. Leave frame and confirm box disappears quickly.
-8. Put two people in frame and confirm separate boxes where detector confidence permits.
-9. Run for at least 60 seconds; preview should remain healthy and controls/telemetry responsive.
-10. Disable detection and confirm boxes disappear immediately.
-11. Disconnect grounded.
+3. Leave the default GPU PREFERRED backend selected, enable DETECT PEOPLE, and record the displayed
+   active backend, fallback indicator, latest inference milliseconds, detector FPS, and preview FPS
+   for at least 60 seconds with one clearly visible person.
+4. Confirm one correctly aligned PERSON box appears; move around the frame and leave it, confirming
+   new results do not grow a lag and boxes clear quickly. Try two people where confidence permits.
+5. Disable detection and confirm boxes disappear immediately.
+6. Select CPU COMPARE, re-enable DETECT PEOPLE, repeat the same scene and motions for at least 60
+   seconds, and record the same diagnostics. Do not infer that GPU is faster merely because it loads.
+7. Confirm telemetry and controls remain responsive throughout. The acceptance target is at least
+   4 detector FPS (ideally 5 or more), typical inference no more than 250 ms, and 28–30 preview FPS.
+8. Select the backend with better sustained grounded measurements, disable detection, and disconnect.
 
-No takeoff is permitted for the first Phase 4A validation. Do not claim Phase 4A complete until this
-exact grounded procedure passes.
+No takeoff is permitted for this performance validation. Do not claim the replacement meets its
+performance target until exact measurements from this procedure are recorded here.
 
 ## Landscape operational UI — complete
 
@@ -96,9 +112,10 @@ aircraft rotated briefly and then performed its own failsafe landing. The rotati
 aircraft behavior after link loss, not app-controlled behavior. Connection-loss behavior is
 physically validated.
 
-Emergency Motor Kill remains intentionally untested. Phase 4A person detection is implemented but
-pending its first grounded physical validation; target lock, tracking, and autonomous flight remain
-unimplemented. Mi A1 manual flight also remains unverified.
+Emergency Motor Kill remains intentionally untested. The original Phase 4A grounded performance
+test failed; the replacement detector is implemented but pending the exact grounded GPU/CPU
+comparison above. Target lock, tracking, and autonomous flight remain unimplemented. Mi A1 manual
+flight also remains unverified.
 
 **Phase 2 physical validation: complete.**
 

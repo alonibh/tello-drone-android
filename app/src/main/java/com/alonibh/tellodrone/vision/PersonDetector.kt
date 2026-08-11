@@ -1,6 +1,8 @@
 package com.alonibh.tellodrone.vision
 
 import android.graphics.Bitmap
+import com.alonibh.tellodrone.domain.DetectorBackend
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.tello.AnalysisFrameMetadata
@@ -12,9 +14,63 @@ class PersonDetectorFrame(
     val bitmap: Bitmap get() = bitmapProvider()
 }
 
+data class PersonDetectorDescriptor(
+    val modelName: String,
+    val backend: DetectorBackend,
+    val fellBackFromGpu: Boolean = false,
+)
+
 /** Synchronous detector boundary. Implementations may read a frame only during [detect]. */
 interface PersonDetector : AutoCloseable {
+    val descriptor: PersonDetectorDescriptor
     fun detect(frame: PersonDetectorFrame): List<PersonDetection>
+}
+
+fun interface PersonDetectorCreator {
+    fun create(backend: DetectorBackend): PersonDetector
+}
+
+/** GPU-preferred factory whose initialization and runtime failures retry once on CPU. */
+class FallbackPersonDetectorFactory(
+    private val creator: PersonDetectorCreator,
+) {
+    fun create(preference: DetectorBackendPreference): PersonDetector = when (preference) {
+        DetectorBackendPreference.Cpu -> creator.create(DetectorBackend.Cpu)
+        DetectorBackendPreference.Accelerated -> GpuFallbackPersonDetector(creator)
+    }
+
+    private class GpuFallbackPersonDetector(
+        private val creator: PersonDetectorCreator,
+    ) : PersonDetector {
+        private var active: PersonDetector
+        private var fellBack = false
+
+        init {
+            active = try {
+                creator.create(DetectorBackend.Gpu)
+            } catch (_: Throwable) {
+                fellBack = true
+                creator.create(DetectorBackend.Cpu)
+            }
+        }
+
+        override val descriptor: PersonDetectorDescriptor
+            get() = active.descriptor.copy(fellBackFromGpu = fellBack)
+
+        override fun detect(frame: PersonDetectorFrame): List<PersonDetection> {
+            return try {
+                active.detect(frame)
+            } catch (gpuFailure: Throwable) {
+                if (active.descriptor.backend != DetectorBackend.Gpu) throw gpuFailure
+                runCatching { active.close() }
+                fellBack = true
+                active = creator.create(DetectorBackend.Cpu)
+                active.detect(frame)
+            }
+        }
+
+        override fun close() = active.close()
+    }
 }
 
 /** Library-neutral intermediate result used to test app-owned filtering and normalization. */

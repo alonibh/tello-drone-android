@@ -3,6 +3,7 @@ package com.alonibh.tellodrone.tello
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
@@ -298,6 +299,29 @@ class TelloFlightSession(
             }
             TrackingMode.TargetLocked, TrackingMode.Follow ->
                 invalid("Target lock and Follow are not available in Phase 4A")
+        }
+    }
+
+    fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
+        val current = mutableState.value
+        if (current.tracking != TrackingMode.Off) {
+            invalid("Turn person detection off before changing backend")
+            return
+        }
+        val changed = video?.setPersonDetectorBackendPreference(preference)
+            ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
+        if (changed.isFailure) {
+            invalid(changed.exceptionOrNull()?.message ?: "Detector backend could not be changed")
+            return
+        }
+        mutableState.update { state ->
+            state.copy(
+                video = state.video.copy(detectorBackendPreference = preference),
+                lastMessage = when (preference) {
+                    DetectorBackendPreference.Accelerated -> "GPU preferred; CPU fallback enabled"
+                    DetectorBackendPreference.Cpu -> "CPU comparison backend selected"
+                },
+            )
         }
     }
 

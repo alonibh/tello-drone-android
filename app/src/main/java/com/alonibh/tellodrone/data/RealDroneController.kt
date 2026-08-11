@@ -8,6 +8,7 @@ import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneController
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
@@ -86,6 +87,9 @@ class RealDroneController(context: Context) : DroneController {
         if (mode in setOf(TrackingMode.Off, TrackingMode.DetectOnly)) {
             TelloServiceGateway.setTrackingMode(mode)
         } else outOfScope()
+    }
+    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
+        TelloServiceGateway.setDetectorBackendPreference(preference)
     }
     override fun setTargetLock(locked: Boolean) = outOfScope()
 

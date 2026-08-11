@@ -189,22 +189,32 @@ unavailable rather than being fabricated. These are feed diagnostics, not detect
 ## Phase 4A person detection
 
 The foreground-service-owned `AndroidTelloVideoController` owns `PersonDetectionPipeline` and the
-`PersonDetector` lifecycle. `MediaPipePersonDetector` is the only class that imports MediaPipe
-types. It uses MediaPipe Tasks Vision Object Detector `1.0.0`, CPU delegate, synchronous
-`RunningMode.IMAGE`, a `person` category allowlist, `0.50` confidence threshold, and at most five
-results. Detector construction and every blocking `detect()` call occur inside the existing
-`tello-analysis-consumer` callback. No asynchronous MediaPipe input is allowed to outlive the
-short bitmap lease, and no second frame queue is introduced.
+`PersonDetector` lifecycle. `TfliteTaskPersonDetector` is the only class that imports TensorFlow
+Lite Task Vision types. It uses the official Task ObjectDetector artifacts `0.4.4`, synchronous
+image inference, a `person` label allowlist, `0.50` confidence threshold, and at most five results.
+The old MediaPipe Tasks dependency and EfficientDet asset are no longer packaged.
 
-The bundled model is Google's official EfficientDet-Lite0 int8 COCO model (320×320 model input),
-downloaded from
-`https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/latest/efficientdet_lite0.tflite`.
-The checked-in asset is `efficientdet_lite0_int8.tflite`, 4,602,795 bytes, SHA-256
-`0720BF247BD76E6594EA28FA9C6F7C5242BE774818997DBBEFFC4DA460C723BB`. The MediaPipe code and
-distributed model are recorded under the Apache License 2.0; the model was trained on COCO's 80
-object categories, while this app exposes only `person`.
+The bundled model is TensorFlow's official SSD MobileNet V1 TFLite `metadata` variant, release v2,
+trained on COCO and published under Apache License 2.0. It was downloaded from
+`https://www.kaggle.com/api/v1/models/tensorflow/ssd-mobilenet-v1/tfLite/metadata/2/download`.
+The checked-in asset is `ssd_mobilenet_v1_metadata_v2.tflite`, 4,185,175 bytes, SHA-256
+`CBDECD08B44C5DEA3821F77C5468E2936ECFBF43CDE0795A2729FDB43401E58B`. Release v2 embeds the
+Task-compatible model metadata and COCO label file; the app exposes only `person`.
 
-MediaPipe results are immediately converted to immutable app-domain `PersonDetection` values:
+`FallbackPersonDetectorFactory` implements two explicit backend selections. GPU PREFERRED creates
+the official GPU delegate on the analysis thread; a GPU initialization or inference failure closes
+that detector and retries once with the CPU backend. CPU COMPARE bypasses GPU and uses the supported
+four-thread Task CPU configuration. The active backend, fallback state, model, detector FPS, and
+latest inference milliseconds are shown in Tracking diagnostics. GPU creation is not treated as
+proof of better performance: grounded validation must compare both selections on the target device.
+Backend selection is allowed only while detection is OFF and does not modify target or authority.
+
+Detector construction, every blocking `detect()` call, fallback, and release occur on the existing
+`tello-analysis-consumer` thread. OFF publishes empty state immediately, then schedules release on
+that same existing consumer executor. No asynchronous inference may outlive the short bitmap lease,
+and no second frame queue is introduced.
+
+Task ObjectDetector results are immediately converted to immutable app-domain `PersonDetection` values:
 normalized finite `0..1` bounds, confidence, source frame sequence, and source monotonic timestamp.
 Malformed boxes are rejected; partially out-of-range boxes are clamped. These are independent,
 frame-local observations. `TrackedTarget` is not populated, `target` remains null, and Phase 4A

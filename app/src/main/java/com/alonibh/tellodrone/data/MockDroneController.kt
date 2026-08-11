@@ -3,6 +3,7 @@ package com.alonibh.tellodrone.data
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
@@ -139,6 +140,11 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             TrackingMode.TargetLocked, TrackingMode.Follow ->
                 state.invalid("Target lock and Follow are not available in Phase 4A")
         }
+    }
+
+    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) = update { state ->
+        if (state.tracking != TrackingMode.Off) state.invalid("Turn person detection off before changing backend")
+        else state.copy(video = state.video.copy(detectorBackendPreference = preference))
     }
 
     override fun setTargetLock(locked: Boolean) = update {

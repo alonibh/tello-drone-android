@@ -11,6 +11,8 @@ enum class TrackingMode { Off, DetectOnly, TargetLocked, Follow }
 enum class ControlAuthority { Manual, Autonomous }
 enum class VideoAvailability { Unavailable, Mock, Streaming, Error }
 enum class PersonDetectionState { Off, Starting, Detecting, Error }
+enum class DetectorBackendPreference { Accelerated, Cpu }
+enum class DetectorBackend { Gpu, Cpu }
 
 /** A finite, non-empty box normalized to the captured preview surface (0f..1f). */
 data class NormalizedBoundingBox(
@@ -58,6 +60,10 @@ data class VideoState(
     val personDetectionState: PersonDetectionState = PersonDetectionState.Off,
     val detectorMeasuredFps: Float? = null,
     val detectorInferenceMillis: Long? = null,
+    val detectorBackendPreference: DetectorBackendPreference = DetectorBackendPreference.Accelerated,
+    val detectorBackend: DetectorBackend? = null,
+    val detectorModelName: String? = null,
+    val detectorFellBackFromGpu: Boolean = false,
     val detectorErrorReason: String? = null,
     val personDetections: List<PersonDetection> = emptyList(),
     val errorReason: String? = null,

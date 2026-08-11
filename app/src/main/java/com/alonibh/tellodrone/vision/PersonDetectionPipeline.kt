@@ -2,6 +2,8 @@ package com.alonibh.tellodrone.vision
 
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.DetectorBackend
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.tello.DecodedFrameConsumer
 import com.alonibh.tellodrone.tello.DecodedVideoFrame
 import java.util.concurrent.atomic.AtomicLong
@@ -11,6 +13,9 @@ data class PersonDetectionSnapshot(
     val detections: List<PersonDetection> = emptyList(),
     val measuredFps: Float? = null,
     val inferenceMillis: Long? = null,
+    val modelName: String? = null,
+    val backend: DetectorBackend? = null,
+    val fellBackFromGpu: Boolean = false,
     val errorReason: String? = null,
 )
 
@@ -22,8 +27,11 @@ class PersonDetectionStore(
         private set
 
     @Synchronized
-    fun start(): PersonDetectionSnapshot {
-        snapshot = PersonDetectionSnapshot(state = PersonDetectionState.Starting)
+    fun start(modelName: String): PersonDetectionSnapshot {
+        snapshot = PersonDetectionSnapshot(
+            state = PersonDetectionState.Starting,
+            modelName = modelName,
+        )
         return snapshot
     }
 
@@ -32,12 +40,16 @@ class PersonDetectionStore(
         detections: List<PersonDetection>,
         measuredFps: Float?,
         inferenceMillis: Long,
+        descriptor: PersonDetectorDescriptor,
     ): PersonDetectionSnapshot {
         snapshot = PersonDetectionSnapshot(
             state = PersonDetectionState.Detecting,
             detections = detections.toList(),
             measuredFps = measuredFps,
             inferenceMillis = inferenceMillis,
+            modelName = descriptor.modelName,
+            backend = descriptor.backend,
+            fellBackFromGpu = descriptor.fellBackFromGpu,
         )
         return snapshot
     }
@@ -56,9 +68,16 @@ class PersonDetectionStore(
     }
 
     @Synchronized
-    fun fail(message: String): PersonDetectionSnapshot {
+    fun fail(
+        message: String,
+        descriptor: PersonDetectorDescriptor?,
+        defaultModelName: String,
+    ): PersonDetectionSnapshot {
         snapshot = PersonDetectionSnapshot(
             state = PersonDetectionState.Error,
+            modelName = descriptor?.modelName ?: defaultModelName,
+            backend = descriptor?.backend,
+            fellBackFromGpu = descriptor?.fellBackFromGpu == true,
             errorReason = message.take(MAX_ERROR_CHARS),
         )
         return snapshot
@@ -75,7 +94,8 @@ class PersonDetectionStore(
  * no additional frame queue; generation checks discard an in-flight result after stop/surface loss.
  */
 class PersonDetectionPipeline(
-    private val detectorFactory: () -> PersonDetector,
+    private val detectorFactory: (DetectorBackendPreference) -> PersonDetector,
+    private val modelName: String,
     private val clockNanos: () -> Long = System::nanoTime,
     private val onSnapshot: (PersonDetectionSnapshot) -> Unit,
 ) : DecodedFrameConsumer, AutoCloseable {
@@ -85,14 +105,17 @@ class PersonDetectionPipeline(
     private val store = PersonDetectionStore()
     private val frameRate = DetectionFrameRate()
     @Volatile private var enabled = false
+    @Volatile private var preference = DetectorBackendPreference.Accelerated
     private var detector: PersonDetector? = null
+    private var detectorPreference: DetectorBackendPreference? = null
 
-    fun start() {
+    fun start(preference: DetectorBackendPreference = DetectorBackendPreference.Accelerated) {
         synchronized(stateLock) {
             generation.incrementAndGet()
+            this.preference = preference
             enabled = true
             frameRate.reset()
-            onSnapshot(store.start())
+            onSnapshot(store.start(modelName))
         }
     }
 
@@ -114,9 +137,18 @@ class PersonDetectionPipeline(
         val activeGeneration = generation.get()
         try {
             val startedAt = clockNanos()
-            val detections = synchronized(detectorLock) {
+            val (detections, descriptor) = synchronized(detectorLock) {
                 if (!enabled || generation.get() != activeGeneration) return
-                (detector ?: detectorFactory().also { detector = it }).detect(frame)
+                if (detectorPreference != preference) {
+                    runCatching { detector?.close() }
+                    detector = null
+                    detectorPreference = null
+                }
+                val activeDetector = detector ?: detectorFactory(preference).also {
+                    detector = it
+                    detectorPreference = preference
+                }
+                activeDetector.detect(frame) to activeDetector.descriptor
             }
             val finishedAt = clockNanos()
             val measuredFps = frameRate.onResult(finishedAt)
@@ -127,6 +159,7 @@ class PersonDetectionPipeline(
                         detections = detections,
                         measuredFps = measuredFps,
                         inferenceMillis = ((finishedAt - startedAt).coerceAtLeast(0L) / 1_000_000L),
+                        descriptor = descriptor,
                     ),
                 )
             }
@@ -136,10 +169,18 @@ class PersonDetectionPipeline(
                 enabled = false
                 generation.incrementAndGet()
                 synchronized(detectorLock) {
+                    val descriptor = detector?.descriptor
                     runCatching { detector?.close() }
                     detector = null
+                    detectorPreference = null
+                    onSnapshot(
+                        store.fail(
+                            "Person detector failed: ${error.message ?: error.javaClass.simpleName}",
+                            descriptor,
+                            modelName,
+                        ),
+                    )
                 }
-                onSnapshot(store.fail("Person detector failed: ${error.message ?: error.javaClass.simpleName}"))
             }
         }
     }
@@ -148,11 +189,23 @@ class PersonDetectionPipeline(
         onSnapshot(store.expire(nowNanos))
     }
 
+    /** Must run on the same analysis-consumer thread used for creation/inference. */
+    fun releaseIfStopped() {
+        if (enabled) return
+        synchronized(detectorLock) {
+            if (enabled) return
+            runCatching { detector?.close() }
+            detector = null
+            detectorPreference = null
+        }
+    }
+
     override fun close() {
         stop()
         synchronized(detectorLock) {
             runCatching { detector?.close() }
             detector = null
+            detectorPreference = null
         }
     }
 

@@ -20,6 +20,7 @@ import com.alonibh.tellodrone.data.TelloSessionStore
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
@@ -75,6 +76,9 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     fun publishManualControl(vector: ManualControlVector) { session?.publishManualControl(vector) }
     fun setSpeed(percent: Int) { session?.setSpeed(percent) }
     fun setTrackingMode(mode: TrackingMode) { session?.setTrackingMode(mode) }
+    fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
+        session?.setDetectorBackendPreference(preference)
+    }
     fun attachVideoSurface(surface: Surface) { videoController?.attachSurface(surface) }
     fun detachVideoSurface(surface: Surface) { videoController?.detachSurface(surface) }
 
@@ -378,6 +382,8 @@ object TelloServiceGateway {
     fun publishManualControl(vector: ManualControlVector) = service?.publishManualControl(vector)
     fun setSpeed(percent: Int) = service?.setSpeed(percent)
     fun setTrackingMode(mode: TrackingMode) = service?.setTrackingMode(mode)
+    fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
+        service?.setDetectorBackendPreference(preference)
     fun disconnect() = service?.disconnect()
     fun isAvailable(): Boolean = service != null
 }

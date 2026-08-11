@@ -5,6 +5,7 @@ import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.TrackingMode
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +47,8 @@ class AppDroneController(
     override fun stopAndHover() = selected().stopAndHover()
     override fun emergencyMotorKill() = selected().emergencyMotorKill()
     override fun setTrackingMode(mode: TrackingMode) = selected().setTrackingMode(mode)
+    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
+        selected().setDetectorBackendPreference(preference)
     override fun setTargetLock(locked: Boolean) = selected().setTargetLock(locked)
     override fun setManualControlVector(vector: ManualControlVector) = selected().setManualControlVector(vector)
     override fun setSpeed(percent: Int) = selected().setSpeed(percent)

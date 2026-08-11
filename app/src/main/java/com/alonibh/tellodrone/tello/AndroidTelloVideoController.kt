@@ -8,12 +8,15 @@ import android.net.Network
 import android.os.Build
 import android.view.Surface
 import androidx.annotation.RequiresApi
+import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
-import com.alonibh.tellodrone.vision.MediaPipePersonDetector
+import com.alonibh.tellodrone.vision.FallbackPersonDetectorFactory
 import com.alonibh.tellodrone.vision.PersonDetectionPipeline
 import com.alonibh.tellodrone.vision.PersonDetectionSnapshot
 import com.alonibh.tellodrone.vision.PersonDetectionStore
+import com.alonibh.tellodrone.vision.TfliteTaskPersonDetector
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetSocketAddress
@@ -63,8 +66,13 @@ class AndroidTelloVideoController(
     private val mutableState = MutableStateFlow(VideoState())
     override val state: StateFlow<VideoState> = mutableState.asStateFlow()
     private val decodedFrameSource: DecodedFrameSource = PixelCopyDecodedFrameSource(::updateAnalysisDiagnostics)
+    private val detectorPreference = AtomicReference(DetectorBackendPreference.Accelerated)
+    private val detectorFactory = FallbackPersonDetectorFactory { backend ->
+        TfliteTaskPersonDetector(context.applicationContext, backend)
+    }
     private val detectionPipeline = PersonDetectionPipeline(
-        detectorFactory = { MediaPipePersonDetector(context.applicationContext) },
+        detectorFactory = detectorFactory::create,
+        modelName = TfliteTaskPersonDetector.MODEL_DISPLAY_NAME,
         onSnapshot = ::publishDetectionSnapshot,
     )
 
@@ -110,7 +118,10 @@ class AndroidTelloVideoController(
     override fun streamAcknowledged() {
         if (!prepared.get() || failed.get() || closed.get()) return
         streamIsAcknowledged.set(true)
-        mutableState.value = VideoState(availability = VideoAvailability.Streaming)
+        mutableState.value = VideoState(
+            availability = VideoAvailability.Streaming,
+            detectorBackendPreference = detectorPreference.get(),
+        )
         unitSignal.trySend(Unit)
     }
 
@@ -123,11 +134,12 @@ class AndroidTelloVideoController(
         receiveExecutor.shutdown()
         codecExecutor.shutdown()
         latestUnit.reset()
-        detectionPipeline.stop()
+        stopDetectionAndScheduleRelease()
         detectionStaleJob?.cancel()
         scope.launch { decodedFrameSource.close() }
         mutableState.value = VideoState(
             availability = VideoAvailability.Error,
+            detectorBackendPreference = detectorPreference.get(),
             errorReason = reason.take(MAX_ERROR_REASON_CHARS),
         )
     }
@@ -143,7 +155,7 @@ class AndroidTelloVideoController(
     fun detachSurface(value: Surface) {
         if (surface.compareAndSet(value, null)) {
             surfaceGeneration.incrementAndGet()
-            detectionPipeline.stop()
+            stopDetectionAndScheduleRelease()
             decodedFrameSource.stop(value)
         }
         unitSignal.trySend(Unit)
@@ -151,7 +163,7 @@ class AndroidTelloVideoController(
 
     override fun setPersonDetectionEnabled(enabled: Boolean): Result<Unit> {
         if (!enabled) {
-            detectionPipeline.stop()
+            stopDetectionAndScheduleRelease()
             detectionStaleJob?.cancel()
             return Result.success(Unit)
         }
@@ -162,7 +174,19 @@ class AndroidTelloVideoController(
         ) {
             return Result.failure(IllegalStateException("Live preview analysis is not ready"))
         }
-        detectionPipeline.start()
+        detectionPipeline.start(detectorPreference.get())
+        return Result.success(Unit)
+    }
+
+    override fun setPersonDetectorBackendPreference(preference: DetectorBackendPreference): Result<Unit> {
+        if (mutableState.value.personDetectionState in setOf(
+                PersonDetectionState.Starting,
+                PersonDetectionState.Detecting,
+            )
+        ) return Result.failure(IllegalStateException("Turn person detection off before changing backend"))
+        detectorPreference.set(preference)
+        stopDetectionAndScheduleRelease()
+        mutableState.update { it.copy(detectorBackendPreference = preference) }
         return Result.success(Unit)
     }
 
@@ -175,9 +199,9 @@ class AndroidTelloVideoController(
         decoderJob?.cancelAndJoin()
         detectionPipeline.stop()
         detectionStaleJob?.cancelAndJoin()
+        decodedFrameSource.executeOnConsumerThread(detectionPipeline::releaseIfStopped)
         decodedFrameSource.setConsumer(null)
         decodedFrameSource.close()
-        detectionPipeline.close()
         latestUnit.reset()
         supervisor.cancel()
         receiveDispatcher.close()
@@ -387,10 +411,18 @@ class AndroidTelloVideoController(
                 personDetectionState = snapshot.state,
                 detectorMeasuredFps = snapshot.measuredFps,
                 detectorInferenceMillis = snapshot.inferenceMillis,
+                detectorBackend = snapshot.backend,
+                detectorModelName = snapshot.modelName,
+                detectorFellBackFromGpu = snapshot.fellBackFromGpu,
                 detectorErrorReason = snapshot.errorReason,
                 personDetections = snapshot.detections,
             )
         }
+    }
+
+    private fun stopDetectionAndScheduleRelease() {
+        detectionPipeline.stop()
+        decodedFrameSource.executeOnConsumerThread(detectionPipeline::releaseIfStopped)
     }
 
     private fun MediaCodec?.releaseSafely() {

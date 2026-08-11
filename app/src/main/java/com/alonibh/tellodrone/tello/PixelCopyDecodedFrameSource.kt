@@ -8,10 +8,13 @@ import android.view.Surface
 import androidx.core.graphics.createBitmap
 import java.util.ArrayDeque
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -86,6 +89,11 @@ class PixelCopyDecodedFrameSource(
         if (consumer != null) scheduleConsumerDrain()
     }
 
+    override fun executeOnConsumerThread(action: () -> Unit): Boolean = runCatching {
+        consumerExecutor.execute { action() }
+        true
+    }.getOrDefault(false)
+
     override suspend fun close() {
         val startCleanup = synchronized(lock) {
             if (!closed) {
@@ -98,7 +106,11 @@ class PixelCopyDecodedFrameSource(
         consumer.set(null)
         latestFrame.close()
         bitmapPool.close()
-        consumerExecutor.shutdownNow()
+        consumerExecutor.shutdown()
+        val consumerStopped = withContext(Dispatchers.IO) {
+            consumerExecutor.awaitTermination(CONSUMER_CLOSE_WAIT_MILLIS, TimeUnit.MILLISECONDS)
+        }
+        if (!consumerStopped) consumerExecutor.shutdownNow()
         if (startCleanup) beginThreadCleanup()
         // PixelCopy normally completes in a few milliseconds. Never delay session cleanup
         // indefinitely if a platform implementation fails to deliver its callback.
@@ -293,5 +305,6 @@ class PixelCopyDecodedFrameSource(
         private const val CAPTURE_INTERVAL_NANOS = 1_000_000_000L / MAX_ANALYSIS_FPS
         private const val FPS_WINDOW_NANOS = 1_000_000_000L
         private const val CLOSE_WAIT_MILLIS = 1_000L
+        private const val CONSUMER_CLOSE_WAIT_MILLIS = 5_000L
     }
 }
