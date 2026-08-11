@@ -15,9 +15,14 @@ The completed grounded procedure was:
 4. Leave the preview running for at least 30 seconds and observe measured FPS and visual stability.
 5. Disconnect cleanly while still grounded and confirm the preview and session stop without an error.
 
-## Phase 3B grounded decoded-frame validation — pending
+## Phase 3B grounded decoded-frame validation — complete
 
-Perform this first Phase 3B validation exactly as a grounded test; do not request flight:
+Phase 3B was physically validated on the Blaupunkt BP_6010 tablet. The bounded 320×240 analysis
+feed ran with the real preview remaining stable at approximately 30 FPS; flight controls remained
+responsive with video and analysis active; the immersive landscape UI passed; and the real takeoff
+confirmation was verified without weakening the grounded safety gate.
+
+The completed grounded procedure was:
 
 1. Use the Blaupunkt BP_6010 tablet in landscape and place the Tello on the floor. Do not take off.
 2. Connect normally, keep the live preview running on the **Dashboard**, and confirm the preview
@@ -34,21 +39,41 @@ Perform this first Phase 3B validation exactly as a grounded test; do not reques
 7. Disconnect cleanly while the Tello remains grounded and confirm the preview and physical session
    stop without an error.
 
-Stop after this grounded Phase 3B check. Person detection is Phase 4 and is not implemented; do not
-proceed to Phase 4 automatically.
+Phase 3 and Phase 3B physical validation are complete.
 
-## Landscape operational UI — pending
+## Phase 4A grounded person-detection validation — pending
 
-The tablet operational UI is landscape-first. `MainActivity` requests sensor landscape where the
+Phase 4A has not yet been physically validated. Perform this first validation exactly as a grounded
+test; do not request takeoff:
+
+1. Blaupunkt landscape, Tello on floor.
+2. Connect REAL and confirm normal ~30 FPS preview.
+3. Enable DETECT PEOPLE.
+4. Put one person clearly in camera view.
+5. Confirm one correctly aligned PERSON box appears.
+6. Move around frame and confirm box follows through new detections without growing lag.
+7. Leave frame and confirm box disappears quickly.
+8. Put two people in frame and confirm separate boxes where detector confidence permits.
+9. Run for at least 60 seconds; preview should remain healthy and controls/telemetry responsive.
+10. Disable detection and confirm boxes disappear immediately.
+11. Disconnect grounded.
+
+No takeoff is permitted for the first Phase 4A validation. Do not claim Phase 4A complete until this
+exact grounded procedure passes.
+
+## Landscape operational UI — complete
+
+The tablet immersive landscape operational UI was physically validated on the Blaupunkt BP_6010.
+`MainActivity` requests sensor landscape where the
 platform honors a fixed orientation. Modern large-screen Android platforms may ignore that request;
 if a portrait-sized window is received, the normal dashboard is replaced with **Rotate device to
 landscape**. During an active flight that fallback keeps STOP/HOVER, LAND, and the existing
 Emergency Motor Kill hold control available; it does not alter the service or session. Returning to
-landscape restores the normal dashboard. This behavior is pending physical validation.
+landscape restores the normal dashboard. The portrait-window fallback itself remains pending
+physical validation.
 
 Immersive fullscreen is reapplied on resumed window focus so initial launch, return from background,
-and dismissal of transient system UI restore the edge-to-edge operational view. This behavior is
-pending physical validation.
+and dismissal of transient system UI restore the edge-to-edge operational view.
 
 ## Grounded validation status
 
@@ -71,8 +96,9 @@ aircraft rotated briefly and then performed its own failsafe landing. The rotati
 aircraft behavior after link loss, not app-controlled behavior. Connection-loss behavior is
 physically validated.
 
-Emergency Motor Kill remains intentionally untested. Person detection, tracking, and autonomous
-flight remain unimplemented. Mi A1 manual flight also remains unverified.
+Emergency Motor Kill remains intentionally untested. Phase 4A person detection is implemented but
+pending its first grounded physical validation; target lock, tracking, and autonomous flight remain
+unimplemented. Mi A1 manual flight also remains unverified.
 
 **Phase 2 physical validation: complete.**
 

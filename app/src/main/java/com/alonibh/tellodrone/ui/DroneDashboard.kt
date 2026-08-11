@@ -57,11 +57,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Emergency
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.PersonSearch
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Videocam
@@ -118,13 +116,13 @@ import com.alonibh.tellodrone.TelloPanel
 import com.alonibh.tellodrone.TelloPanelRaised
 import com.alonibh.tellodrone.TelloRed
 import com.alonibh.tellodrone.TelloTextMuted
-import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
+import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import kotlinx.coroutines.delay
@@ -216,7 +214,8 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
                         TabletFlightControls(state, vm, Modifier.widthIn(min = 250.dp, max = 280.dp).fillMaxHeight())
                     }
                     BottomControls(state, vm, modifier = Modifier.weight(1f), tablet = true)
-                } else if (destination == "Status") StatusPanel(state, Modifier.fillMaxSize())
+                } else if (destination == "Tracking") TrackingDestination(state, vm, Modifier.fillMaxSize())
+                else if (destination == "Status") StatusPanel(state, Modifier.fillMaxSize())
                 else DestinationPlaceholder(destination, Modifier.fillMaxSize())
             }
         }
@@ -240,7 +239,12 @@ private fun CompactDashboard(state: DroneSessionState, vm: DroneViewModel, desti
             item { StatusPanel(state) }
             item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
         } else item {
-            if (destination == "Status") StatusPanel(state, Modifier.fillMaxWidth())
+            if (destination == "Tracking") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    VideoPanel(state, vm, Modifier.fillMaxWidth().height(280.dp))
+                    TrackingControls(state, vm)
+                }
+            } else if (destination == "Status") StatusPanel(state, Modifier.fillMaxWidth())
             else DestinationPlaceholder(destination, Modifier.fillMaxWidth().height(280.dp))
         }
     }
@@ -262,7 +266,8 @@ private fun MediumDashboard(state: DroneSessionState, vm: DroneViewModel, destin
                 }
             }
             BottomControls(state, vm)
-        } else if (destination == "Status") StatusPanel(state, Modifier.weight(1f).fillMaxWidth())
+        } else if (destination == "Tracking") TrackingDestination(state, vm, Modifier.weight(1f).fillMaxWidth())
+        else if (destination == "Status") StatusPanel(state, Modifier.weight(1f).fillMaxWidth())
         else DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
     }
 }
@@ -282,7 +287,8 @@ private fun LandscapeDashboard(state: DroneSessionState, vm: DroneViewModel, des
             CompactLandscapeManualControls(state, vm)
         } else {
             CompactNav(destination, onDestination)
-            if (destination == "Status") StatusPanel(state, Modifier.weight(1f).fillMaxWidth())
+            if (destination == "Tracking") TrackingDestination(state, vm, Modifier.weight(1f).fillMaxWidth())
+            else if (destination == "Status") StatusPanel(state, Modifier.weight(1f).fillMaxWidth())
             else DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
         }
     }
@@ -430,12 +436,28 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
             textAlign = TextAlign.Center,
             maxLines = 1,
         )
-        state.target?.let { target ->
-            val boxWidth = maxWidth * (target.boundingBox.right - target.boundingBox.left)
-            val boxHeight = maxHeight * (target.boundingBox.bottom - target.boundingBox.top)
-            Column(Modifier.offset(maxWidth * target.boundingBox.left, maxHeight * target.boundingBox.top).size(boxWidth, boxHeight).border(2.dp, if (target.locked) TelloGreen else Color(0xFFFFC857), RoundedCornerShape(3.dp))) { Text(if (target.locked) "TARGET LOCK" else "PERSON • MOCK", color = TelloInk, modifier = Modifier.background(if (target.locked) TelloGreen else Color(0xFFFFC857)).padding(horizontal = 6.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+        state.personDetections.forEach { detection ->
+            val mapped = VideoOverlayCoordinateMapper.mapFillBounds(
+                detection.boundingBox,
+                maxWidth.value,
+                maxHeight.value,
+            ) ?: return@forEach
+            Column(
+                Modifier.offset(mapped.left.dp, mapped.top.dp)
+                    .size((mapped.right - mapped.left).dp, (mapped.bottom - mapped.top).dp)
+                    .border(2.dp, Color(0xFFFFC857), RoundedCornerShape(3.dp)),
+            ) {
+                Text(
+                    "PERSON ${(detection.confidence * 100f).roundToInt()}%",
+                    color = TelloInk,
+                    modifier = Modifier.background(Color(0xFFFFC857)).padding(horizontal = 5.dp, vertical = 2.dp),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
         }
-        Row(Modifier.align(Alignment.BottomEnd).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) { state.target?.estimatedDistanceMeters?.let { Text("EST. DISTANCE %.1f m".format(it), Modifier.clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = .72f)).padding(8.dp), color = Color.White, fontSize = 12.sp) }; Text("H: ${telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }}", Modifier.clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .82f)).padding(horizontal = 12.dp, vertical = 9.dp), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+        Row(Modifier.align(Alignment.BottomEnd).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) { Text("H: ${telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }}", Modifier.clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .82f)).padding(horizontal = 12.dp, vertical = 9.dp), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         val centerMessage = when {
             state.video.availability == VideoAvailability.Mock -> "Mock preview • no physical video"
             state.video.availability == VideoAvailability.Error -> "VIDEO UNAVAILABLE\n${state.video.errorReason ?: "Video pipeline error"}"
@@ -571,14 +593,36 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     else OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, enabled, vm::stopAndHover, modifier, compact = compact)
 }
 
-@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("TRACKING • PHASE 3+") {
-    val mock = state.controllerMode == ControllerMode.Mock
-    ActionButton("DETECT PERSON", Icons.Default.PersonSearch, mock && state.connection == DroneConnectionState.Connected, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly)
+@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON DETECTION • PHASE 4A") {
+    val canStart = state.controllerMode == ControllerMode.Real &&
+        state.connection == DroneConnectionState.Connected &&
+        state.video.availability == VideoAvailability.Streaming &&
+        state.video.analysisLatestSequence != null
     AdaptiveActionPair(
-        { OutlineAction("TARGET LOCK", Icons.Default.Lock, mock && state.flight == FlightState.Flying && state.target != null, { vm.setTargetLock(state.target?.locked != true) }, Modifier.fillMaxWidth(), active = state.target?.locked == true) },
-        { ActionButton("FOLLOW", Icons.Default.PlayArrow, mock && state.flight == FlightState.Flying && state.target?.locked == true, { vm.setTrackingMode(TrackingMode.Follow) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.Follow) },
+        { OutlineAction("OFF", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Off) },
+        { ActionButton("DETECT PEOPLE", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly) },
     )
-    if (!mock) Text("Person detection is not implemented; authority remains Manual", color = TelloTextMuted, fontSize = 11.sp)
+    val status = when (state.video.personDetectionState) {
+        PersonDetectionState.Off -> "OFF"
+        PersonDetectionState.Starting -> "STARTING"
+        PersonDetectionState.Detecting -> "DETECTING"
+        PersonDetectionState.Error -> "ERROR"
+    }
+    StatusLine("State", status, if (state.video.personDetectionState == PersonDetectionState.Error) TelloRed else TelloGreen)
+    state.video.detectorInferenceMillis?.let { StatusLine("Inference", "$it ms") }
+    state.video.detectorMeasuredFps?.let { StatusLine("Detector rate", "%.1f FPS".format(it)) }
+    state.video.detectorErrorReason?.let { Text(it, color = TelloRed, fontSize = 11.sp) }
+    Text("Frame-local boxes only • Manual authority", color = TelloTextMuted, fontSize = 11.sp)
+}
+
+@Composable private fun TrackingDestination(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        VideoPanel(state, vm, Modifier.weight(1.4f).fillMaxHeight())
+        Column(Modifier.weight(.8f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            TrackingControls(state, vm)
+            StatusPanel(state, Modifier.fillMaxWidth())
+        }
+    }
 }
 @Composable private fun MediaControls() = ControlCard("MEDIA") {
     AdaptiveActionPair(
@@ -762,11 +806,7 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
 @Preview(name = "Flying manual", widthDp = 1280, heightDp = 800)
 @Composable private fun FlyingManualPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
 @Preview(name = "Flying detection", widthDp = 1280, heightDp = 800)
-@Composable private fun FlyingDetectPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying, tracking = TrackingMode.DetectOnly, target = previewTarget(false)))
-@Preview(name = "Flying target locked", widthDp = 1280, heightDp = 800)
-@Composable private fun FlyingLockedPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying, tracking = TrackingMode.TargetLocked, target = previewTarget(true)))
-@Preview(name = "Flying follow", widthDp = 1280, heightDp = 800)
-@Composable private fun FlyingFollowPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying, tracking = TrackingMode.Follow, authority = ControlAuthority.Autonomous, target = previewTarget(true)))
+@Composable private fun FlyingDetectPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying, tracking = TrackingMode.DetectOnly))
 @Preview(name = "Emergency", widthDp = 1280, heightDp = 800)
 @Composable private fun EmergencyPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Emergency))
 @Composable private fun PreviewDashboard(state: DroneSessionState) {
@@ -774,5 +814,4 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
     val previewViewModel: DroneViewModel = viewModel(factory = DroneViewModel.Factory(controller))
     MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme(primary = TelloGreen, background = TelloInk, surface = TelloPanel, surfaceVariant = TelloPanelRaised, error = TelloRed)) { DroneDashboard(state, previewViewModel) }
 }
-private fun previewTarget(locked: Boolean) = com.alonibh.tellodrone.domain.TrackedTarget(androidx.compose.ui.geometry.Rect(.40f, .20f, .62f, .82f), .92f, 1.8f, locked = locked)
 private fun tabletPreviewState(flight: FlightState, hoverActive: Boolean = false) = DroneSessionState(connection = DroneConnectionState.Connected, flight = flight, telemetry = com.alonibh.tellodrone.domain.TelemetrySnapshot(isFresh = true), hoverActive = hoverActive)

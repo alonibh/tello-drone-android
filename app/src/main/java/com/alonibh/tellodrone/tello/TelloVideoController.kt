@@ -9,5 +9,9 @@ interface TelloVideoController {
     suspend fun prepare(): Result<Unit>
     fun streamAcknowledged()
     fun streamFailed(reason: String)
+    /** Enables observational person detection only; implementations must never claim RC authority. */
+    fun setPersonDetectionEnabled(enabled: Boolean): Result<Unit> =
+        if (enabled) Result.failure(UnsupportedOperationException("Person detection is unavailable"))
+        else Result.success(Unit)
     suspend fun close()
 }

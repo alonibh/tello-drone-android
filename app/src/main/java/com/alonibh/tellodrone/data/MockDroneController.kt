@@ -1,6 +1,5 @@
 package com.alonibh.tellodrone.data
 
-import androidx.compose.ui.geometry.Rect
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
@@ -9,8 +8,10 @@ import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
+import com.alonibh.tellodrone.domain.NormalizedBoundingBox
+import com.alonibh.tellodrone.domain.PersonDetection
+import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
-import com.alonibh.tellodrone.domain.TrackedTarget
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
@@ -41,6 +42,11 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             flight = FlightState.Grounded,
             tracking = TrackingMode.Off,
             authority = ControlAuthority.Manual,
+            video = it.video.copy(
+                personDetectionState = PersonDetectionState.Off,
+                personDetections = emptyList(),
+            ),
+            personDetections = emptyList(),
             target = null,
             manualVector = ManualControlVector(),
             hoverActive = false,
@@ -69,9 +75,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
         if (state.flight == FlightState.Flying) {
             state.copy(
                 flight = FlightState.Grounded,
-                tracking = TrackingMode.Off,
                 authority = ControlAuthority.Manual,
-                target = state.target?.copy(locked = false),
                 manualVector = ManualControlVector(),
                 hoverActive = false,
                 telemetry = state.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f),
@@ -83,7 +87,6 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
     override fun stopAndHover() = update { state ->
         if (state.flight == FlightState.Flying) {
             state.copy(
-                tracking = if (state.target?.locked == true) TrackingMode.TargetLocked else TrackingMode.Off,
                 authority = ControlAuthority.Manual,
                 manualVector = ManualControlVector(),
                 hoverActive = true,
@@ -98,7 +101,12 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             flight = FlightState.Emergency,
             tracking = TrackingMode.Off,
             authority = ControlAuthority.Manual,
-            target = state.target?.copy(locked = false),
+            video = state.video.copy(
+                personDetectionState = PersonDetectionState.Off,
+                personDetections = emptyList(),
+            ),
+            personDetections = emptyList(),
+            target = null,
             manualVector = ManualControlVector(),
             hoverActive = false,
             telemetry = state.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f),
@@ -108,39 +116,42 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
 
     override fun setTrackingMode(mode: TrackingMode) = update { state ->
         when (mode) {
-            TrackingMode.Off -> state.copy(tracking = TrackingMode.Off, authority = ControlAuthority.Manual)
+            TrackingMode.Off -> state.copy(
+                tracking = TrackingMode.Off,
+                authority = ControlAuthority.Manual,
+                video = state.video.copy(personDetectionState = PersonDetectionState.Off),
+                personDetections = emptyList(),
+                target = null,
+            )
             TrackingMode.DetectOnly -> if (state.connection == DroneConnectionState.Connected) {
-                state.copy(tracking = TrackingMode.DetectOnly, authority = ControlAuthority.Manual, target = mockTarget(false))
+                val detections = listOf(mockPersonDetection())
+                state.copy(
+                    tracking = TrackingMode.DetectOnly,
+                    authority = ControlAuthority.Manual,
+                    video = state.video.copy(
+                        personDetectionState = PersonDetectionState.Detecting,
+                        personDetections = detections,
+                    ),
+                    personDetections = detections,
+                    target = null,
+                )
             } else state.invalid("Detection requires a connected mock drone")
-            TrackingMode.TargetLocked -> if (state.flight == FlightState.Flying && state.target != null) {
-                state.copy(tracking = TrackingMode.TargetLocked, authority = ControlAuthority.Manual, target = state.target.copy(locked = true))
-            } else state.invalid("Target lock requires a detected target while flying")
-            TrackingMode.Follow -> if (state.flight == FlightState.Flying && state.target?.locked == true) {
-                state.copy(tracking = TrackingMode.Follow, authority = ControlAuthority.Autonomous)
-            } else state.invalid("Follow requires a flying drone and locked target")
+            TrackingMode.TargetLocked, TrackingMode.Follow ->
+                state.invalid("Target lock and Follow are not available in Phase 4A")
         }
     }
 
-    override fun setTargetLock(locked: Boolean) = update { state ->
-        if (locked && state.flight != FlightState.Flying) state.invalid("Target lock requires a flying drone")
-        else if (locked && state.target == null) state.invalid("Detect a person before locking a target")
-        else state.copy(
-            target = (state.target ?: mockTarget(false)).copy(locked = locked),
-            tracking = if (locked) TrackingMode.TargetLocked else TrackingMode.DetectOnly,
-            authority = ControlAuthority.Manual,
-        )
+    override fun setTargetLock(locked: Boolean) = update {
+        it.invalid("Target lock is not available in Phase 4A")
     }
 
     override fun setManualControlVector(vector: ManualControlVector) = update { state ->
         if (state.flight != FlightState.Flying) state.invalid("Manual control requires a flying drone") else {
-            val wasFollowing = state.tracking == TrackingMode.Follow
             state.copy(
-                tracking = if (wasFollowing) TrackingMode.TargetLocked else state.tracking,
                 authority = ControlAuthority.Manual,
                 manualVector = vector,
                 hoverActive = if (vector.isZero()) state.hoverActive else false,
                 telemetry = state.telemetry.copy(speedMetersPerSecond = if (vector.isZero()) 0f else 0.3f),
-                lastMessage = if (wasFollowing) "Manual override: Follow cancelled" else state.lastMessage,
             )
         }
     }
@@ -149,11 +160,11 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
 
     private fun update(transform: (DroneSessionState) -> DroneSessionState) { mutableState.value = transform(mutableState.value) }
     private fun DroneSessionState.invalid(message: String) = copy(lastMessage = message)
-    private fun mockTarget(locked: Boolean) = TrackedTarget(
-        boundingBox = Rect(left = .40f, top = .20f, right = .62f, bottom = .82f),
+    private fun mockPersonDetection() = PersonDetection(
+        boundingBox = NormalizedBoundingBox(left = .40f, top = .20f, right = .62f, bottom = .82f),
         confidence = .92f,
-        estimatedDistanceMeters = 1.8f,
-        locked = locked,
+        frameSequence = 1L,
+        sourceTimestampNanos = System.nanoTime(),
     )
 
     companion object {

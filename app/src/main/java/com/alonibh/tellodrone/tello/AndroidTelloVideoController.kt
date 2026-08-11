@@ -1,5 +1,6 @@
 package com.alonibh.tellodrone.tello
 
+import android.content.Context
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
@@ -9,6 +10,10 @@ import android.view.Surface
 import androidx.annotation.RequiresApi
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
+import com.alonibh.tellodrone.vision.MediaPipePersonDetector
+import com.alonibh.tellodrone.vision.PersonDetectionPipeline
+import com.alonibh.tellodrone.vision.PersonDetectionSnapshot
+import com.alonibh.tellodrone.vision.PersonDetectionStore
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetSocketAddress
@@ -33,6 +38,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 /**
@@ -42,6 +48,7 @@ import kotlinx.coroutines.withContext
  */
 class AndroidTelloVideoController(
     private val network: Network,
+    context: Context,
 ) : TelloVideoController {
     private val receiveExecutor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "tello-video-udp").apply { isDaemon = true }
@@ -56,6 +63,10 @@ class AndroidTelloVideoController(
     private val mutableState = MutableStateFlow(VideoState())
     override val state: StateFlow<VideoState> = mutableState.asStateFlow()
     private val decodedFrameSource: DecodedFrameSource = PixelCopyDecodedFrameSource(::updateAnalysisDiagnostics)
+    private val detectionPipeline = PersonDetectionPipeline(
+        detectorFactory = { MediaPipePersonDetector(context.applicationContext) },
+        onSnapshot = ::publishDetectionSnapshot,
+    )
 
     private val socket = AtomicReference<DatagramSocket?>()
     private val surface = AtomicReference<Surface?>()
@@ -68,6 +79,11 @@ class AndroidTelloVideoController(
     private val unitSignal = Channel<Unit>(Channel.CONFLATED)
     private var receiverJob: Job? = null
     private var decoderJob: Job? = null
+    private var detectionStaleJob: Job? = null
+
+    init {
+        decodedFrameSource.setConsumer(detectionPipeline)
+    }
 
     override suspend fun prepare(): Result<Unit> {
         if (closed.get()) return Result.failure(IllegalStateException("Video pipeline is closed"))
@@ -107,6 +123,8 @@ class AndroidTelloVideoController(
         receiveExecutor.shutdown()
         codecExecutor.shutdown()
         latestUnit.reset()
+        detectionPipeline.stop()
+        detectionStaleJob?.cancel()
         scope.launch { decodedFrameSource.close() }
         mutableState.value = VideoState(
             availability = VideoAvailability.Error,
@@ -125,14 +143,27 @@ class AndroidTelloVideoController(
     fun detachSurface(value: Surface) {
         if (surface.compareAndSet(value, null)) {
             surfaceGeneration.incrementAndGet()
+            detectionPipeline.stop()
             decodedFrameSource.stop(value)
         }
         unitSignal.trySend(Unit)
     }
 
-    /** Service-owned Phase 4 code may register a consumer without depending on PixelCopy. */
-    fun setAnalysisFrameConsumer(consumer: DecodedFrameConsumer?) {
-        decodedFrameSource.setConsumer(consumer)
+    override fun setPersonDetectionEnabled(enabled: Boolean): Result<Unit> {
+        if (!enabled) {
+            detectionPipeline.stop()
+            detectionStaleJob?.cancel()
+            return Result.success(Unit)
+        }
+        val current = mutableState.value
+        if (closed.get() || failed.get() || !streamIsAcknowledged.get() ||
+            current.availability != VideoAvailability.Streaming ||
+            surface.get()?.isValid != true || current.analysisLatestSequence == null
+        ) {
+            return Result.failure(IllegalStateException("Live preview analysis is not ready"))
+        }
+        detectionPipeline.start()
+        return Result.success(Unit)
     }
 
     override suspend fun close() {
@@ -142,7 +173,11 @@ class AndroidTelloVideoController(
         unitSignal.close()
         receiverJob?.cancelAndJoin()
         decoderJob?.cancelAndJoin()
+        detectionPipeline.stop()
+        detectionStaleJob?.cancelAndJoin()
+        decodedFrameSource.setConsumer(null)
         decodedFrameSource.close()
+        detectionPipeline.close()
         latestUnit.reset()
         supervisor.cancel()
         receiveDispatcher.close()
@@ -331,6 +366,29 @@ class AndroidTelloVideoController(
                 analysisFrameWidth = diagnostics.width,
                 analysisFrameHeight = diagnostics.height,
                 analysisLatestSequence = diagnostics.latestSequence,
+            )
+        }
+    }
+
+    private fun publishDetectionSnapshot(snapshot: PersonDetectionSnapshot) {
+        detectionStaleJob?.cancel()
+        detectionStaleJob = null
+        val newestTimestamp = snapshot.detections.maxOfOrNull { it.sourceTimestampNanos }
+        if (newestTimestamp != null) {
+            val remainingNanos =
+                (newestTimestamp + PersonDetectionStore.STALE_AFTER_NANOS - System.nanoTime()).coerceAtLeast(0L)
+            detectionStaleJob = scope.launch {
+                delay((remainingNanos + 999_999L) / 1_000_000L)
+                detectionPipeline.expire()
+            }
+        }
+        mutableState.update { current ->
+            if (current.availability != VideoAvailability.Streaming) current else current.copy(
+                personDetectionState = snapshot.state,
+                detectorMeasuredFps = snapshot.measuredFps,
+                detectorInferenceMillis = snapshot.inferenceMillis,
+                detectorErrorReason = snapshot.errorReason,
+                personDetections = snapshot.detections,
             )
         }
     }

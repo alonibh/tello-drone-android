@@ -11,6 +11,7 @@ import com.alonibh.tellodrone.domain.TelemetrySnapshot
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
+import com.alonibh.tellodrone.domain.withPersonDetectionVideoState
 import com.alonibh.tellodrone.domain.isZero
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -79,6 +80,8 @@ class TelloFlightSession(
                 authority = ControlAuthority.Manual,
                 tracking = TrackingMode.Off,
                 video = VideoState(),
+                personDetections = emptyList(),
+                target = null,
                 lastMessage = "Tello Wi-Fi selected; entering SDK mode",
             )
         }
@@ -196,7 +199,6 @@ class TelloFlightSession(
             if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying) {
                 state.copy(
                     authority = ControlAuthority.Manual,
-                    tracking = TrackingMode.Off,
                     manualVector = ManualControlVector(),
                     hoverActive = true,
                     lastMessage = "STOP / HOVER: zero movement sent; aircraft remains flying",
@@ -215,11 +217,14 @@ class TelloFlightSession(
         landingAcknowledged = false
         requireManualNeutral()
         rcLoop.lockOutAfterZero()
+        video?.setPersonDetectionEnabled(false)
         mutableState.update {
             it.copy(
                 flight = FlightState.Emergency,
                 authority = ControlAuthority.Manual,
                 tracking = TrackingMode.Off,
+                personDetections = emptyList(),
+                target = null,
                 manualVector = ManualControlVector(),
                 hoverActive = false,
                 lastMessage = "EMERGENCY MOTOR KILL sent; further flight commands are locked out",
@@ -236,12 +241,11 @@ class TelloFlightSession(
             rcLoop.publish(vector, current.speedPercent)
             mutableState.update { state ->
                 if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying && state.telemetry.isFresh &&
-                    (state.manualVector != vector || state.tracking != TrackingMode.Off)
+                    (state.manualVector != vector || state.authority != ControlAuthority.Manual)
                 ) {
                     state.copy(
-                    authority = ControlAuthority.Manual,
-                    tracking = TrackingMode.Off,
-                    manualVector = vector,
+                        authority = ControlAuthority.Manual,
+                        manualVector = vector,
                     hoverActive = if (vector.isZero()) state.hoverActive else false,
                 )
                 } else state
@@ -251,6 +255,50 @@ class TelloFlightSession(
 
     fun setSpeed(percent: Int) {
         mutableState.update { it.copy(speedPercent = percent.coerceIn(10, 40)) }
+    }
+
+    fun setTrackingMode(mode: TrackingMode) {
+        val activeVideo = video
+        when (mode) {
+            TrackingMode.Off -> {
+                activeVideo?.setPersonDetectionEnabled(false)
+                mutableState.update {
+                    it.copy(
+                        tracking = TrackingMode.Off,
+                        authority = ControlAuthority.Manual,
+                        personDetections = emptyList(),
+                        target = null,
+                        lastMessage = "Person detection off",
+                    )
+                }
+            }
+            TrackingMode.DetectOnly -> {
+                val current = mutableState.value
+                if (current.connection != DroneConnectionState.Connected ||
+                    current.video.availability != VideoAvailability.Streaming
+                ) {
+                    invalid("Person detection requires a connected live preview")
+                    return
+                }
+                val started = activeVideo?.setPersonDetectionEnabled(true)
+                    ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
+                if (started.isSuccess) {
+                    mutableState.update {
+                        it.copy(
+                            tracking = TrackingMode.DetectOnly,
+                            authority = ControlAuthority.Manual,
+                            personDetections = emptyList(),
+                            target = null,
+                            lastMessage = "Starting on-device person detection",
+                        )
+                    }
+                } else {
+                    invalid(started.exceptionOrNull()?.message ?: "Person detection could not start")
+                }
+            }
+            TrackingMode.TargetLocked, TrackingMode.Follow ->
+                invalid("Target lock and Follow are not available in Phase 4A")
+        }
     }
 
     suspend fun refreshConnectionHealth(nowMillis: Long = clock.nowMillis()) {
@@ -296,6 +344,10 @@ class TelloFlightSession(
                 flight = if (state.flight == FlightState.Emergency) FlightState.Emergency else FlightState.Grounded,
                 telemetry = state.telemetry.copy(isFresh = false),
                 video = VideoState(),
+                tracking = TrackingMode.Off,
+                authority = ControlAuthority.Manual,
+                personDetections = emptyList(),
+                target = null,
                 manualVector = ManualControlVector(),
                 hoverActive = false,
                 lastMessage = "Tello session disconnected",
@@ -369,7 +421,7 @@ class TelloFlightSession(
         if (videoStateJob?.isActive == true) return
         videoStateJob = scope.launch {
             activeVideo.state.collect { videoState ->
-                if (!closed) mutableState.update { it.copy(video = videoState) }
+                if (!closed) mutableState.update { it.withPersonDetectionVideoState(videoState) }
             }
         }
     }
@@ -411,6 +463,8 @@ class TelloFlightSession(
                     video = VideoState(VideoAvailability.Error, errorReason = message),
                     authority = ControlAuthority.Manual,
                     tracking = TrackingMode.Off,
+                    personDetections = emptyList(),
+                    target = null,
                     manualVector = ManualControlVector(),
                     hoverActive = false,
                     lastMessage = message,

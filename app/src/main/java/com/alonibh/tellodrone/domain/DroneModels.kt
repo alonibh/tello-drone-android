@@ -10,6 +10,23 @@ enum class FlightState { Grounded, TakingOff, Flying, Landing, Unknown, Error, E
 enum class TrackingMode { Off, DetectOnly, TargetLocked, Follow }
 enum class ControlAuthority { Manual, Autonomous }
 enum class VideoAvailability { Unavailable, Mock, Streaming, Error }
+enum class PersonDetectionState { Off, Starting, Detecting, Error }
+
+/** A finite, non-empty box normalized to the captured preview surface (0f..1f). */
+data class NormalizedBoundingBox(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float,
+)
+
+/** One frame-local observation. It is deliberately not a selected or tracked target. */
+data class PersonDetection(
+    val boundingBox: NormalizedBoundingBox,
+    val confidence: Float,
+    val frameSequence: Long,
+    val sourceTimestampNanos: Long,
+)
 
 /**
  * A real telemetry sample. Nullable fields were not present in the aircraft state packet and must
@@ -38,6 +55,11 @@ data class VideoState(
     val analysisFrameWidth: Int? = null,
     val analysisFrameHeight: Int? = null,
     val analysisLatestSequence: Long? = null,
+    val personDetectionState: PersonDetectionState = PersonDetectionState.Off,
+    val detectorMeasuredFps: Float? = null,
+    val detectorInferenceMillis: Long? = null,
+    val detectorErrorReason: String? = null,
+    val personDetections: List<PersonDetection> = emptyList(),
     val errorReason: String? = null,
 )
 
@@ -67,6 +89,7 @@ data class DroneSessionState(
     val authority: ControlAuthority = ControlAuthority.Manual,
     val telemetry: TelemetrySnapshot = TelemetrySnapshot(),
     val video: VideoState = VideoState(),
+    val personDetections: List<PersonDetection> = emptyList(),
     val target: TrackedTarget? = null,
     val speedPercent: Int = 20,
     val manualVector: ManualControlVector = ManualControlVector(),

@@ -44,6 +44,10 @@ class RealDroneController(context: Context) : DroneController {
             it.copy(
                 connection = DroneConnectionState.Error,
                 networkSelection = NetworkSelectionState.PermissionDenied,
+                tracking = TrackingMode.Off,
+                authority = ControlAuthority.Manual,
+                personDetections = emptyList(),
+                target = null,
                 hoverActive = false,
                 lastMessage = "Tello network permission denied; no drone connection was attempted",
             )
@@ -57,6 +61,11 @@ class RealDroneController(context: Context) : DroneController {
                 connection = DroneConnectionState.Disconnected,
                 networkSelection = NetworkSelectionState.Idle,
                 telemetry = it.telemetry.copy(isFresh = false),
+                video = com.alonibh.tellodrone.domain.VideoState(),
+                tracking = TrackingMode.Off,
+                authority = ControlAuthority.Manual,
+                personDetections = emptyList(),
+                target = null,
                 manualVector = ManualControlVector(),
                 hoverActive = false,
                 lastMessage = "Tello session cleared",
@@ -73,14 +82,18 @@ class RealDroneController(context: Context) : DroneController {
     override fun attachVideoSurface(surface: Surface) { TelloServiceGateway.attachVideoSurface(surface) }
     override fun detachVideoSurface(surface: Surface) { TelloServiceGateway.detachVideoSurface(surface) }
 
-    override fun setTrackingMode(mode: TrackingMode) = outOfScope()
+    override fun setTrackingMode(mode: TrackingMode) {
+        if (mode in setOf(TrackingMode.Off, TrackingMode.DetectOnly)) {
+            TelloServiceGateway.setTrackingMode(mode)
+        } else outOfScope()
+    }
     override fun setTargetLock(locked: Boolean) = outOfScope()
 
     private fun outOfScope() = TelloSessionStore.update {
         it.copy(
             authority = ControlAuthority.Manual,
-            tracking = TrackingMode.Off,
-            lastMessage = "Tracking and autonomous control are not available in Phase 3A",
+            target = null,
+            lastMessage = "Target lock and autonomous control are not available in Phase 4A",
         )
     }
 }

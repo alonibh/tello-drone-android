@@ -67,7 +67,8 @@ Emergency cleanup); users must explicitly land first.
 
 ## RC/manual safety contract
 
-Phase 2 real flight authority is always `Manual`. Tracking controls remain disabled for real mode.
+Real flight authority remains `Manual`. Phase 4A person detection is observational and cannot
+publish RC, select a target, or acquire autonomous authority.
 
 The service-owned RC loop runs at 20 Hz only while flying. Compose hold controls publish a full
 desired vector and refresh it every 100 ms. The service stamps each publication with a monotonic
@@ -159,9 +160,9 @@ RC, command, telemetry, UDP receive, codec, or Compose thread.
 The visible preview remains 960×720 at its native stream cadence. Analysis copies are scaled by
 `PixelCopy` to 320×240 and capped at 8 capture requests per second. Each leased frame has
 immutable metadata containing width, height, the original monotonic render timestamp, an
-ever-increasing sequence, and `ARGB_8888_BITMAP` representation. A future Android detector can read
-the bitmap directly during its consumer callback; it must not retain the bitmap or frame after that
-callback. Person detection and all inference remain Phase 4 and are not implemented.
+ever-increasing sequence, and `ARGB_8888_BITMAP` representation. The Phase 4A detector reads the
+bitmap directly during its consumer callback and never retains the bitmap or frame after that
+callback.
 
 Capture uses a fixed pool of at most three 320×240 ARGB_8888 bitmaps: one may be in PixelCopy, one
 may be executing in the consumer, and one may be pending. There is no per-frame full-resolution
@@ -185,10 +186,54 @@ computed from the frame's render timestamp on the same monotonic clock. The UI s
 250 ms while Status is visible, so a capture freeze makes age increase. Missing measurements remain
 unavailable rather than being fabricated. These are feed diagnostics, not detector latency.
 
+## Phase 4A person detection
+
+The foreground-service-owned `AndroidTelloVideoController` owns `PersonDetectionPipeline` and the
+`PersonDetector` lifecycle. `MediaPipePersonDetector` is the only class that imports MediaPipe
+types. It uses MediaPipe Tasks Vision Object Detector `1.0.0`, CPU delegate, synchronous
+`RunningMode.IMAGE`, a `person` category allowlist, `0.50` confidence threshold, and at most five
+results. Detector construction and every blocking `detect()` call occur inside the existing
+`tello-analysis-consumer` callback. No asynchronous MediaPipe input is allowed to outlive the
+short bitmap lease, and no second frame queue is introduced.
+
+The bundled model is Google's official EfficientDet-Lite0 int8 COCO model (320×320 model input),
+downloaded from
+`https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/latest/efficientdet_lite0.tflite`.
+The checked-in asset is `efficientdet_lite0_int8.tflite`, 4,602,795 bytes, SHA-256
+`0720BF247BD76E6594EA28FA9C6F7C5242BE774818997DBBEFFC4DA460C723BB`. The MediaPipe code and
+distributed model are recorded under the Apache License 2.0; the model was trained on COCO's 80
+object categories, while this app exposes only `person`.
+
+MediaPipe results are immediately converted to immutable app-domain `PersonDetection` values:
+normalized finite `0..1` bounds, confidence, source frame sequence, and source monotonic timestamp.
+Malformed boxes are rejected; partially out-of-range boxes are clamped. These are independent,
+frame-local observations. `TrackedTarget` is not populated, `target` remains null, and Phase 4A
+does not select a primary person or track identity across frames.
+
+The Phase 3B single pending slot and drop-old policy remain unchanged. Slow inference blocks only
+the analysis-consumer thread; PixelCopy, preview decode, UDP receive, commands, telemetry, and RC
+continue independently. A newer zero-person result clears boxes immediately. Non-empty results
+expire from state after 500 ms using the same monotonic clock domain as the source timestamp. OFF,
+Surface loss, video failure, disconnect, and detector failure also clear results immediately.
+Detector failure transitions only the detector state to ERROR/OFF behavior and publishes a concise
+message; it does not change connection, flight, manual vector, or RC health.
+
+`TelloVideoSurfaceView` fills its Compose video panel while presenting the fixed 960×720 Surface.
+PixelCopy captures that complete displayed Surface and scales it to 320×240, so normalized analysis
+coordinates map through independent X/Y fill-bounds scaling into the overlay viewport. The reusable
+`VideoOverlayCoordinateMapper` centralizes that contract, including finite checks, clamping, and
+empty-box rejection. It does not assume analysis pixels are screen pixels or invent camera
+calibration.
+
+Detection is explicit user state: OFF → STARTING → DETECTING, or ERROR on failure. It can start only
+after a connected streaming preview has produced an analysis frame. Disabling, losing the Surface,
+losing video, or disconnecting returns it to OFF and does not silently re-enable it. Target lock,
+Follow, identity recognition, temporal tracking, PID, distance estimation, and autonomous RC remain
+unavailable. Manual flight authority, RC TTL zeroing, STOP/HOVER, and Emergency remain unchanged.
+
 ## Phase boundaries
 
-Phase 3B ends at the bounded decoded-frame feed. It adds no detector, ML model, person tracking,
-target lock for real flight, PID, autonomous control, recording, screenshots, media gallery, MCP,
-LLM, Python, or cloud integration. Phase 4 consumers must preserve the same session ownership and
-RC freshness contract; manual input remains the highest-priority authority. Phase 4 does not begin
-automatically.
+Phase 4A ends at frame-local person boxes over the real preview. It adds no target selection, target
+lock, identity or face recognition, cross-frame tracking, PID, autonomous control, Follow mode,
+distance estimation, recording, screenshots, media gallery, MCP, LLM, Python, or cloud integration.
+No later roadmap phase begins automatically.

@@ -74,6 +74,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     fun emergencyMotorKill() { scope.launch { session?.emergencyMotorKill() } }
     fun publishManualControl(vector: ManualControlVector) { session?.publishManualControl(vector) }
     fun setSpeed(percent: Int) { session?.setSpeed(percent) }
+    fun setTrackingMode(mode: TrackingMode) { session?.setTrackingMode(mode) }
     fun attachVideoSurface(surface: Surface) { videoController?.attachSurface(surface) }
     fun detachVideoSurface(surface: Surface) { videoController?.detachSurface(surface) }
 
@@ -101,6 +102,8 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                 authority = ControlAuthority.Manual,
                 tracking = TrackingMode.Off,
                 video = VideoState(),
+                personDetections = emptyList(),
+                target = null,
                 hoverActive = false,
                 lastMessage = "Waiting for Tello Wi-Fi selection",
             )
@@ -113,7 +116,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
         scope.launch {
             try {
                 val transport = NetworkTelloTransport(network, scope, SystemMonotonicClock)
-                val video = AndroidTelloVideoController(network)
+                val video = AndroidTelloVideoController(network, applicationContext)
                 videoController = video
                 TelloServiceGateway.videoPipelineAvailable(this@TelloDroneService)
                 val newSession = TelloFlightSession(
@@ -181,6 +184,10 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                         networkSelection = NetworkSelectionState.Lost,
                         flight = FlightState.Unknown,
                         video = VideoState(VideoAvailability.Error, errorReason = "Tello Wi-Fi network was lost"),
+                        tracking = TrackingMode.Off,
+                        authority = ControlAuthority.Manual,
+                        personDetections = emptyList(),
+                        target = null,
                         hoverActive = false,
                         lastMessage = "Tello Wi-Fi network was lost",
                     )
@@ -198,6 +205,10 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                     networkSelection = NetworkSelectionState.Error,
                     telemetry = it.telemetry.copy(isFresh = false),
                     video = VideoState(VideoAvailability.Error, errorReason = message),
+                    tracking = TrackingMode.Off,
+                    authority = ControlAuthority.Manual,
+                    personDetections = emptyList(),
+                    target = null,
                     manualVector = ManualControlVector(),
                     hoverActive = false,
                     lastMessage = message,
@@ -366,6 +377,7 @@ object TelloServiceGateway {
     fun emergencyMotorKill() = service?.emergencyMotorKill()
     fun publishManualControl(vector: ManualControlVector) = service?.publishManualControl(vector)
     fun setSpeed(percent: Int) = service?.setSpeed(percent)
+    fun setTrackingMode(mode: TrackingMode) = service?.setTrackingMode(mode)
     fun disconnect() = service?.disconnect()
     fun isAvailable(): Boolean = service != null
 }
