@@ -13,6 +13,9 @@ import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
+import com.alonibh.tellodrone.domain.TargetAssociationState
+import com.alonibh.tellodrone.domain.TargetSelection
+import com.alonibh.tellodrone.domain.TrackingErrorEngine
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
@@ -25,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class MockDroneController(initialState: DroneSessionState = mockInitialState()) : DroneController {
     private val mutableState = MutableStateFlow(initialState)
     override val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
+    private val trackingErrorEngine = TrackingErrorEngine()
 
     override fun connect() = update {
         it.copy(
@@ -49,6 +53,8 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             ),
             personDetections = emptyList(),
             target = null,
+            trackingErrors = null,
+            targetAssociationState = TargetAssociationState.None,
             manualVector = ManualControlVector(),
             hoverActive = false,
             telemetry = it.telemetry.copy(
@@ -108,6 +114,8 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             ),
             personDetections = emptyList(),
             target = null,
+            trackingErrors = null,
+            targetAssociationState = TargetAssociationState.None,
             manualVector = ManualControlVector(),
             hoverActive = false,
             telemetry = state.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f),
@@ -123,9 +131,11 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                 video = state.video.copy(personDetectionState = PersonDetectionState.Off),
                 personDetections = emptyList(),
                 target = null,
+                trackingErrors = null,
+                targetAssociationState = TargetAssociationState.None,
             )
             TrackingMode.DetectOnly -> if (state.connection == DroneConnectionState.Connected) {
-                val detections = listOf(mockPersonDetection())
+                val detections = mockPersonDetections()
                 state.copy(
                     tracking = TrackingMode.DetectOnly,
                     authority = ControlAuthority.Manual,
@@ -135,6 +145,8 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                     ),
                     personDetections = detections,
                     target = null,
+                    trackingErrors = null,
+                    targetAssociationState = TargetAssociationState.None,
                 )
             } else state.invalid("Detection requires a connected mock drone")
             TrackingMode.TargetLocked, TrackingMode.Follow ->
@@ -147,8 +159,22 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
         else state.copy(video = state.video.copy(detectorBackendPreference = preference))
     }
 
-    override fun setTargetLock(locked: Boolean) = update {
-        it.invalid("Target lock is not available in Phase 4A")
+    override fun selectTarget(detection: PersonDetection) = update { state ->
+        val currentDetection = state.personDetections.firstOrNull { it == detection }
+        if (state.video.personDetectionState != PersonDetectionState.Detecting || currentDetection == null) {
+            state.invalid("Select a currently visible mock person detection")
+        } else {
+            val target = TargetSelection.select(currentDetection)
+            trackingErrorEngine.reset()
+            state.copy(
+                tracking = TrackingMode.TargetLocked,
+                authority = ControlAuthority.Manual,
+                target = target,
+                trackingErrors = trackingErrorEngine.update(target, targetFresh = true),
+                targetAssociationState = TargetAssociationState.Selected,
+                lastMessage = "Mock target selected (dry run only)",
+            )
+        }
     }
 
     override fun setManualControlVector(vector: ManualControlVector) = update { state ->
@@ -166,12 +192,23 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
 
     private fun update(transform: (DroneSessionState) -> DroneSessionState) { mutableState.value = transform(mutableState.value) }
     private fun DroneSessionState.invalid(message: String) = copy(lastMessage = message)
-    private fun mockPersonDetection() = PersonDetection(
-        boundingBox = NormalizedBoundingBox(left = .40f, top = .20f, right = .62f, bottom = .82f),
-        confidence = .92f,
-        frameSequence = 1L,
-        sourceTimestampNanos = System.nanoTime(),
-    )
+    private fun mockPersonDetections(): List<PersonDetection> {
+        val timestamp = System.nanoTime()
+        return listOf(
+            PersonDetection(
+                boundingBox = NormalizedBoundingBox(left = .24f, top = .20f, right = .46f, bottom = .78f),
+                confidence = .92f,
+                frameSequence = 1L,
+                sourceTimestampNanos = timestamp,
+            ),
+            PersonDetection(
+                boundingBox = NormalizedBoundingBox(left = .60f, top = .30f, right = .82f, bottom = .84f),
+                confidence = .84f,
+                frameSequence = 1L,
+                sourceTimestampNanos = timestamp,
+            ),
+        )
+    }
 
     companion object {
         fun mockInitialState() = DroneSessionState(

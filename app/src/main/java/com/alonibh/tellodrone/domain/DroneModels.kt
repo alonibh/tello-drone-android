@@ -1,6 +1,5 @@
 package com.alonibh.tellodrone.domain
 
-import androidx.compose.ui.geometry.Rect
 import java.time.Instant
 
 enum class ControllerMode { Real, Mock }
@@ -69,14 +68,28 @@ data class VideoState(
     val errorReason: String? = null,
 )
 
-/** Coordinates are normalized to the displayed video (0f..1f), not screen pixels. */
+/**
+ * An explicitly selected, dry-run tracking target. All geometry and freshness values are in the
+ * detector's normalized / monotonic source domain; Compose converts only when rendering it.
+ */
 data class TrackedTarget(
-    val boundingBox: Rect,
+    val boundingBox: NormalizedBoundingBox,
     val confidence: Float,
-    val estimatedDistanceMeters: Float? = null,
-    val lastSeenAt: Instant = Instant.now(),
-    val locked: Boolean = false,
+    val selectedFrameSequence: Long,
+    val selectedSourceTimestampNanos: Long,
+    val lastSeenFrameSequence: Long = selectedFrameSequence,
+    val lastSeenSourceTimestampNanos: Long = selectedSourceTimestampNanos,
 )
+
+/** Pure explicit-selection boundary. Nothing in detection or association calls this implicitly. */
+object TargetSelection {
+    fun select(detection: PersonDetection): TrackedTarget = TrackedTarget(
+        boundingBox = detection.boundingBox,
+        confidence = detection.confidence,
+        selectedFrameSequence = detection.frameSequence,
+        selectedSourceTimestampNanos = detection.sourceTimestampNanos,
+    )
+}
 
 /** Normalized axes in -1f..1f. The session stamps monotonic freshness when it accepts a vector. */
 data class ManualControlVector(
@@ -97,6 +110,9 @@ data class DroneSessionState(
     val video: VideoState = VideoState(),
     val personDetections: List<PersonDetection> = emptyList(),
     val target: TrackedTarget? = null,
+    /** Dry-run only. These values are never converted to RC commands in Phase 4B. */
+    val trackingErrors: TrackingErrors? = null,
+    val targetAssociationState: TargetAssociationState = TargetAssociationState.None,
     val speedPercent: Int = 20,
     val manualVector: ManualControlVector = ManualControlVector(),
     /** App command state only: STOP/HOVER completed its explicit RC-zero action. */

@@ -1,6 +1,5 @@
 package com.alonibh.tellodrone.domain
 
-import androidx.compose.ui.geometry.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -14,7 +13,7 @@ class PersonDetectionSessionReducerTest {
             flight = FlightState.Flying,
             authority = ControlAuthority.Manual,
             manualVector = manual,
-            target = TrackedTarget(Rect(.1f, .1f, .2f, .2f), .9f),
+            target = TargetSelection.select(PersonDetection(NormalizedBoundingBox(.1f, .1f, .2f, .2f), .9f, 1L, 2L)),
         )
         val failedVideo = VideoState(
             availability = VideoAvailability.Streaming,

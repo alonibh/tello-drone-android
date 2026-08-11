@@ -12,6 +12,7 @@ import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
+import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.service.TelloDroneService
 import com.alonibh.tellodrone.service.TelloServiceGateway
@@ -91,7 +92,7 @@ class RealDroneController(context: Context) : DroneController {
     override fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
         TelloServiceGateway.setDetectorBackendPreference(preference)
     }
-    override fun setTargetLock(locked: Boolean) = outOfScope()
+    override fun selectTarget(detection: PersonDetection) = outOfScope()
 
     private fun outOfScope() = TelloSessionStore.update {
         it.copy(

@@ -241,6 +241,37 @@ losing video, or disconnecting returns it to OFF and does not silently re-enable
 Follow, identity recognition, temporal tracking, PID, distance estimation, and autonomous RC remain
 unavailable. Manual flight authority, RC TTL zeroing, STOP/HOVER, and Emergency remain unchanged.
 
+## Phase 4B dry-run target association and normalized errors
+
+Phase 4B adds a pure, observational pipeline only:
+
+`Detection -> explicit selection -> association -> normalized tracking errors`
+
+`PersonDetection` remains a frame-local observation. Nothing chooses the largest person, the
+nearest-center person, or the highest-confidence person. A caller must explicitly pass a visible
+`PersonDetection` to `TargetSelection.select`; that records normalized geometry plus the source
+frame sequence and monotonic timestamp. Domain targets use `NormalizedBoundingBox`, never Compose
+geometry or a wall-clock timestamp.
+
+`TargetAssociationEngine` accepts a selected target, a newer source frame, and frame-local person
+detections. It permits a match only when conservative normalized center displacement, IoU, and
+area-ratio thresholds all pass. It scores eligible candidates, but close scores are `Ambiguous`
+and leave the prior target unchanged. A larger, nearer, or more confident detection never steals
+the lock by itself. Older sequence/timestamp input is ignored. Missing input is temporary for one
+second of source-monotonic time, then becomes `Lost`; a lost target is never reacquired without a
+new explicit selection.
+
+`TrackingErrorEngine` is also pure and dry-run-only. It emits EMA-smoothed normalized yaw,
+vertical, and target-area errors with alpha 0.4; its X/Y/area deadzones and desired area ratio are
+documented normalized derivations from the former 960x720 reference. Positive yaw is target-right,
+positive vertical is target-above, and positive area error means the target is smaller than desired.
+It resets smoothing on loss and when selection changes. These values never enter PID or RC code.
+
+Mock mode exposes two selectable person boxes, selected/missing/lost state, and debug error values
+in Tracking only. Real-mode target selection remains disabled pending the future Teclast detector
+benchmark. There is no PID, autonomous RC, Follow mode, or non-manual control authority in Phase
+4B; manual RC, its TTL/stale-input zeroing, STOP/HOVER, and Emergency retain their existing roles.
+
 ## Phase boundaries
 
 Phase 4A ends at frame-local person boxes over the real preview. It adds no target selection, target

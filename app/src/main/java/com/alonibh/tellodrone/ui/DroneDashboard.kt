@@ -125,6 +125,7 @@ import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import kotlinx.coroutines.delay
@@ -444,15 +445,20 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
                 maxWidth.value,
                 maxHeight.value,
             ) ?: return@forEach
+            val selected = state.target?.let { target ->
+                target.boundingBox == detection.boundingBox &&
+                    target.lastSeenSourceTimestampNanos == detection.sourceTimestampNanos
+            } == true
             Column(
                 Modifier.offset(mapped.left.dp, mapped.top.dp)
                     .size((mapped.right - mapped.left).dp, (mapped.bottom - mapped.top).dp)
-                    .border(2.dp, Color(0xFFFFC857), RoundedCornerShape(3.dp)),
+                    .border(2.dp, if (selected) TelloGreen else Color(0xFFFFC857), RoundedCornerShape(3.dp))
+                    .clickable(enabled = state.controllerMode == ControllerMode.Mock) { vm.selectTarget(detection) },
             ) {
                 Text(
-                    "PERSON ${(detection.confidence * 100f).roundToInt()}%",
+                    if (selected) "TARGET SELECTED" else "PERSON ${(detection.confidence * 100f).roundToInt()}%",
                     color = TelloInk,
-                    modifier = Modifier.background(Color(0xFFFFC857)).padding(horizontal = 5.dp, vertical = 2.dp),
+                    modifier = Modifier.background(if (selected) TelloGreen else Color(0xFFFFC857)).padding(horizontal = 5.dp, vertical = 2.dp),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -595,11 +601,12 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     else OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, enabled, vm::stopAndHover, modifier, compact = compact)
 }
 
-@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON DETECTION • PHASE 4A") {
-    val canStart = state.controllerMode == ControllerMode.Real &&
-        state.connection == DroneConnectionState.Connected &&
-        state.video.availability == VideoAvailability.Streaming &&
-        state.video.analysisLatestSequence != null
+@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON DETECTION / DRY RUN • PHASE 4B") {
+    val canStart = (state.controllerMode == ControllerMode.Mock && state.connection == DroneConnectionState.Connected) ||
+        (state.controllerMode == ControllerMode.Real &&
+            state.connection == DroneConnectionState.Connected &&
+            state.video.availability == VideoAvailability.Streaming &&
+            state.video.analysisLatestSequence != null)
     AdaptiveActionPair(
         { OutlineAction("OFF", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Off) },
         { ActionButton("DETECT PEOPLE", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly) },
@@ -643,6 +650,32 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     state.video.detectorInferenceMillis?.let { StatusLine("Inference", "$it ms") }
     state.video.detectorMeasuredFps?.let { StatusLine("Detector rate", "%.1f FPS".format(it)) }
     state.video.detectorErrorReason?.let { Text(it, color = TelloRed, fontSize = 11.sp) }
+    if (state.controllerMode == ControllerMode.Mock && state.personDetections.isNotEmpty()) {
+        Text("Tap a mock person box to select the dry-run target.", color = TelloTextMuted, fontSize = 11.sp)
+        state.personDetections.forEachIndexed { index, detection ->
+            OutlineAction(
+                "SELECT PERSON ${index + 1}",
+                Icons.Default.PersonSearch,
+                true,
+                { vm.selectTarget(detection) },
+                Modifier.fillMaxWidth(),
+                active = state.target?.boundingBox == detection.boundingBox,
+            )
+        }
+    }
+    val targetStatus = when (state.targetAssociationState) {
+        TargetAssociationState.None -> null
+        TargetAssociationState.Selected, TargetAssociationState.Matched -> "TARGET SELECTED"
+        TargetAssociationState.TemporarilyMissing -> "TARGET MISSING"
+        TargetAssociationState.Lost -> "TARGET LOST"
+        TargetAssociationState.Ambiguous -> "TARGET AMBIGUOUS"
+    }
+    targetStatus?.let { StatusLine("Target", it, if (state.targetAssociationState == TargetAssociationState.Lost) TelloRed else TelloGreen) }
+    state.trackingErrors?.let { errors ->
+        StatusLine("Dry-run yaw", "%.3f".format(errors.yawError))
+        StatusLine("Dry-run vertical", "%.3f".format(errors.verticalError))
+        StatusLine("Dry-run area", "%.3f".format(errors.forwardBackError))
+    }
     Text("Frame-local boxes only • Manual authority", color = TelloTextMuted, fontSize = 11.sp)
 }
 

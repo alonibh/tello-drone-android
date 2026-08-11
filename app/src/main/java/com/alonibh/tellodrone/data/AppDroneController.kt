@@ -7,6 +7,7 @@ import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.TrackingMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +50,7 @@ class AppDroneController(
     override fun setTrackingMode(mode: TrackingMode) = selected().setTrackingMode(mode)
     override fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         selected().setDetectorBackendPreference(preference)
-    override fun setTargetLock(locked: Boolean) = selected().setTargetLock(locked)
+    override fun selectTarget(detection: PersonDetection) = selected().selectTarget(detection)
     override fun setManualControlVector(vector: ManualControlVector) = selected().setManualControlVector(vector)
     override fun setSpeed(percent: Int) = selected().setSpeed(percent)
     // The real adapter retains the display hand-off even when Mock mode is selected. Mock mode

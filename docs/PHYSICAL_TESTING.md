@@ -56,11 +56,16 @@ not accumulate frames. The evidence does not separate model compute from library
 the grounded record attributes the bottleneck to that combined model/backend path rather than making
 a narrower profiling claim.
 
-The replacement SSD MobileNet V1 Task backend has not yet been measured on the physical tablet, so
-no improved detector FPS or latency is claimed. Perform this grounded comparison exactly; do not
-request takeoff:
+The replacement SSD MobileNet V1 Task backend was measured on the Blaupunkt BP_6010. CPU with four
+threads took approximately 2,320-2,350 ms per inference (about 0.4 detector FPS), while preview
+remained approximately 18-20 FPS under detection load. This is unsuitable for real-time tracking.
+GPU initialization was effectively unusable, taking tens of seconds, and is not accepted as a
+real-time backend on the Blaupunkt. The Blaupunkt remains a low-end compatibility/manual-flight
+device, not the primary ML performance target. These results make no assumption about future
+Teclast measurements. The future Teclast grounded detector benchmark remains the gate before real
+target-lock or Follow work; do not request takeoff for that benchmark:
 
-1. Blaupunkt landscape, Tello on floor.
+1. Teclast landscape, Tello on floor.
 2. Connect REAL and confirm normal ~30 FPS preview.
 3. Leave the default GPU PREFERRED backend selected, enable DETECT PEOPLE, and record the displayed
    active backend, fallback indicator, latest inference milliseconds, detector FPS, and preview FPS

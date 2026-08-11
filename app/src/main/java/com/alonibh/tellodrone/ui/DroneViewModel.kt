@@ -9,6 +9,7 @@ import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.TrackingMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +30,7 @@ class DroneViewModel(private val controller: DroneController) : ViewModel() {
     fun setTrackingMode(mode: TrackingMode) = controller.setTrackingMode(mode)
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         controller.setDetectorBackendPreference(preference)
-    fun setTargetLock(locked: Boolean) = controller.setTargetLock(locked)
+    fun selectTarget(detection: PersonDetection) = controller.selectTarget(detection)
     fun setManualVector(vector: ManualControlVector) = controller.setManualControlVector(vector)
     fun setSpeed(percent: Int) = controller.setSpeed(percent)
     fun attachVideoSurface(surface: Surface) = controller.attachVideoSurface(surface)

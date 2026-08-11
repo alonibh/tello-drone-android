@@ -40,14 +40,14 @@ class MockDroneControllerTest {
         assertEquals(TrackingMode.Off, controller.state.value.tracking)
     }
 
-    @Test fun `target lock and follow remain unavailable`() {
+    @Test fun `explicit mock target selection remains dry run and follow remains unavailable`() {
         val controller = connectedController()
         controller.setTrackingMode(TrackingMode.DetectOnly)
-        controller.setTargetLock(true)
+        controller.selectTarget(controller.state.value.personDetections.first())
         controller.setTrackingMode(TrackingMode.Follow)
         assertEquals(ControlAuthority.Manual, controller.state.value.authority)
-        assertEquals(TrackingMode.DetectOnly, controller.state.value.tracking)
-        assertNull(controller.state.value.target)
+        assertEquals(TrackingMode.TargetLocked, controller.state.value.tracking)
+        org.junit.Assert.assertNotNull(controller.state.value.target)
     }
 
     @Test fun `manual input remains authoritative without disabling detection`() {
@@ -55,6 +55,17 @@ class MockDroneControllerTest {
         controller.setManualControlVector(ManualControlVector(forward = 1f))
         assertEquals(TrackingMode.DetectOnly, controller.state.value.tracking)
         assertEquals(ControlAuthority.Manual, controller.state.value.authority)
+    }
+
+    @Test fun `target selection does not issue movement or autonomous authority`() {
+        val controller = detectingFlyingController()
+        val manual = ManualControlVector(forward = .5f, yaw = -.2f)
+        controller.setManualControlVector(manual)
+        controller.selectTarget(controller.state.value.personDetections.last())
+
+        assertEquals(ControlAuthority.Manual, controller.state.value.authority)
+        assertEquals(manual, controller.state.value.manualVector)
+        assertEquals(TrackingMode.TargetLocked, controller.state.value.tracking)
     }
 
     @Test fun `disconnect clears unsafe states`() {
