@@ -71,6 +71,29 @@ not alter manual authority; the Teclast grounded detector benchmark remains the 
 Phase 4C shadow-autonomy safety/replay is also pure dry-run logic and needs no physical validation.
 The Teclast grounded detector benchmark remains the next physical gate.
 
+## Phase 4D detector/device benchmark â€” new-tablet procedure
+
+The following Blaupunkt BP_6010 values are **manually observed historical values**, not measurements
+produced by the Phase 4D harness: CPU (4 threads) was approximately 2320â€“2350 ms per inference,
+about 0.4 detector FPS, with preview approximately 18â€“20 FPS under detection. GPU startup was
+effectively unusable and took tens of seconds. Do not compare those observations as if they were
+harness reports.
+
+Do not claim Teclast or any new-tablet results until copied reports are recorded. With the Tello
+grounded, run this exact procedure; no takeoff is permitted:
+
+1. Install the latest build.
+2. Keep the Tello grounded.
+3. Connect REAL.
+4. Open Tracking.
+5. Select GPU PREFERRED.
+6. Run 30s benchmark.
+7. Copy report.
+8. Select CPU COMPARE.
+9. Run 30s benchmark.
+10. Copy report.
+11. No takeoff.
+
 1. Teclast landscape, Tello on floor.
 2. Connect REAL and confirm normal ~30 FPS preview.
 3. Leave the default GPU PREFERRED backend selected, enable DETECT PEOPLE, and record the displayed

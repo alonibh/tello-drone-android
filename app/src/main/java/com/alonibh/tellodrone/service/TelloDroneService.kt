@@ -79,6 +79,8 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
         session?.setDetectorBackendPreference(preference)
     }
+    fun runDetectorBenchmark() { session?.runDetectorBenchmark() }
+    fun cancelDetectorBenchmark() { session?.cancelDetectorBenchmark() }
     fun attachVideoSurface(surface: Surface) { videoController?.attachSurface(surface) }
     fun detachVideoSurface(surface: Surface) { videoController?.detachSurface(surface) }
 
@@ -384,6 +386,8 @@ object TelloServiceGateway {
     fun setTrackingMode(mode: TrackingMode) = service?.setTrackingMode(mode)
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         service?.setDetectorBackendPreference(preference)
+    fun runDetectorBenchmark() = service?.runDetectorBenchmark()
+    fun cancelDetectorBenchmark() = service?.cancelDetectorBenchmark()
     fun disconnect() = service?.disconnect()
     fun isAvailable(): Boolean = service != null
 }

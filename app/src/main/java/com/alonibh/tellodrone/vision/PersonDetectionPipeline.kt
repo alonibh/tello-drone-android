@@ -19,6 +19,14 @@ data class PersonDetectionSnapshot(
     val errorReason: String? = null,
 )
 
+data class DetectorInferenceMeasurement(
+    val completedAtNanos: Long,
+    val inferenceNanos: Long,
+    /** Creation time only for the first inference after a detector start/recreate. */
+    val startupNanos: Long?,
+    val descriptor: PersonDetectorDescriptor,
+)
+
 /** Pure lifecycle/staleness state used by the service-owned runtime and JVM tests. */
 class PersonDetectionStore(
     private val staleAfterNanos: Long = STALE_AFTER_NANOS,
@@ -98,6 +106,7 @@ class PersonDetectionPipeline(
     private val modelName: String,
     private val clockNanos: () -> Long = System::nanoTime,
     private val onSnapshot: (PersonDetectionSnapshot) -> Unit,
+    private val onInferenceMeasurement: (DetectorInferenceMeasurement) -> Unit = {},
 ) : DecodedFrameConsumer, AutoCloseable {
     private val detectorLock = Any()
     private val stateLock = Any()
@@ -136,6 +145,7 @@ class PersonDetectionPipeline(
         val request = activeRequestSnapshot() ?: return
         try {
             val startedAt = clockNanos()
+            var creationNanos: Long? = null
             val (detections, descriptor) = synchronized(detectorLock) {
                 if (!isRequestCurrent(request)) return
                 if (detectorPreference != request.preference) {
@@ -144,7 +154,9 @@ class PersonDetectionPipeline(
                     detectorPreference = null
                 }
                 val activeDetector = detector ?: run {
+                    val creationStartedAt = clockNanos()
                     val createdDetector = detectorFactory(request.preference)
+                    creationNanos = (clockNanos() - creationStartedAt).coerceAtLeast(0L)
                     if (!isRequestCurrent(request)) {
                         runCatching { createdDetector.close() }
                         return
@@ -165,6 +177,14 @@ class PersonDetectionPipeline(
                         detections = detections,
                         measuredFps = measuredFps,
                         inferenceMillis = ((finishedAt - startedAt).coerceAtLeast(0L) / 1_000_000L),
+                        descriptor = descriptor,
+                    ),
+                )
+                onInferenceMeasurement(
+                    DetectorInferenceMeasurement(
+                        completedAtNanos = finishedAt,
+                        inferenceNanos = (finishedAt - startedAt).coerceAtLeast(0L),
+                        startupNanos = creationNanos,
                         descriptor = descriptor,
                     ),
                 )

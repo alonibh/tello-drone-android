@@ -293,6 +293,24 @@ benchmark. There is no PID, autonomous RC, Follow mode, or non-manual control au
 
 ## Phase boundaries
 
+## Phase 4D detector benchmark instrumentation
+
+Tracking exposes a real-device, grounded-only 30-second benchmark when the real connection has a
+streaming preview, an analysis frame, and person detection is OFF. Starting it enables the existing
+`PersonDetectionPipeline` with the selected backend; it neither creates a frame queue nor changes
+PixelCopy, decoding, model configuration, detection thresholds, or backend implementation. The
+first three completed inferences are deterministic warm-up and are excluded from inference
+percentiles. Detector creation time is measured separately with a monotonic clock.
+
+The service-owned video controller observes the existing render, analysis, and detector callbacks
+to report completed inferences, min/p50/p95/max steady-state inference, detector/preview FPS, and
+analysis FPS only when it is actually observed. Android build metadata is limited to manufacturer,
+model, Android/API level, supported ABIs, and available processor count. No device identifiers or
+network/personal identifiers are collected. Completion, cancellation, detector failure, Surface
+loss, and video loss stop/release the detector through the normal existing lifecycle. Benchmark
+state has no imports or calls to RC control, manual vectors, control authority, flight commands,
+or takeoff; it is observational instrumentation only.
+
 Phase 4A ends at frame-local person boxes over the real preview. It adds no target selection, target
 lock, identity or face recognition, cross-frame tracking, PID, autonomous control, Follow mode,
 distance estimation, recording, screenshots, media gallery, MCP, LLM, Python, or cloud integration.

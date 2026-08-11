@@ -9,6 +9,7 @@ import android.os.Build
 import android.view.Surface
 import androidx.annotation.RequiresApi
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorBenchmarkState
 import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
@@ -16,6 +17,9 @@ import com.alonibh.tellodrone.vision.FallbackPersonDetectorFactory
 import com.alonibh.tellodrone.vision.PersonDetectionPipeline
 import com.alonibh.tellodrone.vision.PersonDetectionSnapshot
 import com.alonibh.tellodrone.vision.PersonDetectionStore
+import com.alonibh.tellodrone.vision.DetectorBenchmarkAggregator
+import com.alonibh.tellodrone.vision.BenchmarkDeviceInfo
+import com.alonibh.tellodrone.vision.DetectorInferenceMeasurement
 import com.alonibh.tellodrone.vision.TfliteTaskPersonDetector
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -74,7 +78,10 @@ class AndroidTelloVideoController(
         detectorFactory = detectorFactory::create,
         modelName = TfliteTaskPersonDetector.MODEL_DISPLAY_NAME,
         onSnapshot = ::publishDetectionSnapshot,
+        onInferenceMeasurement = ::onInferenceMeasurement,
     )
+    private val benchmarkLock = Any()
+    private var benchmark: DetectorBenchmarkAggregator? = null
 
     private val socket = AtomicReference<DatagramSocket?>()
     private val surface = AtomicReference<Surface?>()
@@ -135,11 +142,14 @@ class AndroidTelloVideoController(
         codecExecutor.shutdown()
         latestUnit.reset()
         stopDetectionAndScheduleRelease()
+        val benchmarkCancelled = cancelBenchmark("Video lost: $reason")
         detectionStaleJob?.cancel()
         scope.launch { decodedFrameSource.close() }
         mutableState.value = VideoState(
             availability = VideoAvailability.Error,
             detectorBackendPreference = detectorPreference.get(),
+            detectorBenchmarkState = if (benchmarkCancelled) DetectorBenchmarkState.Cancelled else DetectorBenchmarkState.Off,
+            detectorBenchmarkReason = if (benchmarkCancelled) "Video lost: $reason" else null,
             errorReason = reason.take(MAX_ERROR_REASON_CHARS),
         )
     }
@@ -156,6 +166,7 @@ class AndroidTelloVideoController(
         if (surface.compareAndSet(value, null)) {
             surfaceGeneration.incrementAndGet()
             stopDetectionAndScheduleRelease()
+            cancelBenchmark("Video surface lost")
             decodedFrameSource.stop(value)
         }
         unitSignal.trySend(Unit)
@@ -189,6 +200,27 @@ class AndroidTelloVideoController(
         mutableState.update { it.copy(detectorBackendPreference = preference) }
         return Result.success(Unit)
     }
+
+    override fun runDetectorBenchmark(): Result<Unit> {
+        val current = mutableState.value
+        if (current.personDetectionState != PersonDetectionState.Off) {
+            return Result.failure(IllegalStateException("Turn person detection off before running the benchmark"))
+        }
+        if (closed.get() || failed.get() || !streamIsAcknowledged.get() ||
+            current.availability != VideoAvailability.Streaming || surface.get()?.isValid != true || current.analysisLatestSequence == null
+        ) return Result.failure(IllegalStateException("Live preview analysis is not ready"))
+        synchronized(benchmarkLock) {
+            if (benchmark != null) return Result.failure(IllegalStateException("Detector benchmark is already running"))
+            benchmark = DetectorBenchmarkAggregator(
+                device = deviceInfo(), requestedBackend = detectorPreference.get(), startedAtNanos = System.nanoTime(),
+            )
+        }
+        detectionPipeline.start(detectorPreference.get())
+        mutableState.update { it.copy(detectorBenchmarkState = DetectorBenchmarkState.Running, detectorBenchmarkResult = null, detectorBenchmarkReason = null) }
+        return Result.success(Unit)
+    }
+
+    override fun cancelDetectorBenchmark() = cancelBenchmark("Cancelled by user")
 
     override suspend fun close() {
         if (!closed.compareAndSet(false, true)) return
@@ -370,6 +402,7 @@ class AndroidTelloVideoController(
             codec.releaseOutputBuffer(outputIndex, render)
             if (render) {
                 val nowNanos = System.nanoTime()
+                synchronized(benchmarkLock) { benchmark?.onPreviewRendered(nowNanos) }
                 val measured = frameRate.onRendered(nowNanos)
                 mutableState.update { current ->
                     if (current.availability != VideoAvailability.Streaming) current else current.copy(
@@ -383,6 +416,7 @@ class AndroidTelloVideoController(
     }
 
     private fun updateAnalysisDiagnostics(diagnostics: AnalysisFrameDiagnostics) {
+        diagnostics.latestCaptureTimestampNanos?.let { now -> synchronized(benchmarkLock) { benchmark?.onAnalysisFrame(now) } }
         mutableState.update { current ->
             if (current.availability != VideoAvailability.Streaming) current else current.copy(
                 analysisMeasuredFps = diagnostics.measuredFps,
@@ -418,7 +452,36 @@ class AndroidTelloVideoController(
                 personDetections = snapshot.detections,
             )
         }
+        if (snapshot.state == PersonDetectionState.Error) cancelBenchmark(snapshot.errorReason ?: "Detector failure")
     }
+
+    private fun onInferenceMeasurement(measurement: DetectorInferenceMeasurement) {
+        val completed = synchronized(benchmarkLock) {
+            val active = benchmark ?: return
+            active.onInference(measurement.completedAtNanos, measurement.inferenceNanos, measurement.startupNanos, measurement.descriptor)
+            if (active.isComplete(measurement.completedAtNanos)) {
+                benchmark = null
+                active.result(measurement.completedAtNanos)
+            } else null
+        }
+        if (completed != null) {
+            mutableState.update { it.copy(detectorBenchmarkState = DetectorBenchmarkState.Complete, detectorBenchmarkResult = completed, detectorBenchmarkReason = null) }
+            stopDetectionAndScheduleRelease()
+        }
+    }
+
+    private fun cancelBenchmark(reason: String): Boolean {
+        val cancelled = synchronized(benchmarkLock) { benchmark?.also { benchmark = null } } ?: return false
+        val result = cancelled.result(System.nanoTime())
+        mutableState.update { it.copy(detectorBenchmarkState = DetectorBenchmarkState.Cancelled, detectorBenchmarkResult = result, detectorBenchmarkReason = reason.take(MAX_ERROR_REASON_CHARS)) }
+        return true
+    }
+
+    private fun deviceInfo() = BenchmarkDeviceInfo(
+        manufacturer = Build.MANUFACTURER ?: "Unknown", model = Build.MODEL ?: "Unknown",
+        androidVersion = Build.VERSION.RELEASE ?: "Unknown", sdkLevel = Build.VERSION.SDK_INT,
+        supportedAbis = Build.SUPPORTED_ABIS?.toList().orEmpty(), availableProcessors = Runtime.getRuntime().availableProcessors(),
+    )
 
     private fun stopDetectionAndScheduleRelease() {
         detectionPipeline.stop()

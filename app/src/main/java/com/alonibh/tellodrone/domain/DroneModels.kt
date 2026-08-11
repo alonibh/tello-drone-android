@@ -1,6 +1,7 @@
 package com.alonibh.tellodrone.domain
 
 import java.time.Instant
+import com.alonibh.tellodrone.vision.DetectorBenchmarkResult
 
 enum class ControllerMode { Real, Mock }
 enum class DroneConnectionState { Disconnected, AwaitingPermission, Connecting, Connected, Error }
@@ -12,6 +13,7 @@ enum class VideoAvailability { Unavailable, Mock, Streaming, Error }
 enum class PersonDetectionState { Off, Starting, Detecting, Error }
 enum class DetectorBackendPreference { Accelerated, Cpu }
 enum class DetectorBackend { Gpu, Cpu }
+enum class DetectorBenchmarkState { Off, Running, Cancelled, Failed, Complete }
 
 /** A finite, non-empty box normalized to the captured preview surface (0f..1f). */
 data class NormalizedBoundingBox(
@@ -64,6 +66,9 @@ data class VideoState(
     val detectorModelName: String? = null,
     val detectorFellBackFromGpu: Boolean = false,
     val detectorErrorReason: String? = null,
+    val detectorBenchmarkState: DetectorBenchmarkState = DetectorBenchmarkState.Off,
+    val detectorBenchmarkResult: DetectorBenchmarkResult? = null,
+    val detectorBenchmarkReason: String? = null,
     val personDetections: List<PersonDetection> = emptyList(),
     val errorReason: String? = null,
 )

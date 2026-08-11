@@ -3,6 +3,8 @@
 package com.alonibh.tellodrone.ui
 
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.os.Build
 import android.provider.Settings
 import android.content.Context
@@ -119,6 +121,7 @@ import com.alonibh.tellodrone.TelloTextMuted
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DetectorBackend
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorBenchmarkState
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
@@ -128,6 +131,7 @@ import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
+import com.alonibh.tellodrone.vision.formatReport
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -650,6 +654,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     state.video.detectorInferenceMillis?.let { StatusLine("Inference", "$it ms") }
     state.video.detectorMeasuredFps?.let { StatusLine("Detector rate", "%.1f FPS".format(it)) }
     state.video.detectorErrorReason?.let { Text(it, color = TelloRed, fontSize = 11.sp) }
+    DetectorBenchmarkControls(state, vm)
     if (state.controllerMode == ControllerMode.Mock && state.personDetections.isNotEmpty()) {
         Text("Tap a mock person box to select the dry-run target.", color = TelloTextMuted, fontSize = 11.sp)
         state.personDetections.forEachIndexed { index, detection ->
@@ -698,6 +703,40 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         Text("SHADOW ONLY • NO AUTONOMOUS COMMANDS", color = TelloTextMuted, fontSize = 11.sp)
     }
     Text("Frame-local boxes only • Manual authority", color = TelloTextMuted, fontSize = 11.sp)
+}
+
+@Composable
+private fun DetectorBenchmarkControls(state: DroneSessionState, vm: DroneViewModel) {
+    val context = LocalContext.current
+    val running = state.video.detectorBenchmarkState == DetectorBenchmarkState.Running
+    val available = state.controllerMode == ControllerMode.Real && state.connection == DroneConnectionState.Connected &&
+        state.video.availability == VideoAvailability.Streaming && state.video.analysisLatestSequence != null &&
+        state.tracking == TrackingMode.Off && state.video.personDetectionState == PersonDetectionState.Off
+    HorizontalDivider(color = TelloLine)
+    Text("BENCHMARK", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+    if (running) {
+        StatusLine("Benchmark", "RUNNING - 30s valid inference", TelloGreen)
+        OutlineAction("CANCEL BENCHMARK", Icons.Default.StopCircle, true, vm::cancelDetectorBenchmark, Modifier.fillMaxWidth())
+    } else {
+        ActionButton("RUN 30s BENCHMARK", Icons.Default.PersonSearch, available, vm::runDetectorBenchmark, Modifier.fillMaxWidth())
+    }
+    state.video.detectorBenchmarkReason?.let { Text(it, color = TelloRed, fontSize = 11.sp) }
+    state.video.detectorBenchmarkResult?.let { result ->
+        Text("DEVICE", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        StatusLine("Device", "${result.manufacturer} ${result.model}")
+        StatusLine("Android", "${result.androidVersion} / API ${result.sdkLevel}")
+        Text("PERFORMANCE", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        StatusLine("Startup", result.startupMillis?.let { "$it ms" } ?: "Unavailable")
+        StatusLine("Inference p50", result.inferenceP50Millis?.let { "$it ms" } ?: "Unavailable")
+        StatusLine("Inference p95", result.inferenceP95Millis?.let { "$it ms" } ?: "Unavailable")
+        StatusLine("Detector", result.detectorFps?.let { "%.1f FPS".format(it) } ?: "Unavailable")
+        StatusLine("Preview", result.previewFps?.let { "%.1f FPS".format(it) } ?: "Unavailable")
+        StatusLine("Frames", result.completedInferences.toString())
+        OutlineAction("COPY REPORT", Icons.Default.CheckCircle, true, {
+            (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                .setPrimaryClip(ClipData.newPlainText("Tello detector benchmark", result.formatReport()))
+        }, Modifier.fillMaxWidth())
+    }
 }
 
 @Composable private fun TrackingDestination(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) {

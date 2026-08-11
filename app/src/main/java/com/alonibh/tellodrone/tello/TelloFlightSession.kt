@@ -263,6 +263,7 @@ class TelloFlightSession(
         when (mode) {
             TrackingMode.Off -> {
                 activeVideo?.setPersonDetectionEnabled(false)
+                activeVideo?.cancelDetectorBenchmark()
                 mutableState.update {
                     it.copy(
                         tracking = TrackingMode.Off,
@@ -323,6 +324,24 @@ class TelloFlightSession(
                 },
             )
         }
+    }
+
+    fun runDetectorBenchmark() {
+        val current = mutableState.value
+        if (current.tracking != TrackingMode.Off) {
+            invalid("Turn person detection off before running the benchmark")
+            return
+        }
+        val started = video?.runDetectorBenchmark()
+            ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
+        if (started.isSuccess) {
+            mutableState.update { it.copy(tracking = TrackingMode.DetectOnly, authority = ControlAuthority.Manual, personDetections = emptyList(), target = null, lastMessage = "Running 30-second detector benchmark") }
+        } else invalid(started.exceptionOrNull()?.message ?: "Detector benchmark could not start")
+    }
+
+    fun cancelDetectorBenchmark() {
+        video?.cancelDetectorBenchmark()
+        mutableState.update { it.copy(tracking = TrackingMode.Off, authority = ControlAuthority.Manual, personDetections = emptyList(), target = null, lastMessage = "Detector benchmark cancelled") }
     }
 
     suspend fun refreshConnectionHealth(nowMillis: Long = clock.nowMillis()) {

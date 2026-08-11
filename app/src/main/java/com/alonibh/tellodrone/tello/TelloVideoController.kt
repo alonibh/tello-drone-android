@@ -16,5 +16,8 @@ interface TelloVideoController {
         else Result.success(Unit)
     fun setPersonDetectorBackendPreference(preference: DetectorBackendPreference): Result<Unit> =
         Result.failure(UnsupportedOperationException("Detector backend selection is unavailable"))
+    fun runDetectorBenchmark(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Detector benchmark is unavailable"))
+    fun cancelDetectorBenchmark(): Boolean = false
     suspend fun close()
 }

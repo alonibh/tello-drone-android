@@ -50,6 +50,8 @@ class AppDroneController(
     override fun setTrackingMode(mode: TrackingMode) = selected().setTrackingMode(mode)
     override fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         selected().setDetectorBackendPreference(preference)
+    override fun runDetectorBenchmark() = selected().runDetectorBenchmark()
+    override fun cancelDetectorBenchmark() = selected().cancelDetectorBenchmark()
     override fun selectTarget(detection: PersonDetection) = selected().selectTarget(detection)
     override fun setShadowAutonomyArmed(armed: Boolean) = selected().setShadowAutonomyArmed(armed)
     override fun setManualControlVector(vector: ManualControlVector) = selected().setManualControlVector(vector)

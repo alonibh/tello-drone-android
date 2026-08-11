@@ -92,6 +92,8 @@ class RealDroneController(context: Context) : DroneController {
     override fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
         TelloServiceGateway.setDetectorBackendPreference(preference)
     }
+    override fun runDetectorBenchmark() { TelloServiceGateway.runDetectorBenchmark() }
+    override fun cancelDetectorBenchmark() { TelloServiceGateway.cancelDetectorBenchmark() }
     override fun selectTarget(detection: PersonDetection) = outOfScope()
 
     private fun outOfScope() = TelloSessionStore.update {
