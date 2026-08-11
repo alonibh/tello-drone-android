@@ -33,6 +33,11 @@ data class VideoState(
     val availability: VideoAvailability = VideoAvailability.Unavailable,
     val measuredFps: Float? = null,
     val lastFrameAt: Instant? = null,
+    val analysisMeasuredFps: Float? = null,
+    val analysisLatestCaptureTimestampNanos: Long? = null,
+    val analysisFrameWidth: Int? = null,
+    val analysisFrameHeight: Int? = null,
+    val analysisLatestSequence: Long? = null,
     val errorReason: String? = null,
 )
 

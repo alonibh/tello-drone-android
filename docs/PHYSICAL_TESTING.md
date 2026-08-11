@@ -1,8 +1,13 @@
-# Phase 2 physical validation
+# Physical validation
 
-## Phase 3A grounded video validation — pending
+## Phase 3A video validation — complete
 
-Do not claim Phase 3A physical success until this exact grounded check passes:
+Phase 3A was physically validated on the Blaupunkt BP_6010 tablet. Real live Tello video remained
+stable at approximately 30 FPS during flight; telemetry and individual/combined joystick control
+remained responsive; STOP/HOVER worked with video running; fullscreen/video UI passed; and normal
+landing and disconnect completed cleanly.
+
+The completed grounded procedure was:
 
 1. Use the Blaupunkt BP_6010 tablet in landscape only; place the Tello on the floor and do not take off.
 2. Connect normally and confirm the existing Connected/Grounded and fresh-telemetry state.
@@ -10,7 +15,24 @@ Do not claim Phase 3A physical success until this exact grounded check passes:
 4. Leave the preview running for at least 30 seconds and observe measured FPS and visual stability.
 5. Disconnect cleanly while still grounded and confirm the preview and session stop without an error.
 
-Stop after this check. Do not proceed to flight-with-video or Phase 3B automatically.
+## Phase 3B grounded decoded-frame validation — pending
+
+Perform this first Phase 3B validation exactly as a grounded test; do not request flight:
+
+1. Use the Blaupunkt BP_6010 tablet in landscape and place the Tello on the floor. Do not take off.
+2. Connect normally, keep the live preview running, and confirm the preview stays approximately
+   30 FPS.
+3. Open **Status** and confirm the measured analysis feed reaches approximately its configured
+   8 FPS cadence and reports real 320×240 frame dimensions and a fresh measured frame age.
+4. Leave the preview and analysis feed running for at least 60 seconds. Confirm there is no visible
+   preview degradation, freeze, or growing lag and that Status diagnostics continue to refresh.
+5. Background the app once, foreground it once, return to **Status**, and confirm preview plus
+   analysis diagnostics resume without stale dimensions/age being presented during the reset.
+6. Disconnect cleanly while the Tello remains grounded and confirm preview, analysis diagnostics,
+   and the physical session stop without an error.
+
+Stop after this grounded Phase 3B check. Person detection is Phase 4 and is not implemented; do not
+proceed to Phase 4 automatically.
 
 ## Grounded validation status
 
@@ -33,8 +55,8 @@ aircraft rotated briefly and then performed its own failsafe landing. The rotati
 aircraft behavior after link loss, not app-controlled behavior. Connection-loss behavior is
 physically validated.
 
-Emergency Motor Kill remains intentionally untested. Video, tracking, and autonomous flight are out
-of scope for this Phase 2 checkpoint. Mi A1 manual flight also remains unverified.
+Emergency Motor Kill remains intentionally untested. Person detection, tracking, and autonomous
+flight remain unimplemented. Mi A1 manual flight also remains unverified.
 
 **Phase 2 physical validation: complete.**
 

@@ -135,6 +135,7 @@ private val standardCardPadding = 12.dp
 private val actionHeight = 48.dp
 private val compactActionHeight = 44.dp
 private val sectionSpacing = 10.dp
+private const val STATUS_REFRESH_MILLIS = 250L
 
 @Composable
 fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier: Modifier = Modifier) {
@@ -175,7 +176,8 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
                         TabletFlightControls(state, vm, Modifier.widthIn(min = 250.dp, max = 280.dp).fillMaxHeight())
                     }
                     BottomControls(state, vm, modifier = Modifier.weight(1f), tablet = true)
-                } else DestinationPlaceholder(destination, Modifier.fillMaxSize())
+                } else if (destination == "Status") StatusPanel(state, Modifier.fillMaxSize())
+                else DestinationPlaceholder(destination, Modifier.fillMaxSize())
             }
         }
     }
@@ -197,7 +199,10 @@ private fun CompactDashboard(state: DroneSessionState, vm: DroneViewModel, desti
             item { BottomControls(state, vm) }
             item { StatusPanel(state) }
             item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
-        } else item { DestinationPlaceholder(destination, Modifier.fillMaxWidth().height(280.dp)) }
+        } else item {
+            if (destination == "Status") StatusPanel(state, Modifier.fillMaxWidth())
+            else DestinationPlaceholder(destination, Modifier.fillMaxWidth().height(280.dp))
+        }
     }
 }
 
@@ -217,7 +222,8 @@ private fun MediumDashboard(state: DroneSessionState, vm: DroneViewModel, destin
                 }
             }
             BottomControls(state, vm)
-        } else DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
+        } else if (destination == "Status") StatusPanel(state, Modifier.weight(1f).fillMaxWidth())
+        else DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
     }
 }
 
@@ -236,7 +242,8 @@ private fun LandscapeDashboard(state: DroneSessionState, vm: DroneViewModel, des
             CompactLandscapeManualControls(state, vm)
         } else {
             CompactNav(destination, onDestination)
-            DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
+            if (destination == "Status") StatusPanel(state, Modifier.weight(1f).fillMaxWidth())
+            else DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
         }
     }
 }
@@ -495,7 +502,7 @@ private class TelloVideoSurfaceView(
         { OutlineAction("TARGET LOCK", Icons.Default.Lock, mock && state.flight == FlightState.Flying && state.target != null, { vm.setTargetLock(state.target?.locked != true) }, Modifier.fillMaxWidth(), active = state.target?.locked == true) },
         { ActionButton("FOLLOW", Icons.Default.PlayArrow, mock && state.flight == FlightState.Flying && state.target?.locked == true, { vm.setTrackingMode(TrackingMode.Follow) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.Follow) },
     )
-    if (!mock) Text("Unavailable for real flight in Phase 3A; authority remains Manual", color = TelloTextMuted, fontSize = 11.sp)
+    if (!mock) Text("Person detection is not implemented; authority remains Manual", color = TelloTextMuted, fontSize = 11.sp)
 }
 @Composable private fun MediaControls() = ControlCard("MEDIA") {
     AdaptiveActionPair(
@@ -512,7 +519,38 @@ private fun AdaptiveActionPair(first: @Composable () -> Unit, second: @Composabl
     else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Box(Modifier.weight(1f)) { first() }; Box(Modifier.weight(1f)) { second() } }
 }
 
-@Composable private fun StatusPanel(state: DroneSessionState) = ControlCard("STATUS") { StatusLine("Battery", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }, if (state.telemetry.isFresh) TelloGreen else TelloTextMuted); StatusLine("Temperature", telemetryValue(state) { it.temperatureCelsius?.let { value -> "%.0f°C".format(value) } }); StatusLine("Velocity X/Y/Z", telemetryValue(state) { telemetry -> listOf(telemetry.velocityXCentimetersPerSecond, telemetry.velocityYCentimetersPerSecond, telemetry.velocityZCentimetersPerSecond).takeIf { values -> values.all { it != null } }?.joinToString(" / ") { "${it}cm/s" } }); StatusLine("Network", state.networkSelection.name); StatusLine("Connection", connectionLabel(state.connection)); StatusLine("Flight", state.flight.name); state.lastMessage?.let { Text(it, color = if (state.connection == DroneConnectionState.Error) TelloRed else TelloTextMuted, fontSize = 11.sp) } }
+@Composable
+private fun StatusPanel(state: DroneSessionState, modifier: Modifier = Modifier) = ControlCard("STATUS", modifier = modifier) {
+    var statusNowNanos by remember { mutableStateOf(System.nanoTime()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            statusNowNanos = System.nanoTime()
+            delay(STATUS_REFRESH_MILLIS)
+        }
+    }
+    val analysisAgeMillis = state.video.analysisLatestCaptureTimestampNanos?.let { capturedAt ->
+        ((statusNowNanos - capturedAt).coerceAtLeast(0L) / 1_000_000L)
+    }
+    StatusLine("Battery", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }, if (state.telemetry.isFresh) TelloGreen else TelloTextMuted)
+    StatusLine("Temperature", telemetryValue(state) { it.temperatureCelsius?.let { value -> "%.0f°C".format(value) } })
+    StatusLine("Velocity X/Y/Z", telemetryValue(state) { telemetry ->
+        listOf(telemetry.velocityXCentimetersPerSecond, telemetry.velocityYCentimetersPerSecond, telemetry.velocityZCentimetersPerSecond)
+            .takeIf { values -> values.all { it != null } }
+            ?.joinToString(" / ") { "${it}cm/s" }
+    })
+    StatusLine("Network", state.networkSelection.name)
+    StatusLine("Connection", connectionLabel(state.connection))
+    StatusLine("Flight", state.flight.name)
+    StatusLine("Analysis rate", state.video.analysisMeasuredFps?.let { "%.1f FPS".format(it) } ?: "—")
+    StatusLine(
+        "Analysis frame",
+        if (state.video.analysisFrameWidth != null && state.video.analysisFrameHeight != null) {
+            "${state.video.analysisFrameWidth} × ${state.video.analysisFrameHeight}"
+        } else "—",
+    )
+    StatusLine("Analysis frame age", analysisAgeMillis?.let { "$it ms" } ?: "—")
+    state.lastMessage?.let { Text(it, color = if (state.connection == DroneConnectionState.Error) TelloRed else TelloTextMuted, fontSize = 11.sp) }
+}
 @Composable private fun StatusLine(label: String, value: String, color: Color = Color.White) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = TelloTextMuted, fontSize = 13.sp); Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
 
 @Composable

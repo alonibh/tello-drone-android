@@ -55,6 +55,7 @@ class AndroidTelloVideoController(
     private val scope = CoroutineScope(supervisor)
     private val mutableState = MutableStateFlow(VideoState())
     override val state: StateFlow<VideoState> = mutableState.asStateFlow()
+    private val decodedFrameSource: DecodedFrameSource = PixelCopyDecodedFrameSource(::updateAnalysisDiagnostics)
 
     private val socket = AtomicReference<DatagramSocket?>()
     private val surface = AtomicReference<Surface?>()
@@ -106,6 +107,7 @@ class AndroidTelloVideoController(
         receiveExecutor.shutdown()
         codecExecutor.shutdown()
         latestUnit.reset()
+        scope.launch { decodedFrameSource.close() }
         mutableState.value = VideoState(
             availability = VideoAvailability.Error,
             errorReason = reason.take(MAX_ERROR_REASON_CHARS),
@@ -113,13 +115,24 @@ class AndroidTelloVideoController(
     }
 
     fun attachSurface(value: Surface) {
-        if (surface.getAndSet(value) !== value) surfaceGeneration.incrementAndGet()
+        if (surface.getAndSet(value) !== value) {
+            surfaceGeneration.incrementAndGet()
+            decodedFrameSource.start(value)
+        }
         unitSignal.trySend(Unit)
     }
 
     fun detachSurface(value: Surface) {
-        if (surface.compareAndSet(value, null)) surfaceGeneration.incrementAndGet()
+        if (surface.compareAndSet(value, null)) {
+            surfaceGeneration.incrementAndGet()
+            decodedFrameSource.stop(value)
+        }
         unitSignal.trySend(Unit)
+    }
+
+    /** Service-owned Phase 4 code may register a consumer without depending on PixelCopy. */
+    fun setAnalysisFrameConsumer(consumer: DecodedFrameConsumer?) {
+        decodedFrameSource.setConsumer(consumer)
     }
 
     override suspend fun close() {
@@ -129,6 +142,7 @@ class AndroidTelloVideoController(
         unitSignal.close()
         receiverJob?.cancelAndJoin()
         decoderJob?.cancelAndJoin()
+        decodedFrameSource.close()
         latestUnit.reset()
         supervisor.cancel()
         receiveDispatcher.close()
@@ -304,7 +318,20 @@ class AndroidTelloVideoController(
                         lastFrameAt = Instant.now(),
                     )
                 }
+                decodedFrameSource.onFrameRendered(nowNanos)
             }
+        }
+    }
+
+    private fun updateAnalysisDiagnostics(diagnostics: AnalysisFrameDiagnostics) {
+        mutableState.update { current ->
+            if (current.availability != VideoAvailability.Streaming) current else current.copy(
+                analysisMeasuredFps = diagnostics.measuredFps,
+                analysisLatestCaptureTimestampNanos = diagnostics.latestCaptureTimestampNanos,
+                analysisFrameWidth = diagnostics.width,
+                analysisFrameHeight = diagnostics.height,
+                analysisLatestSequence = diagnostics.latestSequence,
+            )
         }
     }
 

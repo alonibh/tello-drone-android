@@ -1,6 +1,6 @@
 # Architecture and safety contracts
 
-## Phase 3A runtime ownership
+## Phase 3 runtime ownership
 
 `DroneController` remains the UI boundary. `AppDroneController` selects either the retained
 `MockDroneController` or `RealDroneController`; mode changes are allowed only while disconnected.
@@ -17,6 +17,11 @@ same service/session ownership boundary. Compose owns only the current `SurfaceV
 surface and hands it through `DroneController`; a service gateway retains that display hand-off
 across service startup without retaining an Activity. Surface loss never transfers ownership of
 the socket or decoder to the UI.
+
+Phase 3B adds a decoded-frame source inside that same service-owned video controller. Compose still
+owns only the display surface; it does not own analysis frames, capture threads, or a vision
+consumer. Manual flight authority and every Phase 2 safety path are independent of the decoded
+frame source being available or healthy.
 
 ## Adaptive window UI
 
@@ -142,10 +147,48 @@ and no `streamoff` acknowledgement is awaited. Video exceptions remain inside th
 STOP/HOVER, landing, Emergency, telemetry health, stale-input zeroing, and connection-loss behavior
 remain authoritative.
 
+## Phase 3B decoded-frame feed
+
+`DecodedFrameSource` isolates the analysis-frame contract from its capture technique. The Phase 3B
+implementation uses asynchronous `PixelCopy` requests against the existing decoded preview
+`Surface`; it does not add a second H.264 decoder or change the `MediaCodec` output surface. The
+codec thread only posts a throttled render notification. Pixel copying runs on a dedicated capture
+thread, and an optional consumer runs serially on a separate analysis thread. Neither thread is an
+RC, command, telemetry, UDP receive, codec, or Compose thread.
+
+The visible preview remains 960×720 at its native stream cadence. Analysis copies are scaled by
+`PixelCopy` to 320×240 and capped at 8 capture requests per second. Each leased frame has
+immutable metadata containing width, height, the original monotonic render timestamp, an
+ever-increasing sequence, and `ARGB_8888_BITMAP` representation. A future Android detector can read
+the bitmap directly during its consumer callback; it must not retain the bitmap or frame after that
+callback. Person detection and all inference remain Phase 4 and are not implemented.
+
+Capture uses a fixed pool of at most three 320×240 ARGB_8888 bitmaps: one may be in PixelCopy, one
+may be executing in the consumer, and one may be pending. There is no per-frame full-resolution
+allocation. The generic `LatestAnalysisFrameBuffer` has exactly one pending slot. A newer ordered
+frame replaces and releases an unread older lease; an out-of-order frame is released; a slow
+consumer therefore skips history and receives the most recent pending frame. With no consumer, the
+single latest frame is retained for replacement and no analysis-consumer work is scheduled. If all
+three buffers are temporarily busy, the analysis copy is dropped before any primary video or
+flight path can be delayed.
+
+Surface loss clears and releases the pending frame, invalidates any in-flight capture generation,
+and resets measured diagnostics. Surface recreation starts cleanly while keeping frame sequence
+ordering within the session. Disconnect, decoder failure, connection loss, and service destruction
+close the handoff, stop the analysis executor, and recycle all returned bitmaps; a late PixelCopy or
+consumer release recycles its bitmap instead of returning it to a closed pool. Cleanup never waits
+indefinitely for a platform PixelCopy callback.
+
+The Status destination reports only successful capture measurements: the approximately one-second
+analysis FPS window, 320×240 dimensions after the first successful copy, and current frame age
+computed from the frame's render timestamp on the same monotonic clock. The UI samples age every
+250 ms while Status is visible, so a capture freeze makes age increase. Missing measurements remain
+unavailable rather than being fabricated. These are feed diagnostics, not detector latency.
+
 ## Phase boundaries
 
-Phase 3A ends at live Surface preview. It adds no decoded-frame/ML consumer, detector, person
-tracking, target lock for real flight, PID, autonomous control, recording, screenshots, media
-gallery, MCP, LLM, Python, or cloud integration. Future video and autonomous producers must preserve
-the same session ownership and RC freshness contract; manual input remains the highest-priority
-authority. Phase 3B does not begin automatically.
+Phase 3B ends at the bounded decoded-frame feed. It adds no detector, ML model, person tracking,
+target lock for real flight, PID, autonomous control, recording, screenshots, media gallery, MCP,
+LLM, Python, or cloud integration. Phase 4 consumers must preserve the same session ownership and
+RC freshness contract; manual input remains the highest-priority authority. Phase 4 does not begin
+automatically.
