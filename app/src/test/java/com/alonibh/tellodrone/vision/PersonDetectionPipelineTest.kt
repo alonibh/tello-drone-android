@@ -7,9 +7,15 @@ import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.tello.AnalysisFrameMetadata
 import com.alonibh.tellodrone.tello.AnalysisPixelRepresentation
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.concurrent.thread
 
 class PersonDetectionPipelineTest {
     @Test fun `fake detector result is published and zero result clears immediately`() {
@@ -85,6 +91,69 @@ class PersonDetectionPipelineTest {
         assertEquals(1, fake.closeCount)
     }
 
+    @Test fun `stale accelerated creation is discarded before CPU detector publishes`() {
+        staleCreationIsDiscarded(
+            stalePreference = DetectorBackendPreference.Accelerated,
+            activePreference = DetectorBackendPreference.Cpu,
+        )
+    }
+
+    @Test fun `stale CPU creation is discarded before accelerated detector publishes`() {
+        staleCreationIsDiscarded(
+            stalePreference = DetectorBackendPreference.Cpu,
+            activePreference = DetectorBackendPreference.Accelerated,
+        )
+    }
+
+    private fun staleCreationIsDiscarded(
+        stalePreference: DetectorBackendPreference,
+        activePreference: DetectorBackendPreference,
+    ) {
+        val creationStarted = CountDownLatch(1)
+        val allowStaleCreationToFinish = CountDownLatch(1)
+        val createdPreferences = mutableListOf<DetectorBackendPreference>()
+        val staleDetector = FakePersonDetector(backendFor(stalePreference)) { emptyList() }
+        val activeDetector = FakePersonDetector(backendFor(activePreference)) { emptyList() }
+        val snapshots = mutableListOf<PersonDetectionSnapshot>()
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { requestedPreference ->
+                synchronized(createdPreferences) { createdPreferences += requestedPreference }
+                if (requestedPreference == stalePreference) {
+                    creationStarted.countDown()
+                    assertTrue(allowStaleCreationToFinish.await(2, TimeUnit.SECONDS))
+                    staleDetector
+                } else activeDetector
+            },
+            modelName = "fake-model",
+            onSnapshot = snapshots::add,
+        )
+        val workerFailure = AtomicReference<Throwable?>()
+
+        pipeline.start(stalePreference)
+        val worker = thread(start = true) {
+            runCatching { pipeline.process(frame()) }.onFailure(workerFailure::set)
+        }
+        assertTrue(creationStarted.await(2, TimeUnit.SECONDS))
+
+        pipeline.stop()
+        pipeline.start(activePreference)
+        allowStaleCreationToFinish.countDown()
+        worker.join(2_000)
+
+        assertFalse(worker.isAlive)
+        assertNull(workerFailure.get())
+        assertEquals(1, staleDetector.closeCount)
+        assertEquals(listOf(stalePreference), synchronized(createdPreferences) { createdPreferences.toList() })
+        assertTrue(snapshots.none { it.backend == backendFor(stalePreference) })
+
+        pipeline.process(frame())
+
+        assertEquals(listOf(stalePreference, activePreference), synchronized(createdPreferences) { createdPreferences.toList() })
+        assertEquals(backendFor(activePreference), snapshots.last().backend)
+        assertEquals("fake-model", snapshots.last().modelName)
+        assertEquals(0, activeDetector.closeCount)
+    }
+
     private fun frame() = PersonDetectorFrame(
         AnalysisFrameMetadata(320, 240, 100L, AnalysisPixelRepresentation.ARGB_8888_BITMAP, 1L),
     ) { error("Fake detector must not request bitmap pixels") }
@@ -98,10 +167,16 @@ class PersonDetectionPipelineTest {
 
     private fun descriptor() = PersonDetectorDescriptor("fake-model", DetectorBackend.Cpu)
 
+    private fun backendFor(preference: DetectorBackendPreference) = when (preference) {
+        DetectorBackendPreference.Accelerated -> DetectorBackend.Gpu
+        DetectorBackendPreference.Cpu -> DetectorBackend.Cpu
+    }
+
     private class FakePersonDetector(
+        backend: DetectorBackend = DetectorBackend.Cpu,
         private val result: () -> List<PersonDetection>,
     ) : PersonDetector {
-        override val descriptor = PersonDetectorDescriptor("fake-model", DetectorBackend.Cpu)
+        override val descriptor = PersonDetectorDescriptor("fake-model", backend)
         var closeCount = 0
         override fun detect(frame: PersonDetectorFrame) = result()
         override fun close() { closeCount++ }

@@ -111,8 +111,8 @@ class PersonDetectionPipeline(
 
     fun start(preference: DetectorBackendPreference = DetectorBackendPreference.Accelerated) {
         synchronized(stateLock) {
-            generation.incrementAndGet()
             this.preference = preference
+            generation.incrementAndGet()
             enabled = true
             frameRate.reset()
             onSnapshot(store.start(modelName))
@@ -133,27 +133,33 @@ class PersonDetectionPipeline(
     }
 
     fun process(frame: PersonDetectorFrame) {
-        if (!enabled) return
-        val activeGeneration = generation.get()
+        val request = activeRequestSnapshot() ?: return
         try {
             val startedAt = clockNanos()
             val (detections, descriptor) = synchronized(detectorLock) {
-                if (!enabled || generation.get() != activeGeneration) return
-                if (detectorPreference != preference) {
+                if (!isRequestCurrent(request)) return
+                if (detectorPreference != request.preference) {
                     runCatching { detector?.close() }
                     detector = null
                     detectorPreference = null
                 }
-                val activeDetector = detector ?: detectorFactory(preference).also {
-                    detector = it
-                    detectorPreference = preference
+                val activeDetector = detector ?: run {
+                    val createdDetector = detectorFactory(request.preference)
+                    if (!isRequestCurrent(request)) {
+                        runCatching { createdDetector.close() }
+                        return
+                    }
+                    detector = createdDetector
+                    detectorPreference = request.preference
+                    createdDetector
                 }
+                if (!isRequestCurrent(request)) return
                 activeDetector.detect(frame) to activeDetector.descriptor
             }
             val finishedAt = clockNanos()
             val measuredFps = frameRate.onResult(finishedAt)
             synchronized(stateLock) {
-                if (!enabled || generation.get() != activeGeneration) return
+                if (!isRequestCurrentLocked(request)) return
                 onSnapshot(
                     store.result(
                         detections = detections,
@@ -165,7 +171,7 @@ class PersonDetectionPipeline(
             }
         } catch (error: Throwable) {
             synchronized(stateLock) {
-                if (!enabled || generation.get() != activeGeneration) return
+                if (!isRequestCurrentLocked(request)) return
                 enabled = false
                 generation.incrementAndGet()
                 synchronized(detectorLock) {
@@ -208,6 +214,22 @@ class PersonDetectionPipeline(
             detectorPreference = null
         }
     }
+
+    private fun activeRequestSnapshot(): DetectorRequest? = synchronized(stateLock) {
+        if (!enabled) null else DetectorRequest(generation.get(), preference)
+    }
+
+    private fun isRequestCurrent(request: DetectorRequest): Boolean = synchronized(stateLock) {
+        isRequestCurrentLocked(request)
+    }
+
+    private fun isRequestCurrentLocked(request: DetectorRequest): Boolean =
+        enabled && generation.get() == request.generation && preference == request.preference
+
+    private data class DetectorRequest(
+        val generation: Long,
+        val preference: DetectorBackendPreference,
+    )
 
     private class DetectionFrameRate {
         private var windowStartNanos = 0L
