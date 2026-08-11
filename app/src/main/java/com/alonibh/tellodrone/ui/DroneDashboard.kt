@@ -65,6 +65,7 @@ import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -131,6 +132,7 @@ import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
+import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.vision.formatReport
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
@@ -159,7 +161,7 @@ fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier
             when (windowLayout(maxWidth, maxHeight)) {
                 WindowLayout.Expanded -> ExpandedDashboard(state, viewModel, destination) { destination = it }
                 WindowLayout.Medium -> MediumDashboard(state, viewModel, destination) { destination = it }
-                WindowLayout.CompactHeight -> LandscapeDashboard(state, viewModel, destination) { destination = it }
+                WindowLayout.CompactHeight -> LandscapeDashboard(state, viewModel, destination, { destination = it })
                 WindowLayout.Compact -> CompactDashboard(state, viewModel, destination) { destination = it }
             }
         }
@@ -169,14 +171,24 @@ fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier
 internal fun isPortraitOperationalWindow(width: Dp, height: Dp): Boolean = height > width
 
 /** Material window-size-class breakpoints, evaluated from the current app window. */
-private fun windowLayout(width: Dp, height: Dp): WindowLayout = when {
-    width >= 840.dp -> WindowLayout.Expanded
+internal fun windowLayout(width: Dp, height: Dp): WindowLayout = when {
     height < 480.dp -> WindowLayout.CompactHeight
+    width >= 840.dp -> WindowLayout.Expanded
     width >= 600.dp -> WindowLayout.Medium
     else -> WindowLayout.Compact
 }
 
-private enum class WindowLayout { Compact, CompactHeight, Medium, Expanded }
+internal enum class WindowLayout { Compact, CompactHeight, Medium, Expanded }
+
+internal enum class CompactHeightContent { Dashboard, Controls, Tracking, Media, Status }
+
+internal fun compactHeightContent(destination: String): CompactHeightContent = when (destination) {
+    "Controls" -> CompactHeightContent.Controls
+    "Tracking" -> CompactHeightContent.Tracking
+    "Media" -> CompactHeightContent.Media
+    "Status" -> CompactHeightContent.Status
+    else -> CompactHeightContent.Dashboard
+}
 
 @Composable
 private fun PortraitSafetyFallback(state: DroneSessionState, vm: DroneViewModel) = Surface(
@@ -280,23 +292,30 @@ private fun MediumDashboard(state: DroneSessionState, vm: DroneViewModel, destin
 }
 
 @Composable
-private fun LandscapeDashboard(state: DroneSessionState, vm: DroneViewModel, destination: String, onDestination: (String) -> Unit) {
+private fun LandscapeDashboard(
+    state: DroneSessionState,
+    vm: DroneViewModel,
+    destination: String,
+    onDestination: (String) -> Unit,
+    showApi28WifiAction: Boolean = needsCompactWifiAction(state),
+) {
     Column(Modifier.testTag("layout_compact_height"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        CompactHeader(state, vm)
-        if (destination == "Dashboard") {
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                VideoPanel(state, vm, Modifier.weight(1.4f).fillMaxHeight())
-                Column(Modifier.weight(.85f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LandscapeFlightControls(state, vm)
-                    EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth())
+        CompactHeader(state, vm, showApi28WifiAction)
+        CompactNav(destination, onDestination, Modifier.testTag("compact_height_navigation"))
+        when (compactHeightContent(destination)) {
+            CompactHeightContent.Dashboard -> {
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VideoPanel(state, vm, Modifier.weight(1.65f).fillMaxHeight().testTag("compact_height_dashboard_video"))
+                    Column(Modifier.weight(.7f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LandscapeFlightControls(state, vm)
+                        EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth().weight(1f), compact = true)
+                    }
                 }
             }
-            CompactLandscapeManualControls(state, vm)
-        } else {
-            CompactNav(destination, onDestination)
-            if (destination == "Tracking") TrackingDestination(state, vm, Modifier.weight(1f).fillMaxWidth())
-            else if (destination == "Status") StatusPanel(state, Modifier.weight(1f).fillMaxWidth())
-            else DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
+            CompactHeightContent.Controls -> CompactHeightControlsDestination(state, vm, Modifier.weight(1f).fillMaxWidth())
+            CompactHeightContent.Tracking -> CompactHeightTrackingDestination(state, vm, Modifier.weight(1f).fillMaxWidth())
+            CompactHeightContent.Status -> CompactHeightScrollableDestination(Modifier.weight(1f).fillMaxWidth()) { StatusPanel(state) }
+            CompactHeightContent.Media -> CompactHeightScrollableDestination(Modifier.weight(1f).fillMaxWidth()) { MediaControls() }
         }
     }
 }
@@ -319,7 +338,7 @@ private fun Header(state: DroneSessionState, vm: DroneViewModel, expanded: Boole
 }
 
 @Composable
-private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surface(
+private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel, showApi28WifiAction: Boolean = needsCompactWifiAction(state)) = Surface(
     shape = panelShape,
     color = TelloPanelRaised,
     modifier = Modifier.fillMaxWidth(),
@@ -331,7 +350,24 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
     ) {
         Brand(state, Modifier.weight(1f))
         HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
-        ConnectionButton(state, vm)
+        CompactConnectionActions(state, vm, showApi28WifiAction)
+    }
+}
+
+private fun needsCompactWifiAction(state: DroneSessionState) = Build.VERSION.SDK_INT == 28 &&
+    state.controllerMode == ControllerMode.Real && state.connection != DroneConnectionState.Connected
+
+@Composable private fun CompactConnectionActions(state: DroneSessionState, vm: DroneViewModel, showApi28WifiAction: Boolean) = Row(
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.spacedBy(2.dp),
+) {
+    ConnectionPrimaryButton(state, vm)
+    if (showApi28WifiAction) {
+        val context = LocalContext.current
+        IconButton(
+            onClick = { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) },
+            modifier = Modifier.testTag("open_wifi_settings_compact"),
+        ) { Icon(Icons.Default.Wifi, "Open Wi-Fi settings", tint = TelloGreen, modifier = Modifier.size(20.dp)) }
     }
 }
 
@@ -415,7 +451,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
         Spacer(Modifier.weight(1f)); EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.padding(12.dp).fillMaxWidth().height(156.dp), compact = true)
     }
 }
-@Composable private fun CompactNav(destination: String, onDestination: (String) -> Unit) = Surface(color = TelloPanel, shape = panelShape, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.SpaceEvenly) { listOf("Dashboard", "Controls", "Tracking", "Media", "Status").forEach { label -> Text(label, modifier = Modifier.clickable { onDestination(label) }.padding(7.dp), fontSize = 12.sp, color = if (label == destination) TelloGreen else TelloTextMuted) } } }
+@Composable private fun CompactNav(destination: String, onDestination: (String) -> Unit, modifier: Modifier = Modifier) = Surface(color = TelloPanel, shape = panelShape, modifier = modifier.fillMaxWidth()) { Row(Modifier.padding(horizontal = 4.dp, vertical = 2.dp), horizontalArrangement = Arrangement.SpaceEvenly) { listOf("Dashboard", "Controls", "Tracking", "Media", "Status").forEach { label -> Text(label, modifier = Modifier.weight(1f).clickable { onDestination(label) }.padding(vertical = 5.dp), fontSize = 11.sp, textAlign = TextAlign.Center, maxLines = 1, color = if (label == destination) TelloGreen else TelloTextMuted) } } }
 @Composable private fun DestinationPlaceholder(destination: String, modifier: Modifier = Modifier) = Surface(modifier, shape = panelShape, color = TelloPanel) { Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.Settings, null, tint = TelloGreen, modifier = Modifier.size(38.dp)); Spacer(Modifier.height(12.dp)); Text(destination, fontWeight = FontWeight.Bold, fontSize = 22.sp); Text("This Phase 1 destination is a lightweight placeholder.", color = TelloTextMuted, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp)) } }
 
 @Composable
@@ -748,6 +784,36 @@ private fun DetectorBenchmarkControls(state: DroneSessionState, vm: DroneViewMod
         }
     }
 }
+
+/** Short landscape keeps the camera visible while its independently scrollable pane exposes every detector action. */
+@Composable private fun CompactHeightTrackingDestination(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = Row(
+    modifier,
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+) {
+    VideoPanel(state, vm, Modifier.weight(1.15f).fillMaxHeight().testTag("compact_height_tracking_video"))
+    LazyColumn(
+        modifier = Modifier.weight(.85f).fillMaxHeight().testTag("compact_height_tracking_scroll"),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(bottom = 8.dp),
+    ) {
+        item { TrackingControls(state, vm) }
+        item { StatusPanel(state) }
+    }
+}
+
+@Composable private fun CompactHeightControlsDestination(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = ControlCard(
+    "MANUAL CONTROL",
+    compact = true,
+    modifier = modifier.testTag("compact_height_manual_controls"),
+) {
+    ManualControlPanel(state, vm, compact = true)
+}
+
+@Composable private fun CompactHeightScrollableDestination(modifier: Modifier = Modifier, content: @Composable () -> Unit) = LazyColumn(
+    modifier = modifier.testTag("compact_height_destination_scroll"),
+    contentPadding = PaddingValues(bottom = 8.dp),
+) { item { content() } }
+
 @Composable private fun MediaControls() = ControlCard("MEDIA") {
     AdaptiveActionPair(
         { OutlineAction("RECORD", Icons.Default.Videocam, false, {}, Modifier.fillMaxWidth()) },
@@ -786,9 +852,6 @@ private fun StatusPanel(
 private fun BottomControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier, tablet: Boolean = false) = ControlCard("MANUAL CONTROL", modifier = modifier) { ManualControlPanel(state, vm, tablet = tablet) }
 
 @Composable
-private fun CompactLandscapeManualControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL", compact = true) { ManualControlPanel(state, vm, compact = true) }
-
-@Composable
 private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, compact: Boolean = false, tablet: Boolean = false) {
     val enabled = state.connection == DroneConnectionState.Connected &&
         state.flight == FlightState.Flying &&
@@ -804,7 +867,7 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
     BoxWithConstraints {
         val stickDiameter = when {
             tablet -> 190.dp
-            compact -> 112.dp
+            compact -> 104.dp
             maxWidth < 520.dp -> 140.dp
             else -> 156.dp
         }
@@ -923,8 +986,20 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
 @Composable private fun PortraitDisconnectedPreview() = PreviewDashboard(DroneSessionState())
 @Preview(name = "Phone portrait – flying controls", widthDp = 360, heightDp = 640)
 @Composable private fun MiA1PortraitPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Grounded))
-@Preview(name = "Phone landscape – flying controls", widthDp = 640, heightDp = 360)
-@Composable private fun CompactLandscapePreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
+@Preview(name = "Phone landscape Dashboard connected video", widthDp = 640, heightDp = 360)
+@Composable private fun CompactLandscapePreview() = PreviewCompactHeightDestination(
+    DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying, video = VideoState(availability = VideoAvailability.Streaming)),
+    "Dashboard",
+)
+@Preview(name = "Phone landscape Dashboard disconnected API28", widthDp = 640, heightDp = 360)
+@Composable private fun CompactLandscapeDisconnectedPreview() = PreviewCompactHeightDestination(DroneSessionState(), "Dashboard", showApi28WifiAction = true)
+@Preview(name = "Phone landscape Controls", widthDp = 640, heightDp = 360)
+@Composable private fun CompactLandscapeControlsPreview() = PreviewCompactHeightDestination(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying), "Controls")
+@Preview(name = "Phone landscape Tracking benchmark", widthDp = 640, heightDp = 360)
+@Composable private fun CompactLandscapeTrackingPreview() = PreviewCompactHeightDestination(
+    DroneSessionState(connection = DroneConnectionState.Connected, video = VideoState(availability = VideoAvailability.Streaming, analysisLatestSequence = 1L)),
+    "Tracking",
+)
 @Preview(name = "Medium window", widthDp = 700, heightDp = 600)
 @Composable private fun MediumPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying))
 @Preview(name = "Flying manual", widthDp = 1280, heightDp = 800)
@@ -937,5 +1012,12 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
     val controller = remember(state) { MockDroneController(state) }
     val previewViewModel: DroneViewModel = viewModel(factory = DroneViewModel.Factory(controller))
     MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme(primary = TelloGreen, background = TelloInk, surface = TelloPanel, surfaceVariant = TelloPanelRaised, error = TelloRed)) { DroneDashboard(state, previewViewModel) }
+}
+@Composable private fun PreviewCompactHeightDestination(state: DroneSessionState, destination: String, showApi28WifiAction: Boolean = false) {
+    val controller = remember(state) { MockDroneController(state) }
+    val previewViewModel: DroneViewModel = viewModel(factory = DroneViewModel.Factory(controller))
+    MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme(primary = TelloGreen, background = TelloInk, surface = TelloPanel, surfaceVariant = TelloPanelRaised, error = TelloRed)) {
+        LandscapeDashboard(state, previewViewModel, destination, {}, showApi28WifiAction)
+    }
 }
 private fun tabletPreviewState(flight: FlightState, hoverActive: Boolean = false) = DroneSessionState(connection = DroneConnectionState.Connected, flight = flight, telemetry = com.alonibh.tellodrone.domain.TelemetrySnapshot(isFresh = true), hoverActive = hoverActive)
