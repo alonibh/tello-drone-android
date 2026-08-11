@@ -10,10 +10,21 @@
   The state progression behaved correctly. At 10%, right-stick forward/back and lateral movement
   each released to hover; left-stick altitude and yaw each released to hover; brief movement followed
   by STOP/HOVER returned to hover; both sticks worked simultaneously; releasing one preserved the
-  other; releasing both returned to hover; and safe landing passed.
+  other; releasing both returned to hover; HOVER ACTIVE feedback was visible; final joystick
+  ergonomics were usable; and safe landing passed.
 
-Connection-loss handling, Emergency Motor Kill, video, tracking, and autonomous flight are not
-physically verified. Mi A1 manual flight also remains unverified.
+## Connection-loss validation
+
+With the Tello hovering normally, tablet Wi-Fi was deliberately turned off. The app transitioned to
+Error / lost-control state and no stale manual control remained active. After several seconds, the
+aircraft rotated briefly and then performed its own failsafe landing. The rotation is observed
+aircraft behavior after link loss, not app-controlled behavior. Connection-loss behavior is
+physically validated.
+
+Emergency Motor Kill remains intentionally untested. Video, tracking, and autonomous flight are out
+of scope for this Phase 2 checkpoint. Mi A1 manual flight also remains unverified.
+
+**Phase 2 physical validation: complete.**
 
 After the dual-joystick update, validate manual movement only at 10% speed: take off; move the right
 stick slightly forward for less than one second; release and confirm hover; repeat laterally; make a
