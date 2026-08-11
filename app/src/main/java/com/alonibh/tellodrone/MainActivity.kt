@@ -61,11 +61,24 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        enterImmersiveMode()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) enterImmersiveMode()
+    }
+
+    private fun enterImmersiveMode() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowCompat.getInsetsController(window, window.decorView).apply {
+        val decorView = window.decorView
+        fun hideSystemBars() = WindowCompat.getInsetsController(window, decorView).apply {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             hide(WindowInsetsCompat.Type.systemBars())
         }
+        hideSystemBars()
+        // Reapply after the initial decor attachment without relying on an arbitrary delay.
+        decorView.post { if (!isFinishing && !isDestroyed && hasWindowFocus()) hideSystemBars() }
     }
 
     override fun onPause() {

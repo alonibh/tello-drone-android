@@ -103,7 +103,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -139,9 +138,8 @@ private val standardCardPadding = 12.dp
 private val actionHeight = 48.dp
 private val compactActionHeight = 44.dp
 private val sectionSpacing = 10.dp
-private const val STATUS_REFRESH_MILLIS = 250L
-private val videoDiagnosticsBadgeWidth = 244.dp
-private val videoDiagnosticsBadgeHeight = 50.dp
+private val previewFpsBadgeWidth = 76.dp
+private val previewFpsBadgeHeight = 38.dp
 
 @Composable
 fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier: Modifier = Modifier) {
@@ -239,7 +237,7 @@ private fun CompactDashboard(state: DroneSessionState, vm: DroneViewModel, desti
             item { CriticalFlightControls(state, vm) }
             item { CompactFutureControlsNotice() }
             item { BottomControls(state, vm) }
-            item { StatusPanel(state, previewSurfaceAttached = true) }
+            item { StatusPanel(state) }
             item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
         } else item {
             if (destination == "Status") StatusPanel(state, Modifier.fillMaxWidth())
@@ -260,7 +258,7 @@ private fun MediumDashboard(state: DroneSessionState, vm: DroneViewModel, destin
                     item { CriticalFlightControls(state, vm) }
                     item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
                     item { TrackingControls(state, vm) }
-                    item { StatusPanel(state, previewSurfaceAttached = true) }
+                    item { StatusPanel(state) }
                 }
             }
             BottomControls(state, vm)
@@ -410,8 +408,6 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
 @Composable
 private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = Surface(modifier.clip(panelShape), color = Color(0xFF252A2C)) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF42403B), Color(0xFF171B1D))))) {
-        val analysis = rememberAnalysisDiagnostics(state.video, previewSurfaceAttached = true)
-        val diagnosticsRows = dashboardDiagnosticsRows(state.video.measuredFps, analysis)
         if (state.controllerMode == ControllerMode.Real) {
             AndroidView(
                 factory = { context -> TelloVideoSurfaceView(context, vm) },
@@ -422,40 +418,18 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
             Canvas(Modifier.fillMaxSize()) { for (x in 0..size.width.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(x.toFloat(), 0f), Offset(x.toFloat(), size.height)); for (y in 0..size.height.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(0f, y.toFloat()), Offset(size.width, y.toFloat())) }
         }
         Row(Modifier.align(Alignment.TopStart).padding(14.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .64f)).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) { Text(if (state.video.availability == VideoAvailability.Mock) "DEMO" else "VIDEO", color = Color.White, fontWeight = FontWeight.Bold); Text(if (state.video.availability == VideoAvailability.Mock) "  MOCK PREVIEW" else "  LIVE PREVIEW", color = TelloTextMuted, fontSize = 12.sp) }
-        Column(
+        Text(
+            previewFpsBadgeText(state.video.measuredFps),
             modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp))
-                .background(Color.Black.copy(alpha = .82f)).width(videoDiagnosticsBadgeWidth)
-                .height(videoDiagnosticsBadgeHeight).padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            Text(
-                when {
-                    state.video.measuredFps != null -> diagnosticsRows.preview
-                    state.video.availability == VideoAvailability.Streaming -> "PREVIEW WAITING"
-                    else -> "NO VIDEO"
-                },
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip,
-            )
-            if (state.controllerMode == ControllerMode.Real && state.video.availability == VideoAvailability.Streaming) {
-                Text(
-                    diagnosticsRows.analysis,
-                    color = TelloTextMuted,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Clip,
-                )
-            }
-        }
+                .background(Color.Black.copy(alpha = .82f)).width(previewFpsBadgeWidth)
+                .height(previewFpsBadgeHeight).padding(horizontal = 8.dp, vertical = 9.dp),
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
         state.target?.let { target ->
             val boxWidth = maxWidth * (target.boundingBox.right - target.boundingBox.left)
             val boxHeight = maxHeight * (target.boundingBox.bottom - target.boundingBox.top)
@@ -625,9 +599,7 @@ private fun AdaptiveActionPair(first: @Composable () -> Unit, second: @Composabl
 private fun StatusPanel(
     state: DroneSessionState,
     modifier: Modifier = Modifier,
-    previewSurfaceAttached: Boolean = false,
 ) = ControlCard("STATUS", modifier = modifier) {
-    val analysis = rememberAnalysisDiagnostics(state.video, previewSurfaceAttached)
     StatusLine("Battery", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }, if (state.telemetry.isFresh) TelloGreen else TelloTextMuted)
     StatusLine("Temperature", telemetryValue(state) { it.temperatureCelsius?.let { value -> "%.0f°C".format(value) } })
     StatusLine("Velocity X/Y/Z", telemetryValue(state) { telemetry ->
@@ -638,26 +610,7 @@ private fun StatusPanel(
     StatusLine("Network", state.networkSelection.name)
     StatusLine("Connection", connectionLabel(state.connection))
     StatusLine("Flight", state.flight.name)
-    StatusLine("Analysis rate", analysis.rate)
-    StatusLine("Analysis frame", analysis.frame)
-    StatusLine("Analysis frame age", analysis.age)
-    if (analysis.paused) Text("Analysis capture runs with the live preview.", color = TelloTextMuted, fontSize = 11.sp)
     state.lastMessage?.let { Text(it, color = if (state.connection == DroneConnectionState.Error) TelloRed else TelloTextMuted, fontSize = 11.sp) }
-}
-
-@Composable
-private fun rememberAnalysisDiagnostics(
-    video: com.alonibh.tellodrone.domain.VideoState,
-    previewSurfaceAttached: Boolean,
-): AnalysisDiagnosticsPresentation {
-    var nowNanos by remember { mutableStateOf(System.nanoTime()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            nowNanos = System.nanoTime()
-            delay(STATUS_REFRESH_MILLIS)
-        }
-    }
-    return analysisDiagnosticsPresentation(video, previewSurfaceAttached, nowNanos)
 }
 @Composable private fun StatusLine(label: String, value: String, color: Color = Color.White) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = TelloTextMuted, fontSize = 13.sp); Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
 

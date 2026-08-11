@@ -49,23 +49,15 @@ class AnalysisDiagnosticsPresentationTest {
         assertFalse(presentation.paused)
     }
 
-    @Test fun `dashboard rows retain their character footprint across normal live values`() {
-        val first = dashboardDiagnosticsRows(
-            previewFps = 29f,
-            analysis = AnalysisDiagnosticsPresentation("7.2 FPS", "320 × 240", "0 ms", paused = false),
-        )
-        val second = dashboardDiagnosticsRows(
-            previewFps = 30f,
-            analysis = AnalysisDiagnosticsPresentation("8.0 FPS", "320 × 240", "125 ms", paused = false),
-        )
-        val unavailable = dashboardDiagnosticsRows(
-            previewFps = null,
-            analysis = AnalysisDiagnosticsPresentation("—", "—", "—", paused = false),
-        )
+    @Test fun `preview badge keeps a stable footprint across measured and unavailable values`() {
+        val first = previewFpsBadgeText(29f)
+        val second = previewFpsBadgeText(30f)
+        val unavailable = previewFpsBadgeText(null)
 
-        assertEquals(first.preview.length, second.preview.length)
-        assertEquals(first.preview.length, unavailable.preview.length)
-        assertEquals(first.analysis.length, second.analysis.length)
-        assertEquals(first.analysis.length, unavailable.analysis.length)
+        assertEquals("FPS 29", first)
+        assertEquals("FPS 30", second)
+        assertEquals("FPS  —", unavailable)
+        assertEquals(first.length, second.length)
+        assertEquals(first.length, unavailable.length)
     }
 }

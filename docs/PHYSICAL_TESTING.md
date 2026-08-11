@@ -22,22 +22,17 @@ Perform this first Phase 3B validation exactly as a grounded test; do not reques
 1. Use the Blaupunkt BP_6010 tablet in landscape and place the Tello on the floor. Do not take off.
 2. Connect normally, keep the live preview running on the **Dashboard**, and confirm the preview
    stays approximately 30 FPS.
-3. On the Dashboard video overlay, confirm the measured analysis feed reaches approximately its
-   configured 8 FPS cadence and reports real 320×240 dimensions and a fresh measured frame age.
-   Do not navigate away from the active preview to inspect these live measurements.
-4. Navigate to **Status** once and confirm it reports Analysis rate `Paused`, unavailable frame/age,
-   and the message that analysis capture runs with the live preview. This is expected while the
-   Dashboard preview Surface is detached; it is not a video or connection failure. Return to the
-   Dashboard before continuing the live-feed check.
-5. Leave the Dashboard preview and analysis feed running for at least 60 seconds. Confirm there is no visible
-   preview degradation, freeze, or growing lag and that the analysis overlay continues to refresh.
-6. Background the app once, foreground it once, return to the Dashboard, and confirm preview plus
-   analysis overlay resume without stale dimensions/age being presented during the reset.
-7. While still grounded and takeoff-eligible in REAL mode, tap **TAKE OFF** once and confirm the
+3. Confirm the Dashboard exposes only the compact measured preview FPS. Phase 3B analysis metrics
+   remain internal for future debugging/Phase 4 and are not part of normal operational UI.
+4. Leave the Dashboard preview and internal analysis feed running for at least 60 seconds. Confirm
+   there is no visible preview degradation, freeze, or growing lag.
+5. Background the app once, foreground it once, return to the Dashboard, and confirm preview resumes
+   without a visible reset problem.
+6. While still grounded and takeoff-eligible in REAL mode, tap **TAKE OFF** once and confirm the
    confirmation dialog appears. Cancel it and verify the drone does not take off. Do not continue
    to a real takeoff for this Phase 3B grounded validation.
-8. Disconnect cleanly while the Tello remains grounded and confirm preview, analysis diagnostics,
-   and the physical session stop without an error.
+7. Disconnect cleanly while the Tello remains grounded and confirm the preview and physical session
+   stop without an error.
 
 Stop after this grounded Phase 3B check. Person detection is Phase 4 and is not implemented; do not
 proceed to Phase 4 automatically.
@@ -50,6 +45,10 @@ if a portrait-sized window is received, the normal dashboard is replaced with **
 landscape**. During an active flight that fallback keeps STOP/HOVER, LAND, and the existing
 Emergency Motor Kill hold control available; it does not alter the service or session. Returning to
 landscape restores the normal dashboard. This behavior is pending physical validation.
+
+Immersive fullscreen is reapplied on resumed window focus so initial launch, return from background,
+and dismissal of transient system UI restore the edge-to-edge operational view. This behavior is
+pending physical validation.
 
 ## Grounded validation status
 

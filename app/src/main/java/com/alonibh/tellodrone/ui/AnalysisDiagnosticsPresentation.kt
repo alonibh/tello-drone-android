@@ -11,20 +11,10 @@ internal data class AnalysisDiagnosticsPresentation(
     val paused: Boolean,
 )
 
-internal data class DashboardDiagnosticsRows(
-    val preview: String,
-    val analysis: String,
-)
-
-internal fun dashboardDiagnosticsRows(
-    previewFps: Float?,
-    analysis: AnalysisDiagnosticsPresentation,
-): DashboardDiagnosticsRows {
-    val previewValue = previewFps?.let { "%2d".format(it.roundToInt()) } ?: " —"
-    return DashboardDiagnosticsRows(
-        preview = "PREVIEW $previewValue FPS",
-        analysis = "ANALYSIS ${analysis.rate.padStart(8)} · ${analysis.frame.padEnd(9)} · ${analysis.age.padStart(7)}",
-    )
+/** Compact operational badge; its padded numeric field keeps a stable footprint. */
+internal fun previewFpsBadgeText(previewFps: Float?): String {
+    val value = previewFps?.roundToInt()?.toString() ?: "—"
+    return "FPS ${value.padStart(2)}"
 }
 
 internal fun analysisDiagnosticsPresentation(
