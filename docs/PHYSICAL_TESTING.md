@@ -42,6 +42,15 @@ Perform this first Phase 3B validation exactly as a grounded test; do not reques
 Stop after this grounded Phase 3B check. Person detection is Phase 4 and is not implemented; do not
 proceed to Phase 4 automatically.
 
+## Landscape operational UI — pending
+
+The tablet operational UI is landscape-first. `MainActivity` requests sensor landscape where the
+platform honors a fixed orientation. Modern large-screen Android platforms may ignore that request;
+if a portrait-sized window is received, the normal dashboard is replaced with **Rotate device to
+landscape**. During an active flight that fallback keeps STOP/HOVER, LAND, and the existing
+Emergency Motor Kill hold control available; it does not alter the service or session. Returning to
+landscape restores the normal dashboard. This behavior is pending physical validation.
+
 ## Grounded validation status
 
 - **Xiaomi Mi A1, Android 9 / API 28:** manual TELLO Wi-Fi connection, SDK command-mode

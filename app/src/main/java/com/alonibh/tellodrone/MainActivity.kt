@@ -1,6 +1,7 @@
 package com.alonibh.tellodrone
 
 import android.os.Bundle
+import android.content.pm.ActivityInfo
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +24,7 @@ import com.alonibh.tellodrone.ui.DroneViewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         enableEdgeToEdge()
         val controller = (application as TelloApplication).droneController
         setContent {

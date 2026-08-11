@@ -48,4 +48,24 @@ class AnalysisDiagnosticsPresentationTest {
         assertEquals("—", presentation.age)
         assertFalse(presentation.paused)
     }
+
+    @Test fun `dashboard rows retain their character footprint across normal live values`() {
+        val first = dashboardDiagnosticsRows(
+            previewFps = 29f,
+            analysis = AnalysisDiagnosticsPresentation("7.2 FPS", "320 × 240", "0 ms", paused = false),
+        )
+        val second = dashboardDiagnosticsRows(
+            previewFps = 30f,
+            analysis = AnalysisDiagnosticsPresentation("8.0 FPS", "320 × 240", "125 ms", paused = false),
+        )
+        val unavailable = dashboardDiagnosticsRows(
+            previewFps = null,
+            analysis = AnalysisDiagnosticsPresentation("—", "—", "—", paused = false),
+        )
+
+        assertEquals(first.preview.length, second.preview.length)
+        assertEquals(first.preview.length, unavailable.preview.length)
+        assertEquals(first.analysis.length, second.analysis.length)
+        assertEquals(first.analysis.length, unavailable.analysis.length)
+    }
 }

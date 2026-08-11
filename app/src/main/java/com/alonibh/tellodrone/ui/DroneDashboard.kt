@@ -102,6 +102,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -138,6 +140,8 @@ private val actionHeight = 48.dp
 private val compactActionHeight = 44.dp
 private val sectionSpacing = 10.dp
 private const val STATUS_REFRESH_MILLIS = 250L
+private val videoDiagnosticsBadgeWidth = 244.dp
+private val videoDiagnosticsBadgeHeight = 50.dp
 
 @Composable
 fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier: Modifier = Modifier) {
@@ -146,14 +150,20 @@ fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier
         modifier.fillMaxSize().background(TelloInk)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)).padding(12.dp),
     ) {
-        when (windowLayout(maxWidth, maxHeight)) {
-            WindowLayout.Expanded -> ExpandedDashboard(state, viewModel, destination) { destination = it }
-            WindowLayout.Medium -> MediumDashboard(state, viewModel, destination) { destination = it }
-            WindowLayout.CompactHeight -> LandscapeDashboard(state, viewModel, destination) { destination = it }
-            WindowLayout.Compact -> CompactDashboard(state, viewModel, destination) { destination = it }
+        if (isPortraitOperationalWindow(maxWidth, maxHeight)) {
+            PortraitSafetyFallback(state, viewModel)
+        } else {
+            when (windowLayout(maxWidth, maxHeight)) {
+                WindowLayout.Expanded -> ExpandedDashboard(state, viewModel, destination) { destination = it }
+                WindowLayout.Medium -> MediumDashboard(state, viewModel, destination) { destination = it }
+                WindowLayout.CompactHeight -> LandscapeDashboard(state, viewModel, destination) { destination = it }
+                WindowLayout.Compact -> CompactDashboard(state, viewModel, destination) { destination = it }
+            }
         }
     }
 }
+
+internal fun isPortraitOperationalWindow(width: Dp, height: Dp): Boolean = height > width
 
 /** Material window-size-class breakpoints, evaluated from the current app window. */
 private fun windowLayout(width: Dp, height: Dp): WindowLayout = when {
@@ -164,6 +174,36 @@ private fun windowLayout(width: Dp, height: Dp): WindowLayout = when {
 }
 
 private enum class WindowLayout { Compact, CompactHeight, Medium, Expanded }
+
+@Composable
+private fun PortraitSafetyFallback(state: DroneSessionState, vm: DroneViewModel) = Surface(
+    color = TelloInk,
+    modifier = Modifier.fillMaxSize(),
+) {
+    val activeFlight = state.flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
+    Column(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("Rotate device to landscape", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Text(
+            if (activeFlight) "Landscape controls are unavailable in this window. Flight safety controls remain available below."
+            else "The operational dashboard is landscape-first.",
+            color = TelloTextMuted,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 10.dp, bottom = 20.dp),
+        )
+        if (activeFlight) {
+            HoverAction(state, vm, Modifier.fillMaxWidth())
+            Spacer(Modifier.height(10.dp))
+            LandAction(state, vm, Modifier.fillMaxWidth())
+            Spacer(Modifier.height(10.dp))
+            EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth().height(128.dp))
+        }
+    }
+}
 
 @Composable
 private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, destination: String, onDestination: (String) -> Unit) {
@@ -371,6 +411,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
 private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = Surface(modifier.clip(panelShape), color = Color(0xFF252A2C)) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF42403B), Color(0xFF171B1D))))) {
         val analysis = rememberAnalysisDiagnostics(state.video, previewSurfaceAttached = true)
+        val diagnosticsRows = dashboardDiagnosticsRows(state.video.measuredFps, analysis)
         if (state.controllerMode == ControllerMode.Real) {
             AndroidView(
                 factory = { context -> TelloVideoSurfaceView(context, vm) },
@@ -383,25 +424,35 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
         Row(Modifier.align(Alignment.TopStart).padding(14.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .64f)).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) { Text(if (state.video.availability == VideoAvailability.Mock) "DEMO" else "VIDEO", color = Color.White, fontWeight = FontWeight.Bold); Text(if (state.video.availability == VideoAvailability.Mock) "  MOCK PREVIEW" else "  LIVE PREVIEW", color = TelloTextMuted, fontSize = 12.sp) }
         Column(
             modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp))
-                .background(Color.Black.copy(alpha = .82f)).padding(horizontal = 10.dp, vertical = 7.dp),
+                .background(Color.Black.copy(alpha = .82f)).width(videoDiagnosticsBadgeWidth)
+                .height(videoDiagnosticsBadgeHeight).padding(horizontal = 10.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.SpaceEvenly,
         ) {
             Text(
                 when {
-                    state.video.measuredFps != null -> "PREVIEW ${state.video.measuredFps.roundToInt()} FPS"
+                    state.video.measuredFps != null -> diagnosticsRows.preview
                     state.video.availability == VideoAvailability.Streaming -> "PREVIEW WAITING"
                     else -> "NO VIDEO"
                 },
                 color = Color.White,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
             )
             if (state.controllerMode == ControllerMode.Real && state.video.availability == VideoAvailability.Streaming) {
                 Text(
-                    "ANALYSIS ${analysis.rate} · ${analysis.frame} · ${analysis.age}",
+                    diagnosticsRows.analysis,
                     color = TelloTextMuted,
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Medium,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
                 )
             }
         }
