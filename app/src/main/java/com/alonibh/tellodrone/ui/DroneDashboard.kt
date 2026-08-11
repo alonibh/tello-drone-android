@@ -158,17 +158,17 @@ private enum class WindowLayout { Compact, CompactHeight, Medium, Expanded }
 
 @Composable
 private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, destination: String, onDestination: (String) -> Unit) {
-    Column(Modifier.testTag("layout_expanded"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.testTag("layout_expanded"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Header(state, vm, expanded = true)
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             NavigationRail(state, vm, destination, onDestination, Modifier.width(160.dp).fillMaxHeight())
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (destination == "Dashboard") {
-                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         VideoPanel(state, Modifier.weight(1f).fillMaxHeight())
-                        ExpandedFlightControls(state, vm, Modifier.widthIn(min = 280.dp, max = 340.dp).fillMaxHeight())
+                        TabletFlightControls(state, vm, Modifier.widthIn(min = 280.dp, max = 320.dp).fillMaxHeight())
                     }
-                    BottomControls(state, vm)
+                    BottomControls(state, vm, tablet = true)
                 } else DestinationPlaceholder(destination, Modifier.fillMaxSize())
             }
         }
@@ -238,7 +238,7 @@ private fun LandscapeDashboard(state: DroneSessionState, vm: DroneViewModel, des
 @Composable
 private fun Header(state: DroneSessionState, vm: DroneViewModel, expanded: Boolean) {
     Surface(shape = panelShape, color = TelloPanelRaised, modifier = Modifier.fillMaxWidth()) {
-        if (expanded) Row(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (expanded) Row(Modifier.heightIn(min = 96.dp).padding(horizontal = 22.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Brand(state, Modifier.width(190.dp)); HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
             HeaderMetric("HEIGHT", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }); HeaderMetric("SPEED", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } })
             HeaderMetric("FLIGHT TIME", telemetryValue(state) { it.flightTimeSeconds?.let(::formatTime) }); Spacer(Modifier.weight(1f)); HeaderActions(state, vm)
@@ -331,7 +331,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
             val selected = label == destination
             Row(Modifier.fillMaxWidth().height(52.dp).then(if (selected) Modifier.background(TelloGreenDark.copy(alpha = .5f)) else Modifier).clickable { onDestination(label) }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(if (selected) Icons.Default.MyLocation else Icons.Default.Settings, null, tint = if (selected) TelloGreen else TelloTextMuted); Spacer(Modifier.width(14.dp)); Text(label, color = if (selected) TelloGreen else Color.White) }
         }
-        Spacer(Modifier.weight(1f)); EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.padding(12.dp).fillMaxWidth())
+        Spacer(Modifier.weight(1f)); EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.padding(12.dp).fillMaxWidth().height(220.dp))
     }
 }
 @Composable private fun CompactNav(destination: String, onDestination: (String) -> Unit) = Surface(color = TelloPanel, shape = panelShape, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.SpaceEvenly) { listOf("Dashboard", "Controls", "Tracking", "Media", "Status").forEach { label -> Text(label, modifier = Modifier.clickable { onDestination(label) }.padding(7.dp), fontSize = 12.sp, color = if (label == destination) TelloGreen else TelloTextMuted) } } }
@@ -353,8 +353,16 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
     }
 }
 
-@Composable private fun ExpandedFlightControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = Column(modifier, verticalArrangement = Arrangement.spacedBy(sectionSpacing)) { CriticalFlightControls(state, vm); FlightReadinessHint(state) }
 @Composable private fun ControlCard(title: String, compact: Boolean = false, content: @Composable ColumnScope.() -> Unit) = Card(colors = CardDefaults.cardColors(containerColor = TelloPanel), shape = panelShape) { Column(Modifier.padding(if (compact) compactCardPadding else standardCardPadding), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else sectionSpacing)) { Text(title, color = TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Medium); content() } }
+
+@Composable private fun TabletFlightControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = ControlCard("FLIGHT CONTROLS") {
+    Text(if (state.flight == FlightState.Grounded && state.telemetry.isFresh) "READY TO FLY" else connectionLabel(state.connection).uppercase(), color = if (state.flight == FlightState.Grounded && state.telemetry.isFresh) TelloGreen else TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+    TakeoffAction(state, vm, Modifier.fillMaxWidth())
+    LandAction(state, vm, Modifier.fillMaxWidth())
+    HoverAction(state, vm, Modifier.fillMaxWidth().testTag("stop_hover"))
+    if (state.hoverActive) HoverActiveStatus()
+    FlightActionHint(state)
+}
 
 @Composable private fun CriticalFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT CONTROLS") {
     AdaptiveActionPair(
@@ -376,6 +384,7 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
 }, color = TelloTextMuted, fontSize = 11.sp)
 
 @Composable private fun FlightReadinessHint(state: DroneSessionState) = Surface(color = TelloPanel, shape = panelShape, modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(standardCardPadding), verticalArrangement = Arrangement.spacedBy(4.dp)) { Text("FLIGHT STATUS", color = TelloTextMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium); Text(connectionLabel(state.connection), color = connectionColor(state.connection), fontWeight = FontWeight.SemiBold); FlightActionHint(state) } }
+@Composable private fun HoverActiveStatus() = Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.CheckCircle, null, tint = TelloGreen, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("HOVER ACTIVE", color = TelloGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
 
 @Composable private fun LandscapeFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT", compact = true) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -425,13 +434,13 @@ private fun AdaptiveActionPair(first: @Composable () -> Unit, second: @Composabl
 @Composable private fun StatusLine(label: String, value: String, color: Color = Color.White) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = TelloTextMuted, fontSize = 13.sp); Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
 
 @Composable
-private fun BottomControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL") { ManualControlPanel(state, vm) }
+private fun BottomControls(state: DroneSessionState, vm: DroneViewModel, tablet: Boolean = false) = ControlCard("MANUAL CONTROL") { ManualControlPanel(state, vm, tablet = tablet) }
 
 @Composable
 private fun CompactLandscapeManualControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL", compact = true) { ManualControlPanel(state, vm, compact = true) }
 
 @Composable
-private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, compact: Boolean = false) {
+private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, compact: Boolean = false, tablet: Boolean = false) {
     val enabled = state.connection == DroneConnectionState.Connected &&
         state.flight == FlightState.Flying &&
         (state.controllerMode == ControllerMode.Mock || state.telemetry.isFresh)
@@ -445,6 +454,7 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
     }
     BoxWithConstraints {
         val stickDiameter = when {
+            tablet -> 190.dp
             compact -> 112.dp
             maxWidth < 520.dp -> 140.dp
             else -> 156.dp
@@ -461,7 +471,7 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 VirtualJoystick("LEFT\nALTITUDE / YAW", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
-                ManualFlightCenter(state, vm, Modifier.weight(1f).padding(horizontal = if (compact) 12.dp else 28.dp))
+                ManualFlightCenter(state, vm, if (tablet) Modifier.width(420.dp) else Modifier.weight(1f).padding(horizontal = if (compact) 12.dp else 28.dp), tablet = tablet)
                 VirtualJoystick("RIGHT\nDIRECTION", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
             }
         }
@@ -469,13 +479,17 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
 }
 
 @Composable
-private fun ManualFlightCenter(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+private fun ManualFlightCenter(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier, tablet: Boolean = false) = Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
     Text("FLIGHT", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
     HoverAction(state, vm, Modifier.fillMaxWidth().testTag("manual_stop_hover"), compact = true)
-    SpeedControl(state, vm, Modifier.fillMaxWidth())
+    if (state.hoverActive) HoverActiveStatus()
+    SpeedControl(state, vm, Modifier.fillMaxWidth(), carded = tablet)
 }
 
-@Composable private fun SpeedControl(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = Column(modifier) { Text("SPEED  ${state.speedPercent}%", color = TelloGreen, fontWeight = FontWeight.Medium); Slider(value = state.speedPercent.toFloat(), onValueChange = { vm.setSpeed(it.roundToInt()) }, valueRange = 10f..40f); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("10%", fontSize = 11.sp, color = TelloTextMuted); Text("40% max", fontSize = 11.sp, color = TelloTextMuted) } }
+@Composable private fun SpeedControl(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier, carded: Boolean = false) {
+    val content: @Composable () -> Unit = { Column(Modifier.padding(if (carded) 14.dp else 0.dp)) { Row(verticalAlignment = Alignment.CenterVertically) { Text("SPEED", color = TelloTextMuted, fontWeight = FontWeight.Medium); Spacer(Modifier.width(12.dp)); Text("${state.speedPercent}%", color = TelloGreen, fontWeight = FontWeight.Bold, fontSize = 18.sp) }; Slider(value = state.speedPercent.toFloat(), onValueChange = { vm.setSpeed(it.roundToInt()) }, valueRange = 10f..40f); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("10%", fontSize = 11.sp, color = TelloTextMuted); Text("40% MAX", fontSize = 11.sp, color = TelloTextMuted) } } }
+    if (carded) Surface(modifier, color = TelloPanelRaised, shape = panelShape) { content() } else Box(modifier) { content() }
+}
 
 @Composable
 private fun VirtualJoystick(label: String, value: JoystickVector, enabled: Boolean, diameter: Dp, onVector: (JoystickVector) -> Unit, onHeartbeat: () -> Unit, onReleased: () -> Unit) {
