@@ -684,6 +684,19 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         StatusLine("Reason", intent.reason.name.replace('_', ' '))
         Text("NO COMMANDS SENT", color = TelloTextMuted, fontSize = 11.sp)
     }
+    if (state.controllerMode == ControllerMode.Mock) {
+        state.shadowAutonomyDecision?.let { decision ->
+            StatusLine("SHADOW AUTONOMY", decision.state.name)
+            StatusLine("Eligibility", if (decision.eligible) "YES" else "NO")
+            StatusLine("Reason", decision.reason.name.replace('_', ' '))
+            if (decision.requiresExplicitRearm) Text("RE-ARM REQUIRED", color = TelloRed, fontSize = 11.sp)
+        }
+        AdaptiveActionPair(
+            { OutlineAction("ARM DRY RUN", Icons.Default.CheckCircle, true, { vm.setShadowAutonomyArmed(true) }, Modifier.fillMaxWidth()) },
+            { OutlineAction("DISARM", Icons.Default.Close, true, { vm.setShadowAutonomyArmed(false) }, Modifier.fillMaxWidth()) },
+        )
+        Text("SHADOW ONLY • NO AUTONOMOUS COMMANDS", color = TelloTextMuted, fontSize = 11.sp)
+    }
     Text("Frame-local boxes only • Manual authority", color = TelloTextMuted, fontSize = 11.sp)
 }
 

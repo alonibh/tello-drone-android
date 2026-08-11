@@ -16,6 +16,8 @@ import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TargetSelection
+import com.alonibh.tellodrone.domain.ShadowAutonomyGate
+import com.alonibh.tellodrone.domain.ShadowAutonomyInput
 import com.alonibh.tellodrone.domain.TrackingErrorEngine
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
@@ -31,6 +33,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
     override val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
     private val trackingErrorEngine = TrackingErrorEngine()
     private val followPlanner = DryRunFollowPlanner(com.alonibh.tellodrone.domain.FollowPlannerConfig.LEGACY_SIMULATION)
+    private val shadowGate = ShadowAutonomyGate()
 
     override fun connect() = update {
         it.copy(
@@ -183,6 +186,15 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                 lastMessage = "Mock target selected (dry run only)",
             )
         }
+    }
+
+    override fun setShadowAutonomyArmed(armed: Boolean) = update { state ->
+        state.copy(shadowAutonomyDecision = shadowGate.evaluate(
+            ShadowAutonomyInput(state.connection, state.flight, state.telemetry.isFresh, state.video.availability,
+                state.video.personDetectionState, state.target != null, state.targetAssociationState,
+                state.trackingErrors, state.dryRunControlIntent, state.manualVector.isZero(), state.hoverActive,
+                armRequested = armed, disarmRequested = !armed),
+        ))
     }
 
     override fun setManualControlVector(vector: ManualControlVector) = update { state ->

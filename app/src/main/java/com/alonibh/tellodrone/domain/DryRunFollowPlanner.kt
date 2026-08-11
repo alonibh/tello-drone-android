@@ -9,7 +9,13 @@ data class PidConfig(
     val outputMax: Float,
     val integralMin: Float,
     val integralMax: Float,
-)
+) {
+    init {
+        require(listOf(kP, kI, kD, outputMin, outputMax, integralMin, integralMax).all { it.isFinite() })
+        require(outputMin <= outputMax)
+        require(integralMin <= integralMax)
+    }
+}
 
 class PidController(private val config: PidConfig) {
     private var integral = 0f

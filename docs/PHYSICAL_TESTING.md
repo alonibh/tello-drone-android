@@ -68,6 +68,9 @@ target-lock or Follow work; do not request takeoff for that benchmark:
 This dry-run PID/planner foundation requires no new physical test. It sends no commands and does
 not alter manual authority; the Teclast grounded detector benchmark remains the next hardware gate.
 
+Phase 4C shadow-autonomy safety/replay is also pure dry-run logic and needs no physical validation.
+The Teclast grounded detector benchmark remains the next physical gate.
+
 1. Teclast landscape, Tello on floor.
 2. Connect REAL and confirm normal ~30 FPS preview.
 3. Leave the default GPU PREFERRED backend selected, enable DETECT PEOPLE, and record the displayed

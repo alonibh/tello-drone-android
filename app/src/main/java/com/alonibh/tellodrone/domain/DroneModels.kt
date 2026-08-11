@@ -114,6 +114,7 @@ data class DroneSessionState(
     val trackingErrors: TrackingErrors? = null,
     val targetAssociationState: TargetAssociationState = TargetAssociationState.None,
     val dryRunControlIntent: DryRunControlIntent? = null,
+    val shadowAutonomyDecision: ShadowAutonomyDecision? = null,
     val speedPercent: Int = 20,
     val manualVector: ManualControlVector = ManualControlVector(),
     /** App command state only: STOP/HOVER completed its explicit RC-zero action. */

@@ -19,6 +19,7 @@ interface DroneController {
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) = Unit
     /** Explicit observational selection only; implementations must never infer a target. */
     fun selectTarget(detection: PersonDetection)
+    fun setShadowAutonomyArmed(armed: Boolean) = Unit
     fun setManualControlVector(vector: ManualControlVector)
     fun setSpeed(percent: Int)
     /** The UI owns only this display surface; the service owns the physical video session. */

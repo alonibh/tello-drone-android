@@ -280,6 +280,12 @@ Lost and a new selection reset PID state. The named legacy simulation values are
 flight tuning. Real autonomous RC is NOT implemented; the Teclast detector benchmark remains the
 hard gate before any future RC integration.
 
+Phase 4C adds a pure `SHADOW AUTONOMY SAFETY GATE` after dry-run planning:
+`Detection -> selection -> association -> normalized errors -> dry-run PID/planner -> SHADOW AUTONOMY SAFETY GATE -> [TECLAST + PHYSICAL HARD GATE] -> future RC integration`.
+It never changes control authority or emits a command. Manual input, STOP/HOVER, ambiguity, loss,
+telemetry/video/detector/connection failure, landing, and emergency fail closed; safety-significant
+interruptions latch `RequiresRearm`, so healthy input alone can never re-engage shadow eligibility.
+
 Mock mode exposes two selectable person boxes, selected/missing/lost state, and debug error values
 in Tracking only. Real-mode target selection remains disabled pending the future Teclast detector
 benchmark. There is no PID, autonomous RC, Follow mode, or non-manual control authority in Phase

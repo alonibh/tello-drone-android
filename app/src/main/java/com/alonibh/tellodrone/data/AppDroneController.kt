@@ -51,6 +51,7 @@ class AppDroneController(
     override fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         selected().setDetectorBackendPreference(preference)
     override fun selectTarget(detection: PersonDetection) = selected().selectTarget(detection)
+    override fun setShadowAutonomyArmed(armed: Boolean) = selected().setShadowAutonomyArmed(armed)
     override fun setManualControlVector(vector: ManualControlVector) = selected().setManualControlVector(vector)
     override fun setSpeed(percent: Int) = selected().setSpeed(percent)
     // The real adapter retains the display hand-off even when Mock mode is selected. Mock mode
