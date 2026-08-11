@@ -1,5 +1,6 @@
 package com.alonibh.tellodrone.ui
 
+import android.view.Surface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -28,6 +29,8 @@ class DroneViewModel(private val controller: DroneController) : ViewModel() {
     fun setTargetLock(locked: Boolean) = controller.setTargetLock(locked)
     fun setManualVector(vector: ManualControlVector) = controller.setManualControlVector(vector)
     fun setSpeed(percent: Int) = controller.setSpeed(percent)
+    fun attachVideoSurface(surface: Surface) = controller.attachVideoSurface(surface)
+    fun detachVideoSurface(surface: Surface) = controller.detachVideoSurface(surface)
     fun setControllerMode(mode: ControllerMode) = controller.setControllerMode(mode)
     fun onNetworkPermissionsResult(granted: Boolean) = controller.onNetworkPermissionsResult(granted)
 

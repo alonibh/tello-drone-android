@@ -1,6 +1,6 @@
 # Architecture and safety contracts
 
-## Phase 2 runtime ownership
+## Phase 3A runtime ownership
 
 `DroneController` remains the UI boundary. `AppDroneController` selects either the retained
 `MockDroneController` or `RealDroneController`; mode changes are allowed only while disconnected.
@@ -11,6 +11,12 @@ command sequencing, telemetry receiver, health monitor, and RC loop are owned by
 `TelloDroneService`. The service runs as a `connectedDevice` foreground service from the moment a
 user starts real connection selection until a safe disconnect or terminal connection failure.
 Compose and `DroneViewModel` never own these resources.
+
+Phase 3A adds the physical video socket, bounded H.264 pipeline, and `MediaCodec` decoder to the
+same service/session ownership boundary. Compose owns only the current `SurfaceView` display
+surface and hands it through `DroneController`; a service gateway retains that display hand-off
+across service startup without retaining an Activity. Surface loss never transfers ownership of
+the socket or decoder to the UI.
 
 ## Adaptive window UI
 
@@ -34,6 +40,9 @@ The service requests an SSID beginning `TELLO-` through `WifiNetworkSpecifier` a
 default route. Every command and state `DatagramSocket` is individually bound with
 `Network.bindSocket`. User cancellation, request timeout, permission revocation, `onLost`, and
 socket failure all become explicit UI errors and release the network callback.
+
+The UDP 11111 video receiver is likewise created by the service and individually bound to the
+selected Tello `Network` with `Network.bindSocket`. The app process is never globally bound.
 
 ## Tello transport and state contract
 
@@ -97,9 +106,46 @@ Every sample has wall-clock and monotonic receipt timestamps. Exact Phase 2 heal
 A partial wake lock is held only while a real session is in `TakingOff`, `Flying`, `Landing`, or an
 airborne `Unknown` state, and is released on grounded/disconnected cleanup.
 
+## Phase 3A video lifecycle
+
+After SDK command mode and the first telemetry packet establish the real session, the session opens
+and network-binds the UDP 11111 receiver before sending `streamon`. `VideoAvailability.Streaming`
+is published only after `streamon` returns `ok`. Receiver setup, command rejection/timeout, socket
+failure, and decoder failure publish a separate `VideoAvailability.Error`; they do not turn a
+healthy manual flight connection into a flight error.
+
+Video receive and decode each run on a dedicated single thread, separate from command, telemetry,
+and the service-owned 20 Hz RC loop. Datagram parsing never holds the command mutex. The receive
+side uses a fixed 512 KiB access-unit buffer. Tello's packet-boundary rule is isolated in
+`TelloH264AccessUnitAssembler`: 1460-byte datagrams continue the current access unit and a shorter
+datagram terminates it. Datagram bytes are accumulated before Annex-B scanning, so three- or
+four-byte start codes, NAL headers, and NAL payloads may be split across datagrams. Oversized or
+malformed units are dropped through the next boundary.
+
+The decoder hand-off retains at most three SPS/PPS/IDR recovery units plus one newest ordinary
+picture. Ordinary pictures replace older pictures. This bounded recovery-plus-latest policy keeps
+decoder bootstrap data while refusing to build latency. SPS/PPS are supplied as AVC codec-specific
+data and decode resumes only from an IDR after codec or Surface restart.
+
+The decoder uses Android `MediaCodec` with `video/avc` and direct Surface output. Normal platform
+decoder selection is used, which chooses a hardware implementation when the device provides one.
+API 30+ enables the codec low-latency feature only when the selected decoder reports support; API
+28/29 use the same pipeline without that optional feature. Surface destruction releases the codec
+and leaves the bounded receiver alive; recreation configures a fresh codec after SPS/PPS and an IDR.
+Codec stop/release is contained on the decoder thread. FPS and last-frame time are updated when a
+decoded output buffer is released for rendering to a valid Surface, not inferred from UDP traffic.
+
+On normal grounded disconnect, RC/final-zero cleanup happens first, video receive/decode is closed,
+and `streamoff` is attempted with a 750 ms outer bound before the command transport closes. On
+network loss, command/session failure, or service destruction, video resources close immediately
+and no `streamoff` acknowledgement is awaited. Video exceptions remain inside the video supervisor;
+STOP/HOVER, landing, Emergency, telemetry health, stale-input zeroing, and connection-loss behavior
+remain authoritative.
+
 ## Phase boundaries
 
-No video socket, H.264, decoder, camera preview, frame processing, detector, target lock, PID,
-autonomous control, recording, screenshots, MCP, LLM, or cloud integration exists in Phase 2.
-Future video and autonomous producers must preserve the same session ownership and RC freshness
-contract; manual input remains the highest-priority authority.
+Phase 3A ends at live Surface preview. It adds no decoded-frame/ML consumer, detector, person
+tracking, target lock for real flight, PID, autonomous control, recording, screenshots, media
+gallery, MCP, LLM, Python, or cloud integration. Future video and autonomous producers must preserve
+the same session ownership and RC freshness contract; manual input remains the highest-priority
+authority. Phase 3B does not begin automatically.

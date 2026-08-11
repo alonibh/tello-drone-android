@@ -11,6 +11,7 @@ import android.net.Network
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.view.Surface
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.alonibh.tellodrone.MainActivity
@@ -23,6 +24,9 @@ import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.TrackingMode
+import com.alonibh.tellodrone.domain.VideoAvailability
+import com.alonibh.tellodrone.domain.VideoState
+import com.alonibh.tellodrone.tello.AndroidTelloVideoController
 import com.alonibh.tellodrone.tello.NetworkTelloTransport
 import com.alonibh.tellodrone.tello.SystemMonotonicClock
 import com.alonibh.tellodrone.tello.TelloFlightSession
@@ -42,6 +46,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     private lateinit var networkManager: TelloWifiNetworkManager
     private val connectionGate = ConnectionAttemptGate()
     @Volatile private var session: TelloFlightSession? = null
+    @Volatile private var videoController: AndroidTelloVideoController? = null
     private var stateCollection: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var foreground = false
@@ -69,6 +74,8 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     fun emergencyMotorKill() { scope.launch { session?.emergencyMotorKill() } }
     fun publishManualControl(vector: ManualControlVector) { session?.publishManualControl(vector) }
     fun setSpeed(percent: Int) { session?.setSpeed(percent) }
+    fun attachVideoSurface(surface: Surface) { videoController?.attachSurface(surface) }
+    fun detachVideoSurface(surface: Surface) { videoController?.detachSurface(surface) }
 
     fun disconnect() {
         scope.launch {
@@ -93,6 +100,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                 flight = FlightState.Unknown,
                 authority = ControlAuthority.Manual,
                 tracking = TrackingMode.Off,
+                video = VideoState(),
                 hoverActive = false,
                 lastMessage = "Waiting for Tello Wi-Fi selection",
             )
@@ -105,10 +113,14 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
         scope.launch {
             try {
                 val transport = NetworkTelloTransport(network, scope, SystemMonotonicClock)
+                val video = AndroidTelloVideoController(network)
+                videoController = video
+                TelloServiceGateway.videoPipelineAvailable(this@TelloDroneService)
                 val newSession = TelloFlightSession(
                     transport = transport,
                     scope = scope,
                     clock = SystemMonotonicClock,
+                    video = video,
                     initialState = TelloSessionStore.state.value.copy(
                         connection = DroneConnectionState.Connecting,
                         networkSelection = NetworkSelectionState.Available,
@@ -118,6 +130,8 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                     onFatalConnectionLoss = { scope.launch { finishService() } },
                 )
                 if (!connectionGate.activate { session = newSession }) {
+                    videoController = null
+                    video.close()
                     transport.close()
                     return@launch
                 }
@@ -166,6 +180,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                         connection = DroneConnectionState.Error,
                         networkSelection = NetworkSelectionState.Lost,
                         flight = FlightState.Unknown,
+                        video = VideoState(VideoAvailability.Error, errorReason = "Tello Wi-Fi network was lost"),
                         hoverActive = false,
                         lastMessage = "Tello Wi-Fi network was lost",
                     )
@@ -182,6 +197,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                     connection = DroneConnectionState.Error,
                     networkSelection = NetworkSelectionState.Error,
                     telemetry = it.telemetry.copy(isFresh = false),
+                    video = VideoState(VideoAvailability.Error, errorReason = message),
                     manualVector = ManualControlVector(),
                     hoverActive = false,
                     lastMessage = message,
@@ -193,14 +209,18 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
 
     private fun finishService() {
         var active: TelloFlightSession? = null
+        var orphanVideo: AndroidTelloVideoController? = null
         connectionGate.finish {
             active = session
             session = null
+            orphanVideo = videoController
+            videoController = null
         }
         networkManager.cancel()
         stateCollection?.cancel()
         stateCollection = null
         active?.let { closing -> runBlocking(Dispatchers.IO) { closing.networkLost("Tello service stopping") } }
+            ?: orphanVideo?.let { closing -> runBlocking(Dispatchers.IO) { closing.close() } }
         releaseWakeLock()
         if (foreground) {
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -293,11 +313,15 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
         TelloServiceGateway.detach(this)
         networkManager.cancel()
         var active: TelloFlightSession? = null
+        var orphanVideo: AndroidTelloVideoController? = null
         connectionGate.finish {
             active = session
             session = null
+            orphanVideo = videoController
+            videoController = null
         }
         active?.let { closing -> runBlocking(Dispatchers.IO) { closing.networkLost("Tello service stopped") } }
+            ?: orphanVideo?.let { closing -> runBlocking(Dispatchers.IO) { closing.close() } }
         releaseWakeLock()
         scope.cancel()
         super.onDestroy()
@@ -313,9 +337,29 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
 }
 
 object TelloServiceGateway {
+    private val lock = Any()
     @Volatile private var service: TelloDroneService? = null
-    fun attach(value: TelloDroneService) { service = value }
-    fun detach(value: TelloDroneService) { if (service === value) service = null }
+    private var videoSurface: Surface? = null
+    fun attach(value: TelloDroneService) { synchronized(lock) { service = value } }
+    fun detach(value: TelloDroneService) { synchronized(lock) { if (service === value) service = null } }
+    fun videoPipelineAvailable(value: TelloDroneService) {
+        val display = synchronized(lock) { videoSurface.takeIf { service === value } }
+        if (display != null) value.attachVideoSurface(display)
+    }
+    fun attachVideoSurface(value: Surface) {
+        val active = synchronized(lock) {
+            videoSurface = value
+            service
+        }
+        active?.attachVideoSurface(value)
+    }
+    fun detachVideoSurface(value: Surface) {
+        val active = synchronized(lock) {
+            if (videoSurface === value) videoSurface = null
+            service
+        }
+        active?.detachVideoSurface(value)
+    }
     fun takeOff() = service?.takeOff()
     fun land() = service?.land()
     fun stopAndHover() = service?.stopAndHover()

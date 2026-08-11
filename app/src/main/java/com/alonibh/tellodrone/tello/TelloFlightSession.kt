@@ -9,6 +9,8 @@ import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
 import com.alonibh.tellodrone.domain.TrackingMode
+import com.alonibh.tellodrone.domain.VideoAvailability
+import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.domain.isZero
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -29,6 +31,7 @@ class TelloFlightSession(
     private val transport: TelloTransport,
     private val scope: CoroutineScope,
     private val clock: MonotonicClock,
+    private val video: TelloVideoController? = null,
     private val onFatalConnectionLoss: (String) -> Unit = {},
     initialState: DroneSessionState = DroneSessionState(
         controllerMode = ControllerMode.Real,
@@ -45,12 +48,14 @@ class TelloFlightSession(
     private val firstTelemetry = CompletableDeferred<TelloTelemetry>()
     private var telemetryJob: Job? = null
     private var healthJob: Job? = null
+    private var videoStateJob: Job? = null
     @Volatile private var lastTelemetryAtMillis: Long? = null
     @Volatile private var closed = false
     private val fatalReportLock = Any()
     private var fatalReported = false
     @Volatile private var takeoffAcknowledged = false
     @Volatile private var landingAcknowledged = false
+    @Volatile private var videoStreamAcknowledged = false
     private val manualInputLock = Any()
     private var manualInputRequiresNeutral = false
 
@@ -65,6 +70,7 @@ class TelloFlightSession(
         if (closed) return@withLock false
         takeoffAcknowledged = false
         landingAcknowledged = false
+        videoStreamAcknowledged = false
         mutableState.update {
             it.copy(
                 connection = DroneConnectionState.Connecting,
@@ -72,6 +78,7 @@ class TelloFlightSession(
                 flight = FlightState.Unknown,
                 authority = ControlAuthority.Manual,
                 tracking = TrackingMode.Off,
+                video = VideoState(),
                 lastMessage = "Tello Wi-Fi selected; entering SDK mode",
             )
         }
@@ -103,6 +110,8 @@ class TelloFlightSession(
         rcLoop.setHealthy(true)
         rcLoop.start()
         startHealthMonitor()
+        startVideoStateCollection()
+        startVideoStreaming()
         true
     }
 
@@ -276,13 +285,17 @@ class TelloFlightSession(
             invalid("Land before disconnecting; aircraft state must be safely grounded")
             return@withLock false
         }
-        closeResources(sendFinalZero = current.flight != FlightState.Emergency)
+        closeResources(
+            sendFinalZero = current.flight != FlightState.Emergency,
+            requestStreamOff = videoStreamAcknowledged,
+        )
         mutableState.update { state ->
             state.copy(
                 connection = DroneConnectionState.Disconnected,
                 networkSelection = NetworkSelectionState.Idle,
                 flight = if (state.flight == FlightState.Emergency) FlightState.Emergency else FlightState.Grounded,
                 telemetry = state.telemetry.copy(isFresh = false),
+                video = VideoState(),
                 manualVector = ManualControlVector(),
                 hoverActive = false,
                 lastMessage = "Tello session disconnected",
@@ -351,6 +364,34 @@ class TelloFlightSession(
         }
     }
 
+    private fun startVideoStateCollection() {
+        val activeVideo = video ?: return
+        if (videoStateJob?.isActive == true) return
+        videoStateJob = scope.launch {
+            activeVideo.state.collect { videoState ->
+                if (!closed) mutableState.update { it.copy(video = videoState) }
+            }
+        }
+    }
+
+    private suspend fun startVideoStreaming() {
+        val activeVideo = video ?: return
+        val prepared = activeVideo.prepare()
+        if (prepared.isFailure) {
+            activeVideo.streamFailed(
+                "Video receiver could not start: ${prepared.exceptionOrNull()?.safeMessage() ?: "unknown error"}",
+            )
+            return
+        }
+        when (val result = transport.sendCommand("streamon", VIDEO_COMMAND_TIMEOUT_MILLIS)) {
+            is TelloCommandResult.Success -> {
+                videoStreamAcknowledged = true
+                activeVideo.streamAcknowledged()
+            }
+            else -> activeVideo.streamFailed("streamon failed: ${result.description()}")
+        }
+    }
+
     private suspend fun failConnection(message: String) {
         if (closed || mutableState.value.connection == DroneConnectionState.Error) return
         var failed = false
@@ -367,6 +408,7 @@ class TelloFlightSession(
                     networkSelection = NetworkSelectionState.Lost,
                     flight = if (wasEmergency) FlightState.Emergency else FlightState.Unknown,
                     telemetry = state.telemetry.copy(isFresh = false),
+                    video = VideoState(VideoAvailability.Error, errorReason = message),
                     authority = ControlAuthority.Manual,
                     tracking = TrackingMode.Off,
                     manualVector = ManualControlVector(),
@@ -378,7 +420,7 @@ class TelloFlightSession(
         if (!failed) return
         rcLoop.setHealthy(false)
         if (!wasEmergency) rcLoop.clearAndSendZero()
-        closeResources(sendFinalZero = false)
+        closeResources(sendFinalZero = false, requestStreamOff = false)
         val shouldReportFatal = synchronized(fatalReportLock) {
             if (fatalReported) false else {
                 fatalReported = true
@@ -388,16 +430,24 @@ class TelloFlightSession(
         if (shouldReportFatal) onFatalConnectionLoss(message)
     }
 
-    private suspend fun closeResources(sendFinalZero: Boolean) {
+    private suspend fun closeResources(sendFinalZero: Boolean, requestStreamOff: Boolean) {
         resourceCloseMutex.withLock {
             if (closed) return@withLock
             closed = true
             takeoffAcknowledged = false
             landingAcknowledged = false
+            videoStreamAcknowledged = false
             requireManualNeutral()
             healthJob?.cancel()
             telemetryJob?.cancel()
+            videoStateJob?.cancel()
             rcLoop.shutdown(sendFinalZero)
+            video?.close()
+            if (requestStreamOff) {
+                withTimeoutOrNull(STREAMOFF_CLEANUP_TIMEOUT_MILLIS) {
+                    transport.sendCommand("streamoff", STREAMOFF_ACK_TIMEOUT_MILLIS)
+                }
+            }
             transport.close()
         }
     }
@@ -452,6 +502,9 @@ class TelloFlightSession(
         const val FIRST_TELEMETRY_TIMEOUT_MILLIS = 5_000L
         const val FLIGHT_COMMAND_TIMEOUT_MILLIS = 15_000L
         const val EMERGENCY_TIMEOUT_MILLIS = 3_000L
+        const val VIDEO_COMMAND_TIMEOUT_MILLIS = 3_000L
+        const val STREAMOFF_ACK_TIMEOUT_MILLIS = 500L
+        const val STREAMOFF_CLEANUP_TIMEOUT_MILLIS = 750L
         const val TELEMETRY_STALE_MILLIS = 1_500L
         const val CONNECTION_LOST_MILLIS = 4_000L
         const val HEALTH_CHECK_PERIOD_MILLIS = 250L

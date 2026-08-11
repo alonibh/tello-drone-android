@@ -1,5 +1,6 @@
 package com.alonibh.tellodrone.data
 
+import android.view.Surface
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneController
@@ -48,6 +49,10 @@ class AppDroneController(
     override fun setTargetLock(locked: Boolean) = selected().setTargetLock(locked)
     override fun setManualControlVector(vector: ManualControlVector) = selected().setManualControlVector(vector)
     override fun setSpeed(percent: Int) = selected().setSpeed(percent)
+    // The real adapter retains the display hand-off even when Mock mode is selected. Mock mode
+    // never creates a physical video resource, and the surface is ready for a later Real connect.
+    override fun attachVideoSurface(surface: Surface) = real.attachVideoSurface(surface)
+    override fun detachVideoSurface(surface: Surface) = real.detachVideoSurface(surface)
     override fun onNetworkPermissionsResult(granted: Boolean) = selected().onNetworkPermissionsResult(granted)
 
     private fun selected() = if (mode == ControllerMode.Real) real else mock

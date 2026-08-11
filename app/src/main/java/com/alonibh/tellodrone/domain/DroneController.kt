@@ -1,5 +1,6 @@
 package com.alonibh.tellodrone.domain
 
+import android.view.Surface
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -18,6 +19,9 @@ interface DroneController {
     fun setTargetLock(locked: Boolean)
     fun setManualControlVector(vector: ManualControlVector)
     fun setSpeed(percent: Int)
+    /** The UI owns only this display surface; the service owns the physical video session. */
+    fun attachVideoSurface(surface: Surface) = Unit
+    fun detachVideoSurface(surface: Surface) = Unit
     fun setControllerMode(mode: ControllerMode) = Unit
     fun onNetworkPermissionsResult(granted: Boolean) = Unit
 }

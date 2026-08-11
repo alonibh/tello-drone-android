@@ -33,6 +33,7 @@ data class VideoState(
     val availability: VideoAvailability = VideoAvailability.Unavailable,
     val measuredFps: Float? = null,
     val lastFrameAt: Instant? = null,
+    val errorReason: String? = null,
 )
 
 /** Coordinates are normalized to the displayed video (0f..1f), not screen pixels. */

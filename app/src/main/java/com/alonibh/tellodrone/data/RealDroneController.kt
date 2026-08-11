@@ -2,6 +2,7 @@ package com.alonibh.tellodrone.data
 
 import android.content.Context
 import android.content.Intent
+import android.view.Surface
 import androidx.core.content.ContextCompat
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
@@ -69,6 +70,8 @@ class RealDroneController(context: Context) : DroneController {
     override fun emergencyMotorKill() { TelloServiceGateway.emergencyMotorKill() }
     override fun setManualControlVector(vector: ManualControlVector) { TelloServiceGateway.publishManualControl(vector) }
     override fun setSpeed(percent: Int) { TelloServiceGateway.setSpeed(percent.coerceIn(10, 40)) }
+    override fun attachVideoSurface(surface: Surface) { TelloServiceGateway.attachVideoSurface(surface) }
+    override fun detachVideoSurface(surface: Surface) { TelloServiceGateway.detachVideoSurface(surface) }
 
     override fun setTrackingMode(mode: TrackingMode) = outOfScope()
     override fun setTargetLock(locked: Boolean) = outOfScope()
@@ -77,7 +80,7 @@ class RealDroneController(context: Context) : DroneController {
         it.copy(
             authority = ControlAuthority.Manual,
             tracking = TrackingMode.Off,
-            lastMessage = "Tracking and autonomous control are not available in Phase 2",
+            lastMessage = "Tracking and autonomous control are not available in Phase 3A",
         )
     }
 }

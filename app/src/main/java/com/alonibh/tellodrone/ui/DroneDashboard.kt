@@ -5,6 +5,9 @@ package com.alonibh.tellodrone.ui
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.content.Context
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -93,6 +96,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -165,7 +169,7 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (destination == "Dashboard") {
                     Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        VideoPanel(state, Modifier.weight(1f).fillMaxHeight())
+                        VideoPanel(state, vm, Modifier.weight(1f).fillMaxHeight())
                         TabletFlightControls(state, vm, Modifier.widthIn(min = 250.dp, max = 280.dp).fillMaxHeight())
                     }
                     BottomControls(state, vm, tablet = true)
@@ -185,7 +189,7 @@ private fun CompactDashboard(state: DroneSessionState, vm: DroneViewModel, desti
         item { Header(state, vm, expanded = false) }
         item { CompactNav(destination, onDestination) }
         if (destination == "Dashboard") {
-            item { VideoPanel(state, Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 460.dp)) }
+            item { VideoPanel(state, vm, Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 460.dp)) }
             item { CriticalFlightControls(state, vm) }
             item { CompactFutureControlsNotice() }
             item { BottomControls(state, vm) }
@@ -202,7 +206,7 @@ private fun MediumDashboard(state: DroneSessionState, vm: DroneViewModel, destin
         CompactNav(destination, onDestination)
         if (destination == "Dashboard") {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                VideoPanel(state, Modifier.weight(1.25f).fillMaxHeight())
+                VideoPanel(state, vm, Modifier.weight(1.25f).fillMaxHeight())
                 LazyColumn(Modifier.weight(.75f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     item { CriticalFlightControls(state, vm) }
                     item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
@@ -221,7 +225,7 @@ private fun LandscapeDashboard(state: DroneSessionState, vm: DroneViewModel, des
         CompactHeader(state, vm)
         if (destination == "Dashboard") {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                VideoPanel(state, Modifier.weight(1.4f).fillMaxHeight())
+                VideoPanel(state, vm, Modifier.weight(1.4f).fillMaxHeight())
                 Column(Modifier.weight(.85f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     LandscapeFlightControls(state, vm)
                     EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth())
@@ -353,18 +357,78 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
 @Composable private fun DestinationPlaceholder(destination: String, modifier: Modifier = Modifier) = Surface(modifier, shape = panelShape, color = TelloPanel) { Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) { Icon(Icons.Default.Settings, null, tint = TelloGreen, modifier = Modifier.size(38.dp)); Spacer(Modifier.height(12.dp)); Text(destination, fontWeight = FontWeight.Bold, fontSize = 22.sp); Text("This Phase 1 destination is a lightweight placeholder.", color = TelloTextMuted, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp)) } }
 
 @Composable
-private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) = Surface(modifier.clip(panelShape), color = Color(0xFF252A2C)) {
+private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier) = Surface(modifier.clip(panelShape), color = Color(0xFF252A2C)) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF42403B), Color(0xFF171B1D))))) {
-        Canvas(Modifier.fillMaxSize()) { for (x in 0..size.width.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(x.toFloat(), 0f), Offset(x.toFloat(), size.height)); for (y in 0..size.height.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(0f, y.toFloat()), Offset(size.width, y.toFloat())) }
-        Row(Modifier.align(Alignment.TopStart).padding(14.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .64f)).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) { Text(if (state.video.availability == VideoAvailability.Mock) "DEMO" else "VIDEO", color = Color.White, fontWeight = FontWeight.Bold); Text(if (state.video.availability == VideoAvailability.Mock) "  MOCK PREVIEW" else "  PHASE 3", color = TelloTextMuted, fontSize = 12.sp) }
-        Text(if (state.video.measuredFps != null) "MOCK ${state.video.measuredFps.roundToInt()} fps" else "NO VIDEO", modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .62f)).padding(8.dp), fontSize = 12.sp)
+        if (state.controllerMode == ControllerMode.Real) {
+            AndroidView(
+                factory = { context -> TelloVideoSurfaceView(context, vm) },
+                modifier = Modifier.fillMaxSize(),
+                onRelease = { it.dispose() },
+            )
+        } else {
+            Canvas(Modifier.fillMaxSize()) { for (x in 0..size.width.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(x.toFloat(), 0f), Offset(x.toFloat(), size.height)); for (y in 0..size.height.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(0f, y.toFloat()), Offset(size.width, y.toFloat())) }
+        }
+        Row(Modifier.align(Alignment.TopStart).padding(14.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .64f)).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) { Text(if (state.video.availability == VideoAvailability.Mock) "DEMO" else "VIDEO", color = Color.White, fontWeight = FontWeight.Bold); Text(if (state.video.availability == VideoAvailability.Mock) "  MOCK PREVIEW" else "  LIVE PREVIEW", color = TelloTextMuted, fontSize = 12.sp) }
+        Text(
+            when {
+                state.video.measuredFps != null -> "${state.video.measuredFps.roundToInt()} FPS"
+                state.video.availability == VideoAvailability.Streaming -> "LIVE • WAITING FOR FRAMES"
+                else -> "NO VIDEO"
+            },
+            modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .62f)).padding(8.dp),
+            fontSize = 12.sp,
+        )
         state.target?.let { target ->
             val boxWidth = maxWidth * (target.boundingBox.right - target.boundingBox.left)
             val boxHeight = maxHeight * (target.boundingBox.bottom - target.boundingBox.top)
             Column(Modifier.offset(maxWidth * target.boundingBox.left, maxHeight * target.boundingBox.top).size(boxWidth, boxHeight).border(2.dp, if (target.locked) TelloGreen else Color(0xFFFFC857), RoundedCornerShape(3.dp))) { Text(if (target.locked) "TARGET LOCK" else "PERSON • MOCK", color = TelloInk, modifier = Modifier.background(if (target.locked) TelloGreen else Color(0xFFFFC857)).padding(horizontal = 6.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
         }
         Row(Modifier.align(Alignment.BottomEnd).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) { state.target?.estimatedDistanceMeters?.let { Text("EST. DISTANCE %.1f m".format(it), Modifier.clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = .65f)).padding(8.dp), fontSize = 12.sp) }; Text("H: ${telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }}", Modifier.clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = .65f)).padding(8.dp), fontSize = 12.sp) }
-        Text(if (state.video.availability == VideoAvailability.Mock) "Mock preview • no physical video" else "Video intentionally unavailable in Phase 2", Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = .30f)).padding(8.dp), color = TelloTextMuted, fontSize = 12.sp)
+        val centerMessage = when {
+            state.video.availability == VideoAvailability.Mock -> "Mock preview • no physical video"
+            state.video.availability == VideoAvailability.Error -> "VIDEO UNAVAILABLE\n${state.video.errorReason ?: "Video pipeline error"}"
+            state.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.Connected) &&
+                state.video.availability == VideoAvailability.Unavailable -> "STARTING VIDEO…"
+            state.video.availability == VideoAvailability.Streaming -> null
+            else -> "NO VIDEO / WAITING"
+        }
+        centerMessage?.let { Text(it, Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = .52f)).padding(10.dp), color = if (state.video.availability == VideoAvailability.Error) TelloRed else TelloTextMuted, fontSize = 12.sp, textAlign = TextAlign.Center) }
+    }
+}
+
+private class TelloVideoSurfaceView(
+    context: Context,
+    private val viewModel: DroneViewModel,
+) : SurfaceView(context), SurfaceHolder.Callback {
+    private var attached = false
+
+    init {
+        setZOrderOnTop(false)
+        holder.setFixedSize(TELLO_VIDEO_WIDTH, TELLO_VIDEO_HEIGHT)
+        holder.addCallback(this)
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        attached = true
+        viewModel.attachVideoSurface(holder.surface)
+    }
+
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) = Unit
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        if (attached) viewModel.detachVideoSurface(holder.surface)
+        attached = false
+    }
+
+    fun dispose() {
+        if (attached) viewModel.detachVideoSurface(holder.surface)
+        attached = false
+        holder.removeCallback(this)
+    }
+
+    companion object {
+        private const val TELLO_VIDEO_WIDTH = 960
+        private const val TELLO_VIDEO_HEIGHT = 720
     }
 }
 
@@ -427,7 +491,7 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
         { OutlineAction("TARGET LOCK", Icons.Default.Lock, mock && state.flight == FlightState.Flying && state.target != null, { vm.setTargetLock(state.target?.locked != true) }, Modifier.fillMaxWidth(), active = state.target?.locked == true) },
         { ActionButton("FOLLOW", Icons.Default.PlayArrow, mock && state.flight == FlightState.Flying && state.target?.locked == true, { vm.setTrackingMode(TrackingMode.Follow) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.Follow) },
     )
-    if (!mock) Text("Unavailable for real flight in Phase 2; authority remains Manual", color = TelloTextMuted, fontSize = 11.sp)
+    if (!mock) Text("Unavailable for real flight in Phase 3A; authority remains Manual", color = TelloTextMuted, fontSize = 11.sp)
 }
 @Composable private fun MediaControls() = ControlCard("MEDIA") {
     AdaptiveActionPair(

@@ -1,5 +1,17 @@
 # Phase 2 physical validation
 
+## Phase 3A grounded video validation — pending
+
+Do not claim Phase 3A physical success until this exact grounded check passes:
+
+1. Use the Blaupunkt BP_6010 tablet in landscape only; place the Tello on the floor and do not take off.
+2. Connect normally and confirm the existing Connected/Grounded and fresh-telemetry state.
+3. Confirm the dominant dashboard panel changes from `STARTING VIDEO…` to the live Tello preview.
+4. Leave the preview running for at least 30 seconds and observe measured FPS and visual stability.
+5. Disconnect cleanly while still grounded and confirm the preview and session stop without an error.
+
+Stop after this check. Do not proceed to flight-with-video or Phase 3B automatically.
+
 ## Grounded validation status
 
 - **Xiaomi Mi A1, Android 9 / API 28:** manual TELLO Wi-Fi connection, SDK command-mode

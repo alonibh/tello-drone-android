@@ -5,9 +5,13 @@ package com.alonibh.tellodrone.tello
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.VideoAvailability
+import com.alonibh.tellodrone.domain.VideoState
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -146,6 +150,52 @@ class TelloFlightSessionTest {
         }
     }
 
+    @Test fun `video receiver is prepared before acknowledged streaming and stopped on disconnect`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        assertTrue(video.prepared)
+        assertEquals(VideoAvailability.Streaming, fixture.session.state.value.video.availability)
+        assertEquals(listOf("command", "streamon"), fixture.transport.commands)
+
+        assertTrue(fixture.session.disconnect())
+        assertTrue(video.closed)
+        assertEquals(listOf("command", "streamon", "streamoff"), fixture.transport.commands)
+        assertEquals(VideoAvailability.Unavailable, fixture.session.state.value.video.availability)
+    }
+
+    @Test fun `streamon rejection is a video error without failing the flight connection`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.results["streamon"] = TelloCommandResult.Rejected("error")
+        fixture.transport.emitTelemetry(fixture.clock.value)
+
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        assertEquals(DroneConnectionState.Connected, fixture.session.state.value.connection)
+        assertEquals(VideoAvailability.Error, fixture.session.state.value.video.availability)
+        assertTrue(fixture.session.state.value.video.errorReason!!.contains("streamon"))
+    }
+
+    @Test fun `connection loss closes video immediately without streamoff`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        fixture.session.networkLost()
+
+        assertTrue(video.closed)
+        assertEquals(listOf("command", "streamon"), fixture.transport.commands)
+        assertEquals(DroneConnectionState.Error, fixture.session.state.value.connection)
+    }
+
     @Test fun `flight acknowledgements require post acknowledgement height verification`() = runTest {
         val fixture = connectedFixture()
 
@@ -203,13 +253,13 @@ class TelloFlightSessionTest {
         assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
     }
 
-    private fun TestScope.fixture(): Fixture {
+    private fun TestScope.fixture(video: TelloVideoController? = null): Fixture {
         val clock = RcControlLoopTest.FakeClock(1_000)
         val transport = FakeTransport()
         return Fixture(
             clock,
             transport,
-            TelloFlightSession(transport, backgroundScope, clock),
+            TelloFlightSession(transport, backgroundScope, clock, video),
         )
     }
 
@@ -226,10 +276,11 @@ class TelloFlightSessionTest {
         val rc = mutableListOf<RcVector>()
         var closed = false
         var nextResult: TelloCommandResult = TelloCommandResult.Success("ok")
+        val results = mutableMapOf<String, TelloCommandResult>()
 
         override suspend fun sendCommand(command: String, timeoutMillis: Long): TelloCommandResult {
             commands += command
-            return nextResult
+            return results[command] ?: nextResult
         }
 
         override suspend fun sendRc(vector: RcVector) { rc += vector }
@@ -251,6 +302,30 @@ class TelloFlightSessionTest {
                     fields = emptyMap(),
                 ),
             )
+        }
+    }
+
+    private class FakeVideoController : TelloVideoController {
+        private val mutableState = MutableStateFlow(VideoState())
+        override val state: StateFlow<VideoState> = mutableState
+        var prepared = false
+        var closed = false
+
+        override suspend fun prepare(): Result<Unit> {
+            prepared = true
+            return Result.success(Unit)
+        }
+
+        override fun streamAcknowledged() {
+            mutableState.value = VideoState(VideoAvailability.Streaming)
+        }
+
+        override fun streamFailed(reason: String) {
+            mutableState.value = VideoState(VideoAvailability.Error, errorReason = reason)
+        }
+
+        override suspend fun close() {
+            closed = true
         }
     }
 }
