@@ -161,12 +161,12 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
     Column(Modifier.testTag("layout_expanded"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Header(state, vm, expanded = true)
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            NavigationRail(state, vm, destination, onDestination, Modifier.width(176.dp).fillMaxHeight())
+            NavigationRail(state, vm, destination, onDestination, Modifier.width(160.dp).fillMaxHeight())
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (destination == "Dashboard") {
                     Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         VideoPanel(state, Modifier.weight(1f).fillMaxHeight())
-                        RightControls(state, vm, Modifier.widthIn(min = 300.dp, max = 420.dp).fillMaxHeight())
+                        ExpandedFlightControls(state, vm, Modifier.widthIn(min = 280.dp, max = 340.dp).fillMaxHeight())
                     }
                     BottomControls(state, vm)
                 } else DestinationPlaceholder(destination, Modifier.fillMaxSize())
@@ -239,9 +239,9 @@ private fun LandscapeDashboard(state: DroneSessionState, vm: DroneViewModel, des
 private fun Header(state: DroneSessionState, vm: DroneViewModel, expanded: Boolean) {
     Surface(shape = panelShape, color = TelloPanelRaised, modifier = Modifier.fillMaxWidth()) {
         if (expanded) Row(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Brand(state, Modifier.width(205.dp)); HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
+            Brand(state, Modifier.width(190.dp)); HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
             HeaderMetric("HEIGHT", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }); HeaderMetric("SPEED", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } })
-            HeaderMetric("FLIGHT TIME", telemetryValue(state) { it.flightTimeSeconds?.let(::formatTime) }); Spacer(Modifier.weight(1f)); ControllerModeSelector(state, vm); ConnectionButton(state, vm); Icon(Icons.Default.Settings, null, tint = TelloTextMuted); Text(" Settings", modifier = Modifier.padding(start = 4.dp))
+            HeaderMetric("FLIGHT TIME", telemetryValue(state) { it.flightTimeSeconds?.let(::formatTime) }); Spacer(Modifier.weight(1f)); HeaderActions(state, vm)
         } else Column(Modifier.padding(standardCardPadding), verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
             Brand(state); FlowRow(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }); HeaderMetric("HEIGHT", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }); HeaderMetric("SPEED", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } })
@@ -269,12 +269,20 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
     }
 }
 
+@Composable private fun HeaderActions(state: DroneSessionState, vm: DroneViewModel) = Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ControllerModeSelector(state, vm)
+        ConnectionButton(state, vm)
+        OutlineAction("SETTINGS", Icons.Default.Settings, false, {}, compact = true)
+    }
+}
+
 @Composable private fun ConnectionButton(state: DroneSessionState, vm: DroneViewModel) {
     val context = LocalContext.current
     val active = state.connection == DroneConnectionState.Connected
     val transition = state.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.AwaitingPermission)
     val unsafeDisconnect = active && state.flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
     OutlinedButton(
         onClick = if (active) vm::disconnect else vm::connect,
         enabled = !transition && !unsafeDisconnect,
@@ -298,7 +306,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
             },
             modifier = Modifier.testTag("open_wifi_settings"),
         ) { Text("OPEN WI-FI SETTINGS", fontSize = 10.sp) }
-        state.lastMessage?.let { Text(it, color = TelloTextMuted, fontSize = 10.sp, textAlign = TextAlign.Center) }
+        state.lastMessage?.let { Text(it, color = TelloTextMuted, fontSize = 10.sp, textAlign = TextAlign.End) }
     }
     }
 }
@@ -345,7 +353,7 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
     }
 }
 
-@Composable private fun RightControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(9.dp)) { item { CriticalFlightControls(state, vm) }; item { TrackingControls(state, vm) }; item { MediaControls() }; item { StatusPanel(state) } }
+@Composable private fun ExpandedFlightControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = Column(modifier, verticalArrangement = Arrangement.spacedBy(sectionSpacing)) { CriticalFlightControls(state, vm); FlightReadinessHint(state) }
 @Composable private fun ControlCard(title: String, compact: Boolean = false, content: @Composable ColumnScope.() -> Unit) = Card(colors = CardDefaults.cardColors(containerColor = TelloPanel), shape = panelShape) { Column(Modifier.padding(if (compact) compactCardPadding else standardCardPadding), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else sectionSpacing)) { Text(title, color = TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Medium); content() } }
 
 @Composable private fun CriticalFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT CONTROLS") {
@@ -354,7 +362,20 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
         { LandAction(state, vm, Modifier.fillMaxWidth()) },
     )
     HoverAction(state, vm, Modifier.fillMaxWidth().testTag("stop_hover"))
+    FlightActionHint(state)
 }
+
+@Composable private fun FlightActionHint(state: DroneSessionState) = Text(when {
+    state.flight == FlightState.TakingOff -> "Takeoff command accepted; waiting for airborne telemetry."
+    state.flight == FlightState.Landing -> "Landing command accepted; waiting for grounded telemetry."
+    state.connection != DroneConnectionState.Connected -> "Connect to TELLO to enable flight actions."
+    !state.telemetry.isFresh -> "Fresh telemetry is required before takeoff or manual control."
+    state.flight == FlightState.Grounded -> "Takeoff is available when telemetry is fresh."
+    state.flight == FlightState.Flying -> "Land and STOP/HOVER are available while flying."
+    else -> "Aircraft state is uncertain; land before normal flight commands."
+}, color = TelloTextMuted, fontSize = 11.sp)
+
+@Composable private fun FlightReadinessHint(state: DroneSessionState) = Surface(color = TelloPanel, shape = panelShape, modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(standardCardPadding), verticalArrangement = Arrangement.spacedBy(4.dp)) { Text("FLIGHT STATUS", color = TelloTextMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium); Text(connectionLabel(state.connection), color = connectionColor(state.connection), fontWeight = FontWeight.SemiBold); FlightActionHint(state) } }
 
 @Composable private fun LandscapeFlightControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("FLIGHT", compact = true) {
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -422,8 +443,12 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
     DisposableEffect(enabled) {
         onDispose { if (enabled) vm.setManualVector(ManualControlVector()) }
     }
-    val stickDiameter = if (compact) 112.dp else 156.dp
     BoxWithConstraints {
+        val stickDiameter = when {
+            compact -> 112.dp
+            maxWidth < 520.dp -> 140.dp
+            else -> 156.dp
+        }
         val sticks: @Composable () -> Unit = {
             VirtualJoystick("LEFT\nALTITUDE / YAW", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
             VirtualJoystick("RIGHT\nDIRECTION", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
@@ -458,16 +483,18 @@ private fun VirtualJoystick(label: String, value: JoystickVector, enabled: Boole
     val currentHeartbeat by rememberUpdatedState(onHeartbeat)
     val currentReleased by rememberUpdatedState(onReleased)
     val activeColor = if (enabled) TelloGreen else TelloLine
+    val captureInset = if (diameter <= 140.dp) 12.dp else 24.dp
     DisposableEffect(Unit) { onDispose { currentReleased() } }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, fontSize = 11.sp, color = TelloTextMuted)
-        Canvas(
-            Modifier.size(diameter).pointerInput(enabled) {
+        Box(
+            Modifier.size(diameter + captureInset * 2).pointerInput(enabled) {
                 coroutineScope {
                     var heartbeatJob: kotlinx.coroutines.Job? = null
                     fun update(position: Offset) {
-                        val radius = size.width / 2f
-                        currentVector(normalizedJoystickVector((position.x - radius) / radius, (radius - position.y) / radius))
+                        val center = size.width / 2f
+                        val visualRadius = center - captureInset.toPx()
+                        currentVector(normalizedJoystickVector((position.x - center) / visualRadius, (center - position.y) / visualRadius))
                     }
                     detectDragGestures(
                         onDragStart = { position ->
@@ -482,22 +509,24 @@ private fun VirtualJoystick(label: String, value: JoystickVector, enabled: Boole
                     )
                 }
             },
-        ) {
-            val radius = size.minDimension / 2f
-            val center = Offset(size.width / 2f, size.height / 2f)
-            drawCircle(TelloPanelRaised, radius, center)
-            drawCircle(activeColor.copy(alpha = if (value == JoystickVector()) .65f else 1f), radius, center, style = Stroke(width = 3.dp.toPx()))
-            drawLine(TelloLine, Offset(center.x - radius * .65f, center.y), Offset(center.x + radius * .65f, center.y), strokeWidth = 1.dp.toPx())
-            drawLine(TelloLine, Offset(center.x, center.y - radius * .65f), Offset(center.x, center.y + radius * .65f), strokeWidth = 1.dp.toPx())
-            val thumb = Offset(center.x + value.horizontal * radius * .68f, center.y - value.vertical * radius * .68f)
-            drawCircle(if (enabled) TelloGreen else TelloTextMuted, radius * .23f, thumb)
-            drawCircle(TelloInk.copy(alpha = .5f), radius * .23f, thumb, style = Stroke(width = 2.dp.toPx()))
+            contentAlignment = Alignment.Center,
+        ) { Canvas(Modifier.size(diameter)) {
+                val radius = size.minDimension / 2f
+                val center = Offset(size.width / 2f, size.height / 2f)
+                drawCircle(TelloPanelRaised, radius, center)
+                drawCircle(activeColor.copy(alpha = if (value == JoystickVector()) .65f else 1f), radius, center, style = Stroke(width = 3.dp.toPx()))
+                drawLine(TelloLine, Offset(center.x - radius * .65f, center.y), Offset(center.x + radius * .65f, center.y), strokeWidth = 1.dp.toPx())
+                drawLine(TelloLine, Offset(center.x, center.y - radius * .65f), Offset(center.x, center.y + radius * .65f), strokeWidth = 1.dp.toPx())
+                val thumb = Offset(center.x + value.horizontal * radius * .68f, center.y - value.vertical * radius * .68f)
+                drawCircle(if (enabled) TelloGreen else TelloTextMuted, radius * .23f, thumb)
+                drawCircle(TelloInk.copy(alpha = .5f), radius * .23f, thumb, style = Stroke(width = 2.dp.toPx()))
+            }
         }
     }
 }
 
 @Composable private fun ActionButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = Button(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight).testTag(label.lowercase().replace(' ', '_')), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), colors = ButtonDefaults.buttonColors(containerColor = if (active) TelloGreenDark else TelloGreen, disabledContainerColor = if (active) TelloGreenDark else TelloLine.copy(alpha = .55f), disabledContentColor = if (active) Color.White else TelloTextMuted)) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, maxLines = 1) }
-@Composable private fun OutlineAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, if (active) TelloGreen else TelloLine)) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, textAlign = TextAlign.Center, maxLines = 1) }
+@Composable private fun OutlineAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, when { active -> TelloGreen; enabled -> TelloLine; else -> TelloLine.copy(alpha = .45f) }), colors = ButtonDefaults.outlinedButtonColors(disabledContainerColor = Color(0xFF293033), disabledContentColor = Color(0xFF9BA7A4))) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, textAlign = TextAlign.Center, maxLines = 1) }
 
 @Composable
 private fun EmergencyHoldButton(enabled: Boolean, onTriggered: () -> Unit, modifier: Modifier = Modifier) {
@@ -520,7 +549,13 @@ private fun DroneSessionState.canEmergency() = connection == DroneConnectionStat
 private const val MANUAL_HEARTBEAT_MILLIS = 100L
 
 @Preview(name = "Tablet landscape – flying controls", widthDp = 1280, heightDp = 800)
-@Composable private fun ExpandedGroundedPreview() = PreviewDashboard(DroneSessionState(connection = DroneConnectionState.Connected))
+@Composable private fun ExpandedGroundedPreview() = PreviewDashboard(tabletPreviewState(FlightState.Grounded))
+@Preview(name = "Tablet landscape flying", widthDp = 1280, heightDp = 800)
+@Composable private fun TabletFlyingPreview() = PreviewDashboard(tabletPreviewState(FlightState.Flying))
+@Preview(name = "Tablet landscape hover active", widthDp = 1280, heightDp = 800)
+@Composable private fun TabletHoverActivePreview() = PreviewDashboard(tabletPreviewState(FlightState.Flying, hoverActive = true))
+@Preview(name = "Tablet landscape disconnected", widthDp = 1280, heightDp = 800)
+@Composable private fun TabletDisconnectedPreview() = PreviewDashboard(DroneSessionState())
 @Preview(name = "Portrait – disconnected", widthDp = 420, heightDp = 900)
 @Composable private fun PortraitDisconnectedPreview() = PreviewDashboard(DroneSessionState())
 @Preview(name = "Phone portrait – flying controls", widthDp = 360, heightDp = 640)
@@ -545,3 +580,4 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
     MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme(primary = TelloGreen, background = TelloInk, surface = TelloPanel, surfaceVariant = TelloPanelRaised, error = TelloRed)) { DroneDashboard(state, previewViewModel) }
 }
 private fun previewTarget(locked: Boolean) = com.alonibh.tellodrone.domain.TrackedTarget(androidx.compose.ui.geometry.Rect(.40f, .20f, .62f, .82f), .92f, 1.8f, locked = locked)
+private fun tabletPreviewState(flight: FlightState, hoverActive: Boolean = false) = DroneSessionState(connection = DroneConnectionState.Connected, flight = flight, telemetry = com.alonibh.tellodrone.domain.TelemetrySnapshot(isFresh = true), hoverActive = hoverActive)
