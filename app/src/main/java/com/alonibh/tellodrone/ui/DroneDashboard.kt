@@ -168,11 +168,11 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
             NavigationRail(state, vm, destination, onDestination, Modifier.width(160.dp).fillMaxHeight())
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (destination == "Dashboard") {
-                    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.weight(1.35f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         VideoPanel(state, vm, Modifier.weight(1f).fillMaxHeight())
                         TabletFlightControls(state, vm, Modifier.widthIn(min = 250.dp, max = 280.dp).fillMaxHeight())
                     }
-                    BottomControls(state, vm, tablet = true)
+                    BottomControls(state, vm, modifier = Modifier.weight(1f), tablet = true)
                 } else DestinationPlaceholder(destination, Modifier.fillMaxSize())
             }
         }
@@ -375,15 +375,17 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
                 state.video.availability == VideoAvailability.Streaming -> "LIVE • WAITING FOR FRAMES"
                 else -> "NO VIDEO"
             },
-            modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .62f)).padding(8.dp),
-            fontSize = 12.sp,
+            modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .82f)).padding(horizontal = 12.dp, vertical = 9.dp),
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
         )
         state.target?.let { target ->
             val boxWidth = maxWidth * (target.boundingBox.right - target.boundingBox.left)
             val boxHeight = maxHeight * (target.boundingBox.bottom - target.boundingBox.top)
             Column(Modifier.offset(maxWidth * target.boundingBox.left, maxHeight * target.boundingBox.top).size(boxWidth, boxHeight).border(2.dp, if (target.locked) TelloGreen else Color(0xFFFFC857), RoundedCornerShape(3.dp))) { Text(if (target.locked) "TARGET LOCK" else "PERSON • MOCK", color = TelloInk, modifier = Modifier.background(if (target.locked) TelloGreen else Color(0xFFFFC857)).padding(horizontal = 6.dp, vertical = 3.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold) }
         }
-        Row(Modifier.align(Alignment.BottomEnd).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) { state.target?.estimatedDistanceMeters?.let { Text("EST. DISTANCE %.1f m".format(it), Modifier.clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = .65f)).padding(8.dp), fontSize = 12.sp) }; Text("H: ${telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }}", Modifier.clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = .65f)).padding(8.dp), fontSize = 12.sp) }
+        Row(Modifier.align(Alignment.BottomEnd).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) { state.target?.estimatedDistanceMeters?.let { Text("EST. DISTANCE %.1f m".format(it), Modifier.clip(RoundedCornerShape(7.dp)).background(Color.Black.copy(alpha = .72f)).padding(8.dp), color = Color.White, fontSize = 12.sp) }; Text("H: ${telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }}", Modifier.clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .82f)).padding(horizontal = 12.dp, vertical = 9.dp), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         val centerMessage = when {
             state.video.availability == VideoAvailability.Mock -> "Mock preview • no physical video"
             state.video.availability == VideoAvailability.Error -> "VIDEO UNAVAILABLE\n${state.video.errorReason ?: "Video pipeline error"}"
@@ -512,7 +514,7 @@ private fun AdaptiveActionPair(first: @Composable () -> Unit, second: @Composabl
 @Composable private fun StatusLine(label: String, value: String, color: Color = Color.White) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = TelloTextMuted, fontSize = 13.sp); Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
 
 @Composable
-private fun BottomControls(state: DroneSessionState, vm: DroneViewModel, tablet: Boolean = false) = ControlCard("MANUAL CONTROL") { ManualControlPanel(state, vm, tablet = tablet) }
+private fun BottomControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier = Modifier, tablet: Boolean = false) = ControlCard("MANUAL CONTROL", modifier = modifier) { ManualControlPanel(state, vm, tablet = tablet) }
 
 @Composable
 private fun CompactLandscapeManualControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("MANUAL CONTROL", compact = true) { ManualControlPanel(state, vm, compact = true) }
