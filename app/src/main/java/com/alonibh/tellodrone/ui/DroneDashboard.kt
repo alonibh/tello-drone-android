@@ -269,12 +269,27 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
     }
 }
 
-@Composable private fun HeaderActions(state: DroneSessionState, vm: DroneViewModel) = Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+@Composable private fun HeaderActions(state: DroneSessionState, vm: DroneViewModel) = Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         ControllerModeSelector(state, vm)
-        ConnectionButton(state, vm)
+        ConnectionPrimaryButton(state, vm)
+        if (Build.VERSION.SDK_INT == 28 && state.controllerMode == ControllerMode.Real && state.connection != DroneConnectionState.Connected) WifiSettingsButton()
         OutlineAction("SETTINGS", Icons.Default.Settings, false, {}, compact = true)
     }
+}
+
+@Composable private fun ConnectionPrimaryButton(state: DroneSessionState, vm: DroneViewModel) {
+    val active = state.connection == DroneConnectionState.Connected
+    val transition = state.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.AwaitingPermission)
+    val unsafeDisconnect = active && state.flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
+    OutlinedButton(onClick = if (active) vm::disconnect else vm::connect, enabled = !transition && !unsafeDisconnect) {
+        Text(when { transition -> "CONNECTING..."; active -> "DISCONNECT"; state.controllerMode == ControllerMode.Mock -> "CONNECT MOCK"; else -> "CONNECT TELLO" }, fontSize = 11.sp, maxLines = 1)
+    }
+}
+
+@Composable private fun WifiSettingsButton() {
+    val context = LocalContext.current
+    OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }, modifier = Modifier.testTag("open_wifi_settings")) { Text("WI-FI SETTINGS", fontSize = 10.sp, maxLines = 1) }
 }
 
 @Composable private fun ConnectionButton(state: DroneSessionState, vm: DroneViewModel) {
@@ -331,7 +346,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneViewModel) = Surfac
             val selected = label == destination
             Row(Modifier.fillMaxWidth().height(52.dp).then(if (selected) Modifier.background(TelloGreenDark.copy(alpha = .5f)) else Modifier).clickable { onDestination(label) }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) { Icon(if (selected) Icons.Default.MyLocation else Icons.Default.Settings, null, tint = if (selected) TelloGreen else TelloTextMuted); Spacer(Modifier.width(14.dp)); Text(label, color = if (selected) TelloGreen else Color.White) }
         }
-        Spacer(Modifier.weight(1f)); EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.padding(12.dp).fillMaxWidth().height(220.dp))
+        Spacer(Modifier.weight(1f)); EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.padding(12.dp).fillMaxWidth().height(156.dp), compact = true)
     }
 }
 @Composable private fun CompactNav(destination: String, onDestination: (String) -> Unit) = Surface(color = TelloPanel, shape = panelShape, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.SpaceEvenly) { listOf("Dashboard", "Controls", "Tracking", "Media", "Status").forEach { label -> Text(label, modifier = Modifier.clickable { onDestination(label) }.padding(7.dp), fontSize = 12.sp, color = if (label == destination) TelloGreen else TelloTextMuted) } } }
@@ -353,13 +368,12 @@ private fun VideoPanel(state: DroneSessionState, modifier: Modifier = Modifier) 
     }
 }
 
-@Composable private fun ControlCard(title: String, compact: Boolean = false, content: @Composable ColumnScope.() -> Unit) = Card(colors = CardDefaults.cardColors(containerColor = TelloPanel), shape = panelShape) { Column(Modifier.padding(if (compact) compactCardPadding else standardCardPadding), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else sectionSpacing)) { Text(title, color = TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Medium); content() } }
+@Composable private fun ControlCard(title: String, compact: Boolean = false, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) = Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = TelloPanel), shape = panelShape) { Column(Modifier.padding(if (compact) compactCardPadding else standardCardPadding), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else sectionSpacing)) { Text(title, color = TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Medium); content() } }
 
-@Composable private fun TabletFlightControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = ControlCard("FLIGHT CONTROLS") {
+@Composable private fun TabletFlightControls(state: DroneSessionState, vm: DroneViewModel, modifier: Modifier) = ControlCard("FLIGHT CONTROLS", modifier = modifier) {
     Text(if (state.flight == FlightState.Grounded && state.telemetry.isFresh) "READY TO FLY" else connectionLabel(state.connection).uppercase(), color = if (state.flight == FlightState.Grounded && state.telemetry.isFresh) TelloGreen else TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
     TakeoffAction(state, vm, Modifier.fillMaxWidth())
     LandAction(state, vm, Modifier.fillMaxWidth())
-    HoverAction(state, vm, Modifier.fillMaxWidth().testTag("stop_hover"))
     if (state.hoverActive) HoverActiveStatus()
     FlightActionHint(state)
 }
@@ -543,13 +557,13 @@ private fun VirtualJoystick(label: String, value: JoystickVector, enabled: Boole
 @Composable private fun OutlineAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, active: Boolean = false, compact: Boolean = false) = OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.defaultMinSize(minHeight = if (compact) compactActionHeight else actionHeight), contentPadding = PaddingValues(horizontal = if (compact) 8.dp else 12.dp), border = androidx.compose.foundation.BorderStroke(1.dp, when { active -> TelloGreen; enabled -> TelloLine; else -> TelloLine.copy(alpha = .45f) }), colors = ButtonDefaults.outlinedButtonColors(disabledContainerColor = Color(0xFF293033), disabledContentColor = Color(0xFF9BA7A4))) { Icon(icon, null, Modifier.size(if (compact) 16.dp else 18.dp)); Spacer(Modifier.width(if (compact) 4.dp else 6.dp)); Text(label, fontSize = if (compact) 11.sp else 12.sp, textAlign = TextAlign.Center, maxLines = 1) }
 
 @Composable
-private fun EmergencyHoldButton(enabled: Boolean, onTriggered: () -> Unit, modifier: Modifier = Modifier) {
+private fun EmergencyHoldButton(enabled: Boolean, onTriggered: () -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
     var pressing by remember { mutableStateOf(false) }; var triggered by remember { mutableStateOf(false) }
     DisposableEffect(Unit) { onDispose { pressing = false } }
     val progress by animateFloatAsState(if (pressing) 1f else 0f, label = "emergency hold")
     LaunchedEffect(pressing) { if (pressing) { delay(900); if (pressing && !triggered) { triggered = true; onTriggered() } } else triggered = false }
     Surface(modifier = modifier.heightIn(min = 64.dp).clip(panelShape).background(if (enabled) TelloRed else TelloLine).pointerInput(enabled) { detectTapGestures(onPress = { if (enabled) { pressing = true; tryAwaitRelease(); pressing = false } }) }.testTag("emergency_motor_kill"), color = Color.Transparent, shape = panelShape) {
-        Column(Modifier.fillMaxSize().padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Row(verticalAlignment = Alignment.CenterVertically) { Icon(Icons.Default.Emergency, null); Spacer(Modifier.width(8.dp)); Text("EMERGENCY MOTOR KILL", fontWeight = FontWeight.Bold, fontSize = 13.sp) }; Text(if (enabled) "Hold for 0.9 seconds" else "Available while flying", fontSize = 11.sp); if (pressing) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 7.dp), color = Color.White, trackColor = Color.Black.copy(alpha = .35f)) }
+        Column(Modifier.fillMaxSize().padding(if (compact) 8.dp else 12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Icon(Icons.Default.Emergency, null, modifier = Modifier.size(if (compact) 22.dp else 24.dp)); Spacer(Modifier.height(4.dp)); Text(if (compact) "EMERGENCY\nMOTOR KILL" else "EMERGENCY MOTOR KILL", fontWeight = FontWeight.Bold, fontSize = if (compact) 12.sp else 13.sp, textAlign = TextAlign.Center); Text(if (enabled) "Hold for 0.9 seconds" else "Available while flying", fontSize = if (compact) 10.sp else 11.sp, textAlign = TextAlign.Center); if (pressing) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 7.dp), color = Color.White, trackColor = Color.Black.copy(alpha = .35f)) }
     }
 }
 
