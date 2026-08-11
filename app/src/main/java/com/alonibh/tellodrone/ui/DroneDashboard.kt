@@ -37,6 +37,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -139,7 +141,7 @@ fun DroneDashboard(state: DroneSessionState, viewModel: DroneViewModel, modifier
     var destination by remember { mutableStateOf("Dashboard") }
     BoxWithConstraints(
         modifier.fillMaxSize().background(TelloInk)
-            .windowInsetsPadding(WindowInsets.safeDrawing).padding(12.dp),
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)).padding(12.dp),
     ) {
         when (windowLayout(maxWidth, maxHeight)) {
             WindowLayout.Expanded -> ExpandedDashboard(state, viewModel, destination) { destination = it }
@@ -168,7 +170,7 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
             NavigationRail(state, vm, destination, onDestination, Modifier.width(160.dp).fillMaxHeight())
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (destination == "Dashboard") {
-                    Row(Modifier.weight(1.35f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(Modifier.weight(1.63f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         VideoPanel(state, vm, Modifier.weight(1f).fillMaxHeight())
                         TabletFlightControls(state, vm, Modifier.widthIn(min = 250.dp, max = 280.dp).fillMaxHeight())
                     }
