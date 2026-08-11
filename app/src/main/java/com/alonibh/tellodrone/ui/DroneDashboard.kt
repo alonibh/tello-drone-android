@@ -166,7 +166,7 @@ private fun ExpandedDashboard(state: DroneSessionState, vm: DroneViewModel, dest
                 if (destination == "Dashboard") {
                     Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         VideoPanel(state, Modifier.weight(1f).fillMaxHeight())
-                        TabletFlightControls(state, vm, Modifier.widthIn(min = 280.dp, max = 320.dp).fillMaxHeight())
+                        TabletFlightControls(state, vm, Modifier.widthIn(min = 250.dp, max = 280.dp).fillMaxHeight())
                     }
                     BottomControls(state, vm, tablet = true)
                 } else DestinationPlaceholder(destination, Modifier.fillMaxSize())
@@ -474,8 +474,8 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
             else -> 156.dp
         }
         val sticks: @Composable () -> Unit = {
-            VirtualJoystick("LEFT\nALTITUDE / YAW", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
-            VirtualJoystick("RIGHT\nDIRECTION", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
+            VirtualJoystick("", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
+            VirtualJoystick("", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
         }
         if (maxWidth < 520.dp && !compact) {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(sectionSpacing), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -484,9 +484,9 @@ private fun ManualControlPanel(state: DroneSessionState, vm: DroneViewModel, com
             }
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                VirtualJoystick("LEFT\nALTITUDE / YAW", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
+                VirtualJoystick("", leftStick, enabled, stickDiameter, { leftStick = it; publish() }, { publish() }, { leftStick = JoystickVector(); publish() })
                 ManualFlightCenter(state, vm, if (tablet) Modifier.width(420.dp) else Modifier.weight(1f).padding(horizontal = if (compact) 12.dp else 28.dp), tablet = tablet)
-                VirtualJoystick("RIGHT\nDIRECTION", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
+                VirtualJoystick("", rightStick, enabled, stickDiameter, { rightStick = it; publish() }, { publish() }, { rightStick = JoystickVector(); publish() })
             }
         }
     }
@@ -514,7 +514,7 @@ private fun VirtualJoystick(label: String, value: JoystickVector, enabled: Boole
     val captureInset = if (diameter <= 140.dp) 12.dp else 24.dp
     DisposableEffect(Unit) { onDispose { currentReleased() } }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 11.sp, color = TelloTextMuted)
+        if (label.isNotBlank()) Text(label, fontSize = 11.sp, color = TelloTextMuted)
         Box(
             Modifier.size(diameter + captureInset * 2).pointerInput(enabled) {
                 coroutineScope {
