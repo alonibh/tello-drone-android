@@ -105,6 +105,35 @@ class PersonDetectionPipelineTest {
         )
     }
 
+    @Test fun `cancel stops detection and discards a late detector creation result`() {
+        val creationStarted = CountDownLatch(1)
+        val allowCreation = CountDownLatch(1)
+        val detector = FakePersonDetector { listOf(detection(100L)) }
+        val snapshots = mutableListOf<PersonDetectionSnapshot>()
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = {
+                creationStarted.countDown()
+                assertTrue(allowCreation.await(2, TimeUnit.SECONDS))
+                detector
+            },
+            modelName = "fake-model",
+            onSnapshot = snapshots::add,
+        )
+        pipeline.start()
+        val worker = thread(start = true) { pipeline.process(frame()) }
+        assertTrue(creationStarted.await(2, TimeUnit.SECONDS))
+
+        pipeline.stop() // benchmark cancellation uses this same generation-safe stop.
+        allowCreation.countDown()
+        worker.join(2_000)
+        pipeline.releaseIfStopped()
+
+        assertFalse(worker.isAlive)
+        assertEquals(PersonDetectionState.Off, snapshots.last().state)
+        assertTrue(snapshots.none { it.state == PersonDetectionState.Detecting })
+        assertEquals(1, detector.closeCount)
+    }
+
     private fun staleCreationIsDiscarded(
         stalePreference: DetectorBackendPreference,
         activePreference: DetectorBackendPreference,

@@ -300,7 +300,11 @@ streaming preview, an analysis frame, and person detection is OFF. Starting it e
 `PersonDetectionPipeline` with the selected backend; it neither creates a frame queue nor changes
 PixelCopy, decoding, model configuration, detection thresholds, or backend implementation. The
 first three completed inferences are deterministic warm-up and are excluded from inference
-percentiles. Detector creation time is measured separately with a monotonic clock.
+percentiles. The 30-second steady-state window begins when that third warm-up inference completes;
+detector FPS and the preview/analysis observations use that same window. Reports distinguish total
+completed inferences from steady-state samples. Detector creation time is measured separately with
+a monotonic clock. A monotonic 15-second startup timeout stops/releases detection and reports
+`DETECTOR STARTUP TIMEOUT` if no inference completes.
 
 The service-owned video controller observes the existing render, analysis, and detector callbacks
 to report completed inferences, min/p50/p95/max steady-state inference, detector/preview FPS, and

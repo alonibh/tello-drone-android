@@ -28,14 +28,32 @@ class DetectorBenchmarkTest {
         assertEquals(20L, result.inferenceP50Millis)
         assertEquals(20L, result.inferenceP95Millis)
         assertEquals(5, result.completedInferences)
+        assertEquals(2, result.steadyStateInferences)
         assertEquals(100L, result.startupMillis)
     }
 
     @Test fun completionUsesThirtySecondsOfValidInferenceTime() {
         val benchmark = DetectorBenchmarkAggregator(device, DetectorBackendPreference.Cpu, 0)
-        benchmark.onInference(5_000_000_000L, 10, 1, descriptor)
+        benchmark.onInference(1_000_000_000L, 10, 1, descriptor)
+        benchmark.onInference(2_000_000_000L, 10, null, descriptor)
+        benchmark.onInference(5_000_000_000L, 10, null, descriptor)
         assertFalse(benchmark.isComplete(34_999_999_999L))
         assertTrue(benchmark.isComplete(35_000_000_000L))
+    }
+
+    @Test fun previewAndAnalysisOnlyUseTheSteadyStateWindow() {
+        val benchmark = DetectorBenchmarkAggregator(device, DetectorBackendPreference.Cpu, 0)
+        benchmark.onPreviewRendered(1_000_000_000L)
+        benchmark.onAnalysisFrame(1_000_000_000L)
+        repeat(3) { benchmark.onInference((it + 2) * 1_000_000_000L, 10, null, descriptor) }
+        benchmark.onPreviewRendered(6_000_000_000L)
+        benchmark.onPreviewRendered(7_000_000_000L)
+        benchmark.onAnalysisFrame(6_000_000_000L)
+        benchmark.onAnalysisFrame(7_000_000_000L)
+        val result = benchmark.result(8_000_000_000L)
+        assertEquals(4_000L, result.durationMillis)
+        assertEquals(2f, result.previewFps)
+        assertEquals(2f, result.analysisFrameFps)
     }
 
     @Test fun backendFallbackAndUnavailableMetricsAreReportedHonestly() {

@@ -18,6 +18,7 @@ data class DetectorBenchmarkResult(
     val startupMillis: Long?,
     val durationMillis: Long,
     val completedInferences: Int,
+    val steadyStateInferences: Int,
     val inferenceMinMillis: Long?,
     val inferenceP50Millis: Long?,
     val inferenceP95Millis: Long?,
@@ -51,8 +52,7 @@ class DetectorBenchmarkAggregator(
     private val startedAtNanos: Long,
     private val warmupInferences: Int = WARMUP_INFERENCES,
 ) {
-    private var firstInferenceAtNanos: Long? = null
-    private var latestInferenceAtNanos: Long? = null
+    private var steadyStateStartedAtNanos: Long? = null
     private var startupNanos: Long? = null
     private var descriptor: PersonDetectorDescriptor? = null
     private var completed = 0
@@ -65,40 +65,42 @@ class DetectorBenchmarkAggregator(
     private var latestAnalysisAtNanos: Long? = null
 
     fun onInference(completedAtNanos: Long, inferenceNanos: Long, startupNanos: Long?, descriptor: PersonDetectorDescriptor) {
-        if (firstInferenceAtNanos == null) firstInferenceAtNanos = completedAtNanos
-        latestInferenceAtNanos = completedAtNanos
         if (this.startupNanos == null) this.startupNanos = startupNanos
         this.descriptor = descriptor
         completed++
+        if (completed == warmupInferences) steadyStateStartedAtNanos = completedAtNanos
         if (completed > warmupInferences) steadySamplesNanos += inferenceNanos.coerceAtLeast(0L)
     }
 
     fun onPreviewRendered(nowNanos: Long) {
+        if (steadyStateStartedAtNanos == null) return
         if (firstPreviewAtNanos == null) firstPreviewAtNanos = nowNanos
         latestPreviewAtNanos = nowNanos
         previewFrames++
     }
 
     fun onAnalysisFrame(nowNanos: Long) {
+        if (steadyStateStartedAtNanos == null) return
         if (firstAnalysisAtNanos == null) firstAnalysisAtNanos = nowNanos
         latestAnalysisAtNanos = nowNanos
         analysisFrames++
     }
 
-    fun isComplete(nowNanos: Long): Boolean = firstInferenceAtNanos?.let { nowNanos - it >= BENCHMARK_DURATION_NANOS } == true
+    fun isComplete(nowNanos: Long): Boolean = steadyStateStartedAtNanos?.let { nowNanos - it >= BENCHMARK_DURATION_NANOS } == true
 
     fun result(endedAtNanos: Long): DetectorBenchmarkResult {
         val samplesMillis = steadySamplesNanos.map { it / NANOS_PER_MILLI }
-        val durationNanos = firstInferenceAtNanos?.let { (endedAtNanos - it).coerceAtLeast(0L) } ?: 0L
+        val durationNanos = steadyStateStartedAtNanos?.let { (endedAtNanos - it).coerceAtLeast(0L) } ?: 0L
         return DetectorBenchmarkResult(
             manufacturer = device.manufacturer, model = device.model, androidVersion = device.androidVersion,
             sdkLevel = device.sdkLevel, supportedAbis = device.supportedAbis, availableProcessors = device.availableProcessors,
             requestedBackend = requestedBackend, actualBackend = descriptor?.backend, fellBackFromGpu = descriptor?.fellBackFromGpu == true,
             detectorModel = descriptor?.modelName, startupMillis = startupNanos?.div(NANOS_PER_MILLI),
             durationMillis = durationNanos / NANOS_PER_MILLI, completedInferences = completed,
+            steadyStateInferences = steadySamplesNanos.size,
             inferenceMinMillis = samplesMillis.minOrNull(), inferenceP50Millis = DetectorBenchmarkMath.percentileMillis(samplesMillis, .50),
             inferenceP95Millis = DetectorBenchmarkMath.percentileMillis(samplesMillis, .95), inferenceMaxMillis = samplesMillis.maxOrNull(),
-            detectorFps = rate(completed, durationNanos), previewFps = rate(previewFrames, elapsed(firstPreviewAtNanos, latestPreviewAtNanos)),
+            detectorFps = rate(steadySamplesNanos.size, durationNanos), previewFps = rate(previewFrames, elapsed(firstPreviewAtNanos, latestPreviewAtNanos)),
             analysisFrameFps = rate(analysisFrames, elapsed(firstAnalysisAtNanos, latestAnalysisAtNanos)),
         )
     }
@@ -120,7 +122,7 @@ fun DetectorBenchmarkResult.formatReport(): String = buildString {
     appendLine("GPU FALLBACK: ${if (fellBackFromGpu) "YES" else "NO"}")
     appendLine("STARTUP: ${startupMillis?.let { "$it ms" } ?: "Unavailable"}")
     appendLine("DURATION: $durationMillis ms")
-    appendLine("FRAMES: $completedInferences")
+    appendLine("FRAMES: $completedInferences total; $steadyStateInferences steady-state (after 3 warm-up)")
     appendLine("INFERENCE: min ${inferenceMinMillis?.let { "$it ms" } ?: "Unavailable"}; p50 ${inferenceP50Millis?.let { "$it ms" } ?: "Unavailable"}; p95 ${inferenceP95Millis?.let { "$it ms" } ?: "Unavailable"}; max ${inferenceMaxMillis?.let { "$it ms" } ?: "Unavailable"}")
     appendLine("DETECTOR FPS: ${detectorFps?.let { "%.1f".format(it) } ?: "Unavailable"}")
     appendLine("PREVIEW FPS: ${previewFps?.let { "%.1f".format(it) } ?: "Unavailable"}")

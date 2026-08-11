@@ -82,6 +82,7 @@ class AndroidTelloVideoController(
     )
     private val benchmarkLock = Any()
     private var benchmark: DetectorBenchmarkAggregator? = null
+    private var benchmarkStartupTimeoutJob: Job? = null
 
     private val socket = AtomicReference<DatagramSocket?>()
     private val surface = AtomicReference<Surface?>()
@@ -214,6 +215,10 @@ class AndroidTelloVideoController(
             benchmark = DetectorBenchmarkAggregator(
                 device = deviceInfo(), requestedBackend = detectorPreference.get(), startedAtNanos = System.nanoTime(),
             )
+        }
+        benchmarkStartupTimeoutJob = scope.launch {
+            delay(BENCHMARK_STARTUP_TIMEOUT_MILLIS)
+            cancelBenchmark("DETECTOR STARTUP TIMEOUT", DetectorBenchmarkState.Failed)
         }
         detectionPipeline.start(detectorPreference.get())
         mutableState.update { it.copy(detectorBenchmarkState = DetectorBenchmarkState.Running, detectorBenchmarkResult = null, detectorBenchmarkReason = null) }
@@ -452,15 +457,19 @@ class AndroidTelloVideoController(
                 personDetections = snapshot.detections,
             )
         }
-        if (snapshot.state == PersonDetectionState.Error) cancelBenchmark(snapshot.errorReason ?: "Detector failure")
+        if (snapshot.state == PersonDetectionState.Error) cancelBenchmark(snapshot.errorReason ?: "Detector failure", DetectorBenchmarkState.Failed)
     }
 
     private fun onInferenceMeasurement(measurement: DetectorInferenceMeasurement) {
         val completed = synchronized(benchmarkLock) {
             val active = benchmark ?: return
             active.onInference(measurement.completedAtNanos, measurement.inferenceNanos, measurement.startupNanos, measurement.descriptor)
+            benchmarkStartupTimeoutJob?.cancel()
+            benchmarkStartupTimeoutJob = null
             if (active.isComplete(measurement.completedAtNanos)) {
                 benchmark = null
+                benchmarkStartupTimeoutJob?.cancel()
+                benchmarkStartupTimeoutJob = null
                 active.result(measurement.completedAtNanos)
             } else null
         }
@@ -470,10 +479,13 @@ class AndroidTelloVideoController(
         }
     }
 
-    private fun cancelBenchmark(reason: String): Boolean {
+    private fun cancelBenchmark(reason: String, state: DetectorBenchmarkState = DetectorBenchmarkState.Cancelled): Boolean {
         val cancelled = synchronized(benchmarkLock) { benchmark?.also { benchmark = null } } ?: return false
+        benchmarkStartupTimeoutJob?.cancel()
+        benchmarkStartupTimeoutJob = null
         val result = cancelled.result(System.nanoTime())
-        mutableState.update { it.copy(detectorBenchmarkState = DetectorBenchmarkState.Cancelled, detectorBenchmarkResult = result, detectorBenchmarkReason = reason.take(MAX_ERROR_REASON_CHARS)) }
+        stopDetectionAndScheduleRelease()
+        mutableState.update { it.copy(detectorBenchmarkState = state, detectorBenchmarkResult = result, detectorBenchmarkReason = reason.take(MAX_ERROR_REASON_CHARS)) }
         return true
     }
 
@@ -533,6 +545,7 @@ class AndroidTelloVideoController(
         private const val MAX_VIDEO_DATAGRAM_BYTES = 2_048
         private const val RECEIVE_POLL_MILLIS = 500
         private const val MAX_ERROR_REASON_CHARS = 120
+        private const val BENCHMARK_STARTUP_TIMEOUT_MILLIS = 15_000L
         private const val FPS_WINDOW_NANOS = 1_000_000_000L
     }
 }
