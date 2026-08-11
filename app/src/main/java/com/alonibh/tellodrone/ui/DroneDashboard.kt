@@ -676,6 +676,14 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         StatusLine("Dry-run vertical", "%.3f".format(errors.verticalError))
         StatusLine("Dry-run area", "%.3f".format(errors.forwardBackError))
     }
+    state.dryRunControlIntent?.let { intent ->
+        StatusLine("DRY RUN", if (intent.actionable) "ACTIONABLE" else "NO COMMANDS SENT")
+        StatusLine("Yaw intent", "%.3f".format(intent.yaw))
+        StatusLine("Vertical intent", "%.3f".format(intent.vertical))
+        StatusLine("Forward/back", "%.3f".format(intent.forwardBack))
+        StatusLine("Reason", intent.reason.name.replace('_', ' '))
+        Text("NO COMMANDS SENT", color = TelloTextMuted, fontSize = 11.sp)
+    }
     Text("Frame-local boxes only • Manual authority", color = TelloTextMuted, fontSize = 11.sp)
 }
 

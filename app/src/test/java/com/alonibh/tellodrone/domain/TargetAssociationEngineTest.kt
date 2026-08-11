@@ -118,7 +118,7 @@ class TargetAssociationEngineTest {
 
         val result = errors.update(target, targetFresh = true)
 
-        assertEquals(.08f, result.yawError, .0001f)
+        assertEquals(.20f, result.yawError, .0001f)
     }
 
     @Test fun `normalized deadzones zero small center and area errors`() {
@@ -139,11 +139,11 @@ class TargetAssociationEngineTest {
         val afterLoss = errors.update(TargetSelection.select(detection(box = box(.55f, .40f, .65f, .60f))), targetFresh = true)
 
         assertFalse(lost.targetPresent)
-        assertEquals(.04f, afterLoss.yawError, .0001f)
+        assertEquals(.10f, afterLoss.yawError, .0001f)
 
         errors.reset()
         val afterSelection = errors.update(TargetSelection.select(detection(box = box(.55f, .40f, .65f, .60f))), targetFresh = true)
-        assertEquals(.04f, afterSelection.yawError, .0001f)
+        assertEquals(.10f, afterSelection.yawError, .0001f)
     }
 
     private fun detection(

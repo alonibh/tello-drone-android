@@ -19,6 +19,7 @@ data class TrackingErrors(
  */
 class TrackingErrorEngine {
     private var previous = TrackingErrors()
+    private var seeded = false
 
     fun update(target: TrackedTarget?, targetFresh: Boolean): TrackingErrors {
         if (target == null) {
@@ -32,16 +33,17 @@ class TrackingErrorEngine {
         val rawVertical = deadzone(.5f - (box.top + box.bottom) / 2f, Y_DEADZONE)
         val rawArea = deadzone(DESIRED_TARGET_AREA_RATIO - area(box), AREA_DEADZONE_RATIO)
         previous = TrackingErrors(
-            yawError = ema(previous.yawError, rawYaw),
-            verticalError = ema(previous.verticalError, rawVertical),
-            forwardBackError = ema(previous.forwardBackError, rawArea),
+            yawError = if (seeded) ema(previous.yawError, rawYaw) else rawYaw,
+            verticalError = if (seeded) ema(previous.verticalError, rawVertical) else rawVertical,
+            forwardBackError = if (seeded) ema(previous.forwardBackError, rawArea) else rawArea,
             targetPresent = true,
             targetFresh = true,
         )
+        seeded = true
         return previous
     }
 
-    fun reset() { previous = TrackingErrors() }
+    fun reset() { previous = TrackingErrors(); seeded = false }
 
     private fun ema(previous: Float, raw: Float) = EMA_ALPHA * raw + (1f - EMA_ALPHA) * previous
     private fun deadzone(value: Float, deadzone: Float) = if (abs(value) <= deadzone) 0f else value

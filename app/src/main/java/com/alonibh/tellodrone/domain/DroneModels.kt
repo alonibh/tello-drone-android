@@ -113,6 +113,7 @@ data class DroneSessionState(
     /** Dry-run only. These values are never converted to RC commands in Phase 4B. */
     val trackingErrors: TrackingErrors? = null,
     val targetAssociationState: TargetAssociationState = TargetAssociationState.None,
+    val dryRunControlIntent: DryRunControlIntent? = null,
     val speedPercent: Int = 20,
     val manualVector: ManualControlVector = ManualControlVector(),
     /** App command state only: STOP/HOVER completed its explicit RC-zero action. */

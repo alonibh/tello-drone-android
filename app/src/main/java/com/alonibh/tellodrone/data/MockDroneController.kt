@@ -6,6 +6,7 @@ import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
+import com.alonibh.tellodrone.domain.DryRunFollowPlanner
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
@@ -29,6 +30,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
     private val mutableState = MutableStateFlow(initialState)
     override val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
     private val trackingErrorEngine = TrackingErrorEngine()
+    private val followPlanner = DryRunFollowPlanner(com.alonibh.tellodrone.domain.FollowPlannerConfig.LEGACY_SIMULATION)
 
     override fun connect() = update {
         it.copy(
@@ -55,6 +57,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             target = null,
             trackingErrors = null,
             targetAssociationState = TargetAssociationState.None,
+            dryRunControlIntent = null,
             manualVector = ManualControlVector(),
             hoverActive = false,
             telemetry = it.telemetry.copy(
@@ -116,6 +119,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             target = null,
             trackingErrors = null,
             targetAssociationState = TargetAssociationState.None,
+            dryRunControlIntent = null,
             manualVector = ManualControlVector(),
             hoverActive = false,
             telemetry = state.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f),
@@ -133,6 +137,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                 target = null,
                 trackingErrors = null,
                 targetAssociationState = TargetAssociationState.None,
+                dryRunControlIntent = null,
             )
             TrackingMode.DetectOnly -> if (state.connection == DroneConnectionState.Connected) {
                 val detections = mockPersonDetections()
@@ -147,6 +152,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                     target = null,
                     trackingErrors = null,
                     targetAssociationState = TargetAssociationState.None,
+                    dryRunControlIntent = null,
                 )
             } else state.invalid("Detection requires a connected mock drone")
             TrackingMode.TargetLocked, TrackingMode.Follow ->
@@ -166,12 +172,14 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
         } else {
             val target = TargetSelection.select(currentDetection)
             trackingErrorEngine.reset()
+            val errors = trackingErrorEngine.update(target, targetFresh = true)
             state.copy(
                 tracking = TrackingMode.TargetLocked,
                 authority = ControlAuthority.Manual,
                 target = target,
-                trackingErrors = trackingErrorEngine.update(target, targetFresh = true),
+                trackingErrors = errors,
                 targetAssociationState = TargetAssociationState.Selected,
+                dryRunControlIntent = followPlanner.plan(errors, TargetAssociationState.Selected, 1f / 30f),
                 lastMessage = "Mock target selected (dry run only)",
             )
         }

@@ -14,6 +14,7 @@ fun DroneSessionState.withPersonDetectionVideoState(nextVideo: VideoState): Dron
         target = null,
         trackingErrors = null,
         targetAssociationState = TargetAssociationState.None,
+        dryRunControlIntent = null,
         lastMessage = if (nextVideo.personDetectionState == PersonDetectionState.Error) {
             nextVideo.detectorErrorReason ?: "Person detector failed"
         } else lastMessage,

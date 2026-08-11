@@ -65,6 +65,9 @@ device, not the primary ML performance target. These results make no assumption 
 Teclast measurements. The future Teclast grounded detector benchmark remains the gate before real
 target-lock or Follow work; do not request takeoff for that benchmark:
 
+This dry-run PID/planner foundation requires no new physical test. It sends no commands and does
+not alter manual authority; the Teclast grounded detector benchmark remains the next hardware gate.
+
 1. Teclast landscape, Tello on floor.
 2. Connect REAL and confirm normal ~30 FPS preview.
 3. Leave the default GPU PREFERRED backend selected, enable DETECT PEOPLE, and record the displayed

@@ -267,6 +267,19 @@ documented normalized derivations from the former 960x720 reference. Positive ya
 positive vertical is target-above, and positive area error means the target is smaller than desired.
 It resets smoothing on loss and when selection changes. These values never enter PID or RC code.
 
+The next dry-run-only planning stage is:
+
+`Detection -> explicit target selection -> conservative association -> normalized errors -> dry-run PID/planner -> [HARD GATE] -> future RC integration`
+
+`PidController` requires caller-supplied gains, limits, and monotonic `dt`; it has no clock or
+production gains. `DryRunFollowPlanner` consumes only normalized errors, association state, and an
+explicit config, returning `DryRunControlIntent` rather than a manual vector or RC command. It emits
+non-zero diagnostic intent only for fresh `Matched` or initial `Selected` targets. Missing, stale,
+ambiguous, lost, invalid-timing, and invalid-error input always emits non-actionable zero intent.
+Lost and a new selection reset PID state. The named legacy simulation values are test-only and not
+flight tuning. Real autonomous RC is NOT implemented; the Teclast detector benchmark remains the
+hard gate before any future RC integration.
+
 Mock mode exposes two selectable person boxes, selected/missing/lost state, and debug error values
 in Tracking only. Real-mode target selection remains disabled pending the future Teclast detector
 benchmark. There is no PID, autonomous RC, Follow mode, or non-manual control authority in Phase
