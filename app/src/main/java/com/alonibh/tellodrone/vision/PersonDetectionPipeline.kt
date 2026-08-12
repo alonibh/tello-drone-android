@@ -17,6 +17,9 @@ data class PersonDetectionSnapshot(
     val backend: DetectorBackend? = null,
     val fellBackFromGpu: Boolean = false,
     val errorReason: String? = null,
+    /** Present only for a completed detector inference; it is retained when that result is empty. */
+    val processedFrameSequence: Long? = null,
+    val processedSourceTimestampNanos: Long? = null,
 )
 
 data class DetectorInferenceMeasurement(
@@ -46,6 +49,8 @@ class PersonDetectionStore(
     @Synchronized
     fun result(
         detections: List<PersonDetection>,
+        processedFrameSequence: Long,
+        processedSourceTimestampNanos: Long,
         measuredFps: Float?,
         inferenceMillis: Long,
         descriptor: PersonDetectorDescriptor,
@@ -58,6 +63,8 @@ class PersonDetectionStore(
             modelName = descriptor.modelName,
             backend = descriptor.backend,
             fellBackFromGpu = descriptor.fellBackFromGpu,
+            processedFrameSequence = processedFrameSequence,
+            processedSourceTimestampNanos = processedSourceTimestampNanos,
         )
         return snapshot
     }
@@ -175,6 +182,8 @@ class PersonDetectionPipeline(
                 onSnapshot(
                     store.result(
                         detections = detections,
+                        processedFrameSequence = frame.metadata.sequence,
+                        processedSourceTimestampNanos = frame.metadata.captureTimestampNanos,
                         measuredFps = measuredFps,
                         inferenceMillis = ((finishedAt - startedAt).coerceAtLeast(0L) / 1_000_000L),
                         descriptor = descriptor,

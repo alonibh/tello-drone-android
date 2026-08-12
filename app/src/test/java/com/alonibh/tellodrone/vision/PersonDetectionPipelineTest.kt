@@ -39,17 +39,19 @@ class PersonDetectionPipelineTest {
         pipeline.process(frame())
         assertEquals(PersonDetectionState.Detecting, snapshots.last().state)
         assertTrue(snapshots.last().detections.isEmpty())
+        assertEquals(1L, snapshots.last().processedFrameSequence)
+        assertEquals(100L, snapshots.last().processedSourceTimestampNanos)
     }
 
     @Test fun `stale result expires at five hundred milliseconds and off clears state`() {
         val store = PersonDetectionStore()
         store.start("fake-model")
-        store.result(listOf(detection(sourceTimestamp = 1_000_000_000L)), 7f, 20L, descriptor())
+        store.result(listOf(detection(sourceTimestamp = 1_000_000_000L)), 1L, 1_000_000_000L, 7f, 20L, descriptor())
 
         assertEquals(1, store.expire(1_499_999_999L).detections.size)
         assertTrue(store.expire(1_500_000_000L).detections.isEmpty())
 
-        store.result(listOf(detection(sourceTimestamp = 2_000_000_000L)), 7f, 20L, descriptor())
+        store.result(listOf(detection(sourceTimestamp = 2_000_000_000L)), 1L, 2_000_000_000L, 7f, 20L, descriptor())
         val off = store.stop()
         assertEquals(PersonDetectionState.Off, off.state)
         assertTrue(off.detections.isEmpty())

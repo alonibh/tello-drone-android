@@ -2,18 +2,28 @@ package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
+import com.alonibh.tellodrone.domain.DryRunFollowPlanner
+import com.alonibh.tellodrone.domain.FollowPlannerConfig
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
+import com.alonibh.tellodrone.domain.PersonDetection
+import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.TargetAssociationEngine
+import com.alonibh.tellodrone.domain.TargetAssociationResult
+import com.alonibh.tellodrone.domain.TargetAssociationState
+import com.alonibh.tellodrone.domain.TargetSelection
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
+import com.alonibh.tellodrone.domain.TrackingErrorEngine
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.domain.withPersonDetectionVideoState
 import com.alonibh.tellodrone.domain.isZero
+import com.alonibh.tellodrone.vision.PersonDetectionStore
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -34,6 +44,7 @@ class TelloFlightSession(
     private val scope: CoroutineScope,
     private val clock: MonotonicClock,
     private val video: TelloVideoController? = null,
+    private val sourceNowNanos: () -> Long = System::nanoTime,
     private val onFatalConnectionLoss: (String) -> Unit = {},
     initialState: DroneSessionState = DroneSessionState(
         controllerMode = ControllerMode.Real,
@@ -60,6 +71,13 @@ class TelloFlightSession(
     @Volatile private var videoStreamAcknowledged = false
     private val manualInputLock = Any()
     private var manualInputRequiresNeutral = false
+    private val trackingLock = Any()
+    private val targetAssociation = TargetAssociationEngine()
+    private val trackingErrors = TrackingErrorEngine()
+    /** Existing dry-run diagnostic values only; this feature never produces RC input. */
+    private val dryRunPlanner = DryRunFollowPlanner(FollowPlannerConfig.LEGACY_SIMULATION)
+    private var latestAcceptedDetectorFrame: DetectorFrameIdentity? = null
+    private var lastPlannerFrameTimestampNanos: Long? = null
 
     private val rcLoop = RcControlLoop(
         scope = scope,
@@ -70,6 +88,7 @@ class TelloFlightSession(
 
     suspend fun connect(): Boolean = commandStateMutex.withLock {
         if (closed) return@withLock false
+        resetRealTracking()
         takeoffAcknowledged = false
         landingAcknowledged = false
         videoStreamAcknowledged = false
@@ -219,6 +238,7 @@ class TelloFlightSession(
         requireManualNeutral()
         rcLoop.lockOutAfterZero()
         video?.setPersonDetectionEnabled(false)
+        resetRealTracking()
         mutableState.update {
             it.copy(
                 flight = FlightState.Emergency,
@@ -264,6 +284,7 @@ class TelloFlightSession(
             TrackingMode.Off -> {
                 activeVideo?.setPersonDetectionEnabled(false)
                 activeVideo?.cancelDetectorBenchmark()
+                resetRealTracking()
                 mutableState.update {
                     it.copy(
                         tracking = TrackingMode.Off,
@@ -285,6 +306,7 @@ class TelloFlightSession(
                 val started = activeVideo?.setPersonDetectionEnabled(true)
                     ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
                 if (started.isSuccess) {
+                    resetRealTracking()
                     mutableState.update {
                         it.copy(
                             tracking = TrackingMode.DetectOnly,
@@ -315,6 +337,7 @@ class TelloFlightSession(
             invalid(changed.exceptionOrNull()?.message ?: "Detector backend could not be changed")
             return
         }
+        resetRealTracking()
         mutableState.update { state ->
             state.copy(
                 video = state.video.copy(detectorBackendPreference = preference),
@@ -335,13 +358,47 @@ class TelloFlightSession(
         val started = video?.runDetectorBenchmark()
             ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
         if (started.isSuccess) {
+            resetRealTracking()
             mutableState.update { it.copy(tracking = TrackingMode.DetectOnly, authority = ControlAuthority.Manual, personDetections = emptyList(), target = null, lastMessage = "Running 30-second detector benchmark") }
         } else invalid(started.exceptionOrNull()?.message ?: "Detector benchmark could not start")
     }
 
     fun cancelDetectorBenchmark() {
         video?.cancelDetectorBenchmark()
+        resetRealTracking()
         mutableState.update { it.copy(tracking = TrackingMode.Off, authority = ControlAuthority.Manual, personDetections = emptyList(), target = null, lastMessage = "Detector benchmark cancelled") }
+    }
+
+    /**
+     * Explicit real-mode selection boundary. The service session accepts only the exact object
+     * currently rendered from the newest fresh detector result; it never derives a target itself.
+     */
+    fun selectTarget(detection: PersonDetection) = synchronized(trackingLock) {
+        val nowNanos = sourceNowNanos()
+        val current = mutableState.value
+        if (!current.isSelectableRealDetection(detection, latestAcceptedDetectorFrame, nowNanos)) {
+            invalid("Select a fresh person box from the current detector frame")
+            return@synchronized
+        }
+        val target = TargetSelection.select(detection)
+        trackingErrors.reset()
+        dryRunPlanner.reset()
+        lastPlannerFrameTimestampNanos = detection.sourceTimestampNanos
+        val errors = trackingErrors.update(target, targetFresh = true)
+        mutableState.update { state ->
+            if (!state.isSelectableRealDetection(detection, latestAcceptedDetectorFrame, nowNanos)) state else {
+                state.copy(
+                    tracking = TrackingMode.TargetLocked,
+                    authority = ControlAuthority.Manual,
+                    target = target,
+                    trackingErrors = errors,
+                    targetAssociationState = TargetAssociationState.Selected,
+                    // A selection has no preceding detector-result interval. The planner fail-closes.
+                    dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Selected, Float.NaN),
+                    lastMessage = "Real target selected; dry run only, no commands sent",
+                )
+            }
+        }
     }
 
     suspend fun refreshConnectionHealth(nowMillis: Long = clock.nowMillis()) {
@@ -380,6 +437,7 @@ class TelloFlightSession(
             sendFinalZero = current.flight != FlightState.Emergency,
             requestStreamOff = videoStreamAcknowledged,
         )
+        resetRealTracking()
         mutableState.update { state ->
             state.copy(
                 connection = DroneConnectionState.Disconnected,
@@ -464,9 +522,123 @@ class TelloFlightSession(
         if (videoStateJob?.isActive == true) return
         videoStateJob = scope.launch {
             activeVideo.state.collect { videoState ->
-                if (!closed) mutableState.update { it.withPersonDetectionVideoState(videoState) }
+                if (!closed) applyVideoState(videoState)
             }
         }
+    }
+
+    private fun applyVideoState(videoState: VideoState) = synchronized(trackingLock) {
+        val frame = videoState.detectorFrameIdentity()
+        val ready = videoState.availability == VideoAvailability.Streaming &&
+            videoState.personDetectionState == PersonDetectionState.Detecting
+        if (!ready) {
+            resetRealTrackingLocked()
+            mutableState.update { it.withPersonDetectionVideoState(videoState) }
+            return@synchronized
+        }
+        val newAcceptedFrame = frame?.takeIf { it.isNewerThan(latestAcceptedDetectorFrame) }
+        if (newAcceptedFrame != null) latestAcceptedDetectorFrame = newAcceptedFrame
+        mutableState.update { current ->
+            val baseline = current.withPersonDetectionVideoState(videoState)
+            when {
+                newAcceptedFrame != null && current.target != null ->
+                    applyAssociation(baseline, current.target, newAcceptedFrame)
+                current.target != null && current.video.personDetections.isNotEmpty() &&
+                    videoState.personDetections.isEmpty() && frame == current.video.detectorFrameIdentity() -> {
+                    val errors = trackingErrors.update(current.target, targetFresh = false)
+                    baseline.copy(
+                        tracking = TrackingMode.TargetLocked,
+                        authority = ControlAuthority.Manual,
+                        trackingErrors = errors,
+                        dryRunControlIntent = dryRunPlanner.plan(
+                            errors,
+                            current.targetAssociationState,
+                            Float.NaN,
+                        ),
+                        lastMessage = "Real detector result expired; no commands sent",
+                    )
+                }
+                else -> baseline
+            }
+        }
+    }
+
+    private fun applyAssociation(
+        baseline: DroneSessionState,
+        currentTarget: com.alonibh.tellodrone.domain.TrackedTarget,
+        frame: DetectorFrameIdentity,
+    ): DroneSessionState {
+        val result = targetAssociation.associate(
+            selectedTarget = currentTarget,
+            frameSequence = frame.sequence,
+            sourceTimestampNanos = frame.sourceTimestampNanos,
+            detections = baseline.personDetections,
+        )
+        if (result is TargetAssociationResult.Ignored) return baseline
+        val dtSeconds = lastPlannerFrameTimestampNanos
+            ?.let { (frame.sourceTimestampNanos - it) / 1_000_000_000f }
+            ?: Float.NaN
+        lastPlannerFrameTimestampNanos = frame.sourceTimestampNanos
+        return when (result) {
+            is TargetAssociationResult.Matched -> {
+                val errors = trackingErrors.update(result.target, targetFresh = true)
+                baseline.copy(
+                    tracking = TrackingMode.TargetLocked,
+                    authority = ControlAuthority.Manual,
+                    target = result.target,
+                    trackingErrors = errors,
+                    targetAssociationState = TargetAssociationState.Matched,
+                    dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Matched, dtSeconds),
+                    lastMessage = "Real target matched; dry run only, no commands sent",
+                )
+            }
+            is TargetAssociationResult.TemporarilyMissing -> {
+                val errors = trackingErrors.update(result.target, targetFresh = false)
+                baseline.copy(
+                    tracking = TrackingMode.TargetLocked,
+                    authority = ControlAuthority.Manual,
+                    target = result.target,
+                    trackingErrors = errors,
+                    targetAssociationState = TargetAssociationState.TemporarilyMissing,
+                    dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.TemporarilyMissing, dtSeconds),
+                    lastMessage = "Real target temporarily missing; no commands sent",
+                )
+            }
+            is TargetAssociationResult.Ambiguous -> {
+                val errors = trackingErrors.update(result.target, targetFresh = false)
+                baseline.copy(
+                    tracking = TrackingMode.TargetLocked,
+                    authority = ControlAuthority.Manual,
+                    target = result.target,
+                    trackingErrors = errors,
+                    targetAssociationState = TargetAssociationState.Ambiguous,
+                    dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Ambiguous, dtSeconds),
+                    lastMessage = "Real target ambiguous; tap a person to select again",
+                )
+            }
+            is TargetAssociationResult.Lost -> {
+                trackingErrors.reset()
+                baseline.copy(
+                    tracking = TrackingMode.DetectOnly,
+                    authority = ControlAuthority.Manual,
+                    target = null,
+                    trackingErrors = null,
+                    targetAssociationState = TargetAssociationState.Lost,
+                    dryRunControlIntent = dryRunPlanner.plan(null, TargetAssociationState.Lost, dtSeconds),
+                    lastMessage = "Real target lost; explicit reselection required",
+                )
+            }
+            is TargetAssociationResult.Ignored -> baseline
+        }
+    }
+
+    private fun resetRealTracking() = synchronized(trackingLock) { resetRealTrackingLocked() }
+
+    private fun resetRealTrackingLocked() {
+        trackingErrors.reset()
+        dryRunPlanner.reset()
+        latestAcceptedDetectorFrame = null
+        lastPlannerFrameTimestampNanos = null
     }
 
     private suspend fun startVideoStreaming() {
@@ -494,6 +666,7 @@ class TelloFlightSession(
         takeoffAcknowledged = false
         landingAcknowledged = false
         requireManualNeutral()
+        resetRealTracking()
         mutableState.update { state ->
             if (state.connection == DroneConnectionState.Error || closed) state else {
                 failed = true
@@ -551,6 +724,34 @@ class TelloFlightSession(
 
     private fun invalid(message: String) {
         mutableState.update { it.copy(lastMessage = message) }
+    }
+
+    private data class DetectorFrameIdentity(val sequence: Long, val sourceTimestampNanos: Long) {
+        fun isNewerThan(previous: DetectorFrameIdentity?): Boolean = previous == null ||
+            (sequence > previous.sequence && sourceTimestampNanos > previous.sourceTimestampNanos)
+    }
+
+    private fun VideoState.detectorFrameIdentity(): DetectorFrameIdentity? {
+        val sequence = processedDetectorFrameSequence ?: return null
+        val timestamp = processedDetectorSourceTimestampNanos ?: return null
+        return DetectorFrameIdentity(sequence, timestamp)
+    }
+
+    private fun DroneSessionState.isSelectableRealDetection(
+        detection: PersonDetection,
+        newestAcceptedFrame: DetectorFrameIdentity?,
+        nowNanos: Long,
+    ): Boolean {
+        val currentFrame = video.detectorFrameIdentity()
+        val ageNanos = nowNanos - detection.sourceTimestampNanos
+        return connection == DroneConnectionState.Connected &&
+            video.availability == VideoAvailability.Streaming &&
+            video.personDetectionState == PersonDetectionState.Detecting &&
+            currentFrame != null && currentFrame == newestAcceptedFrame &&
+            detection.frameSequence == currentFrame.sequence &&
+            detection.sourceTimestampNanos == currentFrame.sourceTimestampNanos &&
+            ageNanos in 0 until PersonDetectionStore.STALE_AFTER_NANOS &&
+            personDetections.any { it === detection }
     }
 
     private fun DroneSessionState.canTakeOff() =

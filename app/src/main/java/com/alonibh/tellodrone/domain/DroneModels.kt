@@ -69,6 +69,10 @@ data class VideoState(
     val detectorBenchmarkState: DetectorBenchmarkState = DetectorBenchmarkState.Off,
     val detectorBenchmarkResult: DetectorBenchmarkResult? = null,
     val detectorBenchmarkReason: String? = null,
+    /** Identity of the detector frame that most recently completed inference, even with no people. */
+    val processedDetectorFrameSequence: Long? = null,
+    /** Monotonic capture timestamp for [processedDetectorFrameSequence]. */
+    val processedDetectorSourceTimestampNanos: Long? = null,
     val personDetections: List<PersonDetection> = emptyList(),
     val errorReason: String? = null,
 )

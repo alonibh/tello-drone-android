@@ -2,15 +2,21 @@ package com.alonibh.tellodrone.domain
 
 /** Applies detector-owned observational state without changing connection, flight, or manual input. */
 fun DroneSessionState.withPersonDetectionVideoState(nextVideo: VideoState): DroneSessionState {
-    val active = nextVideo.personDetectionState in setOf(
-        PersonDetectionState.Starting,
-        PersonDetectionState.Detecting,
-    )
+    val readyForTracking = nextVideo.availability == VideoAvailability.Streaming &&
+        nextVideo.personDetectionState == PersonDetectionState.Detecting
+    if (readyForTracking) {
+        return copy(
+            video = nextVideo,
+            tracking = if (target == null) TrackingMode.DetectOnly else TrackingMode.TargetLocked,
+            authority = ControlAuthority.Manual,
+            personDetections = nextVideo.personDetections,
+        )
+    }
     return copy(
         video = nextVideo,
-        tracking = if (active) TrackingMode.DetectOnly else TrackingMode.Off,
+        tracking = TrackingMode.Off,
         authority = ControlAuthority.Manual,
-        personDetections = nextVideo.personDetections,
+        personDetections = emptyList(),
         target = null,
         trackingErrors = null,
         targetAssociationState = TargetAssociationState.None,

@@ -293,6 +293,30 @@ benchmark. There is no PID, autonomous RC, Follow mode, or non-manual control au
 
 ## Phase boundaries
 
+## Phase 4E real explicit target selection and live dry-run tracking
+
+For REAL mode, every completed detector inference publishes its processed source-frame sequence and
+monotonic capture timestamp even when it finds zero people. STARTING, OFF, and ERROR do not invent a
+processed-frame identity. The foreground service/session is the only owner of this live path:
+
+`live detector frame -> user explicit target tap -> conservative association -> normalized tracking errors -> dry-run planner -> NO COMMANDS SENT -> future autonomy gate`
+
+A tap is accepted only for the exact currently published detection object from the newest accepted
+detector frame, while the connected preview is streaming, the detector is DETECTING, and the source
+timestamp remains fresh. This prevents stale, previous-frame, and fabricated observations from
+becoming targets. The session uses `TargetSelection.select()` only after those checks; it resets the
+error engine and dry-run planner, enters `TargetLocked`, and retains `ControlAuthority.Manual`.
+Compose merely forwards an individual visible box tap to the service-backed controller.
+
+Every strictly newer processed detector frame is passed to `TargetAssociationEngine`. Matched input
+updates geometry and confidence; temporary absence retains identity; ambiguity retains the old target
+without choosing either candidate; and loss clears geometry and requires another explicit tap. Empty
+processed frames are therefore real missing observations. Out-of-order frames do not alter the
+target, errors, or planner. Expired detector output is non-actionable. The planner receives the real
+source-monotonic interval between detector results; first or invalid timing fails closed. Its intent
+remains diagnostic only and is never converted to a manual vector, RC loop input, command, takeoff,
+or land operation.
+
 ## Phase 4D detector benchmark instrumentation
 
 Tracking exposes a real-device, grounded-only 30-second benchmark when the real connection has a

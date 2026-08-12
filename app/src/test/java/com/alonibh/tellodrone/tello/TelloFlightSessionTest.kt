@@ -6,10 +6,15 @@ import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.NormalizedBoundingBox
+import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.TargetAssociationState
+import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +24,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -264,6 +270,96 @@ class TelloFlightSessionTest {
         assertEquals(commandCount, fixture.transport.commands.size)
     }
 
+    @Test fun `real current detection selects then matched frame drives dry run without RC`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+        val selected = detection(frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(selected))
+        runCurrent()
+
+        fixture.session.selectTarget(selected)
+        assertEquals(TrackingMode.TargetLocked, fixture.session.state.value.tracking)
+        assertEquals(TargetAssociationState.Selected, fixture.session.state.value.targetAssociationState)
+        assertEquals(com.alonibh.tellodrone.domain.ControlAuthority.Manual, fixture.session.state.value.authority)
+        assertFalse(fixture.session.state.value.dryRunControlIntent!!.actionable)
+
+        fixture.detectorNowNanos.set(1_100_000_000L)
+        val moved = detection(box = NormalizedBoundingBox(.34f, .20f, .54f, .80f), frame = 2L, timestamp = 1_100_000_000L)
+        video.publishDetections(2L, 1_100_000_000L, listOf(moved))
+        runCurrent()
+
+        assertEquals(TargetAssociationState.Matched, fixture.session.state.value.targetAssociationState)
+        assertEquals(moved.boundingBox, fixture.session.state.value.target!!.boundingBox)
+        assertTrue(fixture.session.state.value.trackingErrors!!.targetFresh)
+        assertTrue(fixture.session.state.value.dryRunControlIntent!!.actionable)
+        assertEquals(com.alonibh.tellodrone.domain.ControlAuthority.Manual, fixture.session.state.value.authority)
+        assertTrue(fixture.transport.rc.isEmpty())
+    }
+
+    @Test fun `real selection rejects stale fabricated and previous frame detections`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+        val first = detection(frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(first))
+        runCurrent()
+
+        fixture.session.selectTarget(first.copy())
+        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
+
+        fixture.detectorNowNanos.set(1_100_000_000L)
+        val current = detection(frame = 2L, timestamp = 1_100_000_000L)
+        video.publishDetections(2L, 1_100_000_000L, listOf(current))
+        runCurrent()
+        fixture.session.selectTarget(first)
+        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
+
+        fixture.detectorNowNanos.set(1_700_000_000L)
+        fixture.session.selectTarget(current)
+        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
+    }
+
+    @Test fun `empty real frames become missing then lost without reacquisition`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+        val selected = detection(frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(selected))
+        runCurrent()
+        fixture.session.selectTarget(selected)
+
+        fixture.detectorNowNanos.set(1_100_000_000L)
+        video.publishDetections(2L, 1_100_000_000L, emptyList())
+        runCurrent()
+        assertEquals(TargetAssociationState.TemporarilyMissing, fixture.session.state.value.targetAssociationState)
+        assertFalse(fixture.session.state.value.dryRunControlIntent!!.actionable)
+
+        fixture.detectorNowNanos.set(2_100_000_001L)
+        video.publishDetections(3L, 2_100_000_001L, emptyList())
+        runCurrent()
+        assertEquals(TargetAssociationState.Lost, fixture.session.state.value.targetAssociationState)
+        assertNull(fixture.session.state.value.target)
+
+        val reappeared = detection(frame = 4L, timestamp = 2_200_000_000L)
+        fixture.detectorNowNanos.set(2_200_000_000L)
+        video.publishDetections(4L, 2_200_000_000L, listOf(reappeared))
+        runCurrent()
+        assertEquals(TargetAssociationState.Lost, fixture.session.state.value.targetAssociationState)
+        assertNull(fixture.session.state.value.target)
+
+        fixture.session.selectTarget(reappeared)
+        assertEquals(TargetAssociationState.Selected, fixture.session.state.value.targetAssociationState)
+        assertEquals(com.alonibh.tellodrone.domain.ControlAuthority.Manual, fixture.session.state.value.authority)
+        assertTrue(fixture.transport.rc.isEmpty())
+    }
+
     private suspend fun TestScope.connectedFixture(): Fixture = fixture().also {
         it.transport.emitTelemetry(it.clock.value)
         assertTrue(it.session.connect())
@@ -289,10 +385,12 @@ class TelloFlightSessionTest {
     private fun TestScope.fixture(video: TelloVideoController? = null): Fixture {
         val clock = RcControlLoopTest.FakeClock(1_000)
         val transport = FakeTransport()
+        val detectorNowNanos = AtomicLong(1_000_000_000L)
         return Fixture(
             clock,
             transport,
-            TelloFlightSession(transport, backgroundScope, clock, video),
+            TelloFlightSession(transport, backgroundScope, clock, video, detectorNowNanos::get),
+            detectorNowNanos,
         )
     }
 
@@ -300,6 +398,7 @@ class TelloFlightSessionTest {
         val clock: RcControlLoopTest.FakeClock,
         val transport: FakeTransport,
         val session: TelloFlightSession,
+        val detectorNowNanos: AtomicLong,
     )
 
     private class FakeTransport : TelloTransport {
@@ -372,8 +471,24 @@ class TelloFlightSessionTest {
             return Result.success(Unit)
         }
 
+        fun publishDetections(frame: Long, timestamp: Long, detections: List<PersonDetection>) {
+            mutableState.value = mutableState.value.copy(
+                availability = VideoAvailability.Streaming,
+                personDetectionState = PersonDetectionState.Detecting,
+                processedDetectorFrameSequence = frame,
+                processedDetectorSourceTimestampNanos = timestamp,
+                personDetections = detections,
+            )
+        }
+
         override suspend fun close() {
             closed = true
         }
     }
+
+    private fun detection(
+        box: NormalizedBoundingBox = NormalizedBoundingBox(.30f, .20f, .50f, .80f),
+        frame: Long,
+        timestamp: Long,
+    ) = PersonDetection(box, .9f, frame, timestamp)
 }

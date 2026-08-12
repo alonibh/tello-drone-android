@@ -125,6 +125,29 @@ physical validation.
 Immersive fullscreen is reapplied on resumed window focus so initial launch, return from background,
 and dismissal of transient system UI restore the edge-to-edge operational view.
 
+## Phase 4E Xiaomi Mi A1 grounded live dry-run procedure
+
+The Xiaomi Mi A1 CPU detector is suitable for this development-only grounded validation: observed
+CPU performance was approximately 61 ms p50 and 82 ms p95 (roughly 7â€“9 detector FPS) while preview
+remained about 30 FPS. Use **CPU COMPARE** manually. This phase is non-autonomous: no takeoff and no
+movement test are permitted.
+
+1. Place the Tello on the floor, connect REAL, and confirm fresh grounded telemetry and the live preview.
+2. Open Tracking, select **CPU COMPARE**, then enable **DETECT PEOPLE**. Confirm DETECTING and live
+   person boxes with current inference/FPS diagnostics.
+3. Tap one visible person box. Confirm `TARGET SELECTED`, manual authority, normalized errors and
+   dry-run intent are shown, and the UI says `NO COMMANDS SENT`.
+4. Move that person slightly. Confirm the same selected box updates as matched; vary confidence if
+   possible and verify a larger or more central second person does not take the target.
+5. Briefly obscure the selected person. Confirm missing/non-actionable dry-run feedback. Keep it
+   absent long enough for `TARGET LOST`, then let the person reappear and verify it is not reacquired
+   until an explicit box tap selects it again.
+6. Try two similarly placed people if the detector permits. Confirm ambiguous feedback remains
+   non-actionable and does not jump target identity.
+7. Turn detection OFF and confirm target/errors/intent clear immediately. Disconnect while grounded.
+
+Do not take off. Do not interpret any displayed intent as a flight command; Phase 4E sends none.
+
 ## Grounded validation status
 
 - **Xiaomi Mi A1, Android 9 / API 28:** manual TELLO Wi-Fi connection, SDK command-mode

@@ -25,6 +25,7 @@ import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.TrackingMode
+import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.tello.AndroidTelloVideoController
@@ -81,6 +82,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     }
     fun runDetectorBenchmark() { session?.runDetectorBenchmark() }
     fun cancelDetectorBenchmark() { session?.cancelDetectorBenchmark() }
+    fun selectTarget(detection: PersonDetection) { session?.selectTarget(detection) }
     fun attachVideoSurface(surface: Surface) { videoController?.attachSurface(surface) }
     fun detachVideoSurface(surface: Surface) { videoController?.detachSurface(surface) }
 
@@ -388,6 +390,7 @@ object TelloServiceGateway {
         service?.setDetectorBackendPreference(preference)
     fun runDetectorBenchmark() = service?.runDetectorBenchmark()
     fun cancelDetectorBenchmark() = service?.cancelDetectorBenchmark()
+    fun selectTarget(detection: PersonDetection) = service?.selectTarget(detection)
     fun disconnect() = service?.disconnect()
     fun isAvailable(): Boolean = service != null
 }

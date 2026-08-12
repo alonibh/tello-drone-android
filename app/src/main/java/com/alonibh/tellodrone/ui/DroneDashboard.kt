@@ -489,11 +489,17 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
                 target.boundingBox == detection.boundingBox &&
                     target.lastSeenSourceTimestampNanos == detection.sourceTimestampNanos
             } == true
+            val selectable = state.controllerMode == ControllerMode.Mock ||
+                (state.connection == DroneConnectionState.Connected &&
+                    state.video.availability == VideoAvailability.Streaming &&
+                    state.video.personDetectionState == PersonDetectionState.Detecting &&
+                    state.video.processedDetectorFrameSequence == detection.frameSequence &&
+                    state.video.processedDetectorSourceTimestampNanos == detection.sourceTimestampNanos)
             Column(
                 Modifier.offset(mapped.left.dp, mapped.top.dp)
                     .size((mapped.right - mapped.left).dp, (mapped.bottom - mapped.top).dp)
                     .border(2.dp, if (selected) TelloGreen else Color(0xFFFFC857), RoundedCornerShape(3.dp))
-                    .clickable(enabled = state.controllerMode == ControllerMode.Mock) { vm.selectTarget(detection) },
+                    .clickable(enabled = selectable) { vm.selectTarget(detection) },
             ) {
                 Text(
                     if (selected) "TARGET SELECTED" else "PERSON ${(detection.confidence * 100f).roundToInt()}%",
