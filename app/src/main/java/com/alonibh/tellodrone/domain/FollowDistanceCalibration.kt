@@ -10,14 +10,17 @@ class FollowDistanceCalibrator(
     private val samples = mutableListOf<Pair<Long, Float>>()
     private var startedAtNanos: Long? = null
     private var lastFrameSequence: Long? = null
+    private var lastSourceTimestampNanos: Long? = null
 
-    fun start(nowNanos: Long) { samples.clear(); startedAtNanos = nowNanos; lastFrameSequence = null }
-    fun cancel() { samples.clear(); startedAtNanos = null; lastFrameSequence = null }
+    fun start(nowNanos: Long) { samples.clear(); startedAtNanos = nowNanos; lastFrameSequence = null; lastSourceTimestampNanos = null }
+    fun cancel() { samples.clear(); startedAtNanos = null; lastFrameSequence = null; lastSourceTimestampNanos = null }
     fun timedOut(nowNanos: Long): Boolean = startedAtNanos?.let { nowNanos - it > timeoutNanos } == true
 
     fun add(frameSequence: Long, timestampNanos: Long, box: NormalizedBoundingBox): FollowDistanceReference? {
-        if (lastFrameSequence == frameSequence || !isValidUnclipped(box)) return null
+        if (lastFrameSequence?.let { frameSequence <= it } == true ||
+            lastSourceTimestampNanos?.let { timestampNanos <= it } == true || !isValidUnclipped(box)) return null
         lastFrameSequence = frameSequence
+        lastSourceTimestampNanos = timestampNanos
         val scale = visualScale(box) ?: return null
         samples += timestampNanos to scale
         if (samples.size < requiredSamples) return null

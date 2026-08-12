@@ -296,6 +296,24 @@ class TelloFlightSessionTest {
         assertEquals(TargetAssociationState.Matched, fixture.session.state.value.targetAssociationState)
         assertEquals(moved.boundingBox, fixture.session.state.value.target!!.boundingBox)
         assertTrue(fixture.session.state.value.trackingErrors!!.targetFresh)
+        assertFalse(fixture.session.state.value.dryRunControlIntent!!.actionable)
+        assertEquals(com.alonibh.tellodrone.domain.DryRunControlReason.DISTANCE_NOT_SET, fixture.session.state.value.dryRunControlIntent!!.reason)
+        assertEquals(com.alonibh.tellodrone.domain.ControlAuthority.Manual, fixture.session.state.value.authority)
+        assertTrue(fixture.transport.rc.isEmpty())
+
+        fixture.session.setCurrentFollowDistance()
+        repeat(7) { offset ->
+            val frame = 3L + offset
+            val timestamp = 1_100_000_000L + (frame - 2L) * 100_000_000L
+            fixture.detectorNowNanos.set(timestamp)
+            video.publishDetections(frame, timestamp, listOf(detection(box = moved.boundingBox, frame = frame, timestamp = timestamp)))
+            runCurrent()
+        }
+        assertEquals(com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Set, fixture.session.state.value.followDistanceCalibrationState)
+        val finalTimestamp = 1_900_000_000L
+        fixture.detectorNowNanos.set(finalTimestamp)
+        video.publishDetections(10L, finalTimestamp, listOf(detection(box = moved.boundingBox, frame = 10L, timestamp = finalTimestamp)))
+        runCurrent()
         assertTrue(fixture.session.state.value.dryRunControlIntent!!.actionable)
         assertEquals(com.alonibh.tellodrone.domain.ControlAuthority.Manual, fixture.session.state.value.authority)
         assertTrue(fixture.transport.rc.isEmpty())

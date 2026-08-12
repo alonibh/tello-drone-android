@@ -17,6 +17,8 @@ class FollowDistanceCalibrationTest {
         calibrator.start(0)
         assertNull(calibrator.add(1L, 1L, boxForScale(.2f)))
         assertNull(calibrator.add(1L, 2L, boxForScale(.2f)))
+        assertNull(calibrator.add(2L, 2L, boxForScale(.2f)))
+        assertNull(calibrator.add(1L, 3L, boxForScale(.2f)))
     }
 
     @Test fun `clipped invalid and timed out calibration never produces reference`() {

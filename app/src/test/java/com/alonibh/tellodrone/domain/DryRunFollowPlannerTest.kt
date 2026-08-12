@@ -55,6 +55,12 @@ class DryRunFollowPlannerTest {
         assertFalse(planner.plan(errors(), TargetAssociationState.Matched, 0f).actionable)
     }
 
+    @Test fun `uncalibrated matched target is distance not set with zero intent`() {
+        val intent = DryRunFollowPlanner(config).plan(errors(calibrated = false), TargetAssociationState.Matched, .1f)
+        assertFalse(intent.actionable); assertEquals(DryRunControlReason.DISTANCE_NOT_SET, intent.reason)
+        assertEquals(0f, intent.yaw, 0f); assertEquals(0f, intent.vertical, 0f); assertEquals(0f, intent.forwardBack, 0f)
+    }
+
     @Test fun `lost and new selection reset pid state with deterministic variable dt`() {
         val planner = DryRunFollowPlanner(config)
         planner.plan(errors(yaw = .2f), TargetAssociationState.Matched, .1f)
@@ -72,7 +78,7 @@ class DryRunFollowPlannerTest {
         val planner = DryRunFollowPlanner(config)
         val errors = TrackingErrorEngine()
         val matched = association.associate(selected, 2L, 2L, listOf(detection(.32f, frame = 2L, timestamp = 2L))) as TargetAssociationResult.Matched
-        assertTrue(planner.plan(errors.update(matched.target, true), TargetAssociationState.Matched, .1f).actionable)
+        assertTrue(planner.plan(errors.update(matched.target, true, reference()), TargetAssociationState.Matched, .1f).actionable)
         val ambiguous = association.associate(matched.target, 3L, 3L, listOf(detection(.34f, frame = 3L, timestamp = 3L), detection(.35f, frame = 3L, timestamp = 3L)))
         assertFalse(planner.plan(errors.update(ambiguous.target, false), TargetAssociationState.Ambiguous, .1f).actionable)
         assertFalse(planner.plan(errors.update(matched.target, false), TargetAssociationState.TemporarilyMissing, .1f).actionable)
@@ -82,8 +88,9 @@ class DryRunFollowPlannerTest {
         assertFalse(planner.plan(null, TargetAssociationState.Lost, .1f).actionable)
     }
 
-    private fun errors(yaw: Float = 0f, vertical: Float = 0f, area: Float = 0f, fresh: Boolean = true) =
-        TrackingErrors(yaw, vertical, area, targetPresent = true, targetFresh = fresh)
+    private fun errors(yaw: Float = 0f, vertical: Float = 0f, area: Float = 0f, fresh: Boolean = true, calibrated: Boolean = true) =
+        TrackingErrors(yaw, vertical, area, targetPresent = true, targetFresh = fresh, distanceCalibrated = calibrated)
+    private fun reference() = FollowDistanceReference(.3f, 1L, 1L, 7)
     private fun target(centerX: Float, frame: Long = 1L, timestamp: Long = 1L) = TargetSelection.select(detection(centerX, frame, timestamp))
     private fun detection(centerX: Float = .5f, frame: Long = 1L, timestamp: Long = 1L) =
         PersonDetection(NormalizedBoundingBox(centerX - .1f, .3f, centerX + .1f, .7f), .9f, frame, timestamp)

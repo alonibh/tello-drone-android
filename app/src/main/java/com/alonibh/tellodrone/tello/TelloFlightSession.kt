@@ -615,7 +615,11 @@ class TelloFlightSession(
                 )
             }
             is TargetAssociationResult.TemporarilyMissing -> {
-                cancelCalibration(); val errors = trackingErrors.update(result.target, targetFresh = false, baseline.followDistanceReference)
+                val preserveSet = baseline.followDistanceCalibrationState == FollowDistanceCalibrationState.Set
+                if (!preserveSet) cancelCalibration()
+                val reference = if (preserveSet) baseline.followDistanceReference else null
+                val state = if (preserveSet) FollowDistanceCalibrationState.Set else FollowDistanceCalibrationState.NotSet
+                val errors = trackingErrors.update(result.target, targetFresh = false, reference)
                 baseline.copy(
                     tracking = TrackingMode.TargetLocked,
                     authority = ControlAuthority.Manual,
@@ -623,13 +627,17 @@ class TelloFlightSession(
                     trackingErrors = errors,
                     targetAssociationState = TargetAssociationState.TemporarilyMissing,
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.TemporarilyMissing, dtSeconds),
-                    followDistanceReference = null,
-                    followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
+                    followDistanceReference = reference,
+                    followDistanceCalibrationState = state,
                     lastMessage = "Real target temporarily missing; no commands sent",
                 )
             }
             is TargetAssociationResult.Ambiguous -> {
-                cancelCalibration(); val errors = trackingErrors.update(result.target, targetFresh = false, baseline.followDistanceReference)
+                val preserveSet = baseline.followDistanceCalibrationState == FollowDistanceCalibrationState.Set
+                if (!preserveSet) cancelCalibration()
+                val reference = if (preserveSet) baseline.followDistanceReference else null
+                val state = if (preserveSet) FollowDistanceCalibrationState.Set else FollowDistanceCalibrationState.NotSet
+                val errors = trackingErrors.update(result.target, targetFresh = false, reference)
                 baseline.copy(
                     tracking = TrackingMode.TargetLocked,
                     authority = ControlAuthority.Manual,
@@ -637,8 +645,8 @@ class TelloFlightSession(
                     trackingErrors = errors,
                     targetAssociationState = TargetAssociationState.Ambiguous,
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Ambiguous, dtSeconds),
-                    followDistanceReference = null,
-                    followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
+                    followDistanceReference = reference,
+                    followDistanceCalibrationState = state,
                     lastMessage = "Real target ambiguous; tap a person to select again",
                 )
             }
