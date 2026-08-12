@@ -225,12 +225,14 @@ class TelloFlightSessionTest {
         runCurrent()
         fixture.session.setTrackingMode(com.alonibh.tellodrone.domain.TrackingMode.DetectOnly)
         runCurrent()
+        assertEquals(TrackingMode.DetectOnly, fixture.session.state.value.tracking)
         val before = fixture.session.state.value
 
         fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Cpu)
 
         val after = fixture.session.state.value
         assertEquals(DetectorBackendPreference.Accelerated, video.backendPreference)
+        assertEquals(TrackingMode.DetectOnly, after.tracking)
         assertEquals(before.authority, after.authority)
         assertEquals(before.target, after.target)
     }

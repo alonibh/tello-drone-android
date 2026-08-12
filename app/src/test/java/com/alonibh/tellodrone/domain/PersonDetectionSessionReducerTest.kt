@@ -49,4 +49,33 @@ class PersonDetectionSessionReducerTest {
         assertNull(result.target)
         assertEquals(listOf(detection), result.personDetections)
     }
+
+    @Test fun `streaming detector startup clears an old target while retaining detect only`() {
+        val target = TargetSelection.select(PersonDetection(NormalizedBoundingBox(.1f, .2f, .5f, .9f), .8f, 3L, 4L))
+        val initial = DroneSessionState(
+            connection = DroneConnectionState.Connected,
+            tracking = TrackingMode.TargetLocked,
+            authority = ControlAuthority.Manual,
+            target = target,
+            trackingErrors = TrackingErrors(targetPresent = true, targetFresh = true),
+            targetAssociationState = TargetAssociationState.Matched,
+            dryRunControlIntent = DryRunControlIntent(reason = DryRunControlReason.TARGET_MATCHED),
+            personDetections = listOf(PersonDetection(target.boundingBox, target.confidence, 3L, 4L)),
+        )
+
+        val result = initial.withPersonDetectionVideoState(
+            VideoState(
+                availability = VideoAvailability.Streaming,
+                personDetectionState = PersonDetectionState.Starting,
+            ),
+        )
+
+        assertEquals(TrackingMode.DetectOnly, result.tracking)
+        assertEquals(ControlAuthority.Manual, result.authority)
+        assertNull(result.target)
+        assertTrue(result.personDetections.isEmpty())
+        assertNull(result.trackingErrors)
+        assertEquals(TargetAssociationState.None, result.targetAssociationState)
+        assertNull(result.dryRunControlIntent)
+    }
 }
