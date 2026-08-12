@@ -14,6 +14,7 @@ enum class PersonDetectionState { Off, Starting, Detecting, Error }
 enum class DetectorBackendPreference { Accelerated, Cpu }
 enum class DetectorBackend { Gpu, Cpu }
 enum class DetectorBenchmarkState { Off, Running, Cancelled, Failed, Complete }
+enum class FollowDistanceCalibrationState { NotSet, Calibrating, Set }
 
 /** A finite, non-empty box normalized to the captured preview surface (0f..1f). */
 data class NormalizedBoundingBox(
@@ -90,6 +91,14 @@ data class TrackedTarget(
     val lastSeenSourceTimestampNanos: Long = selectedSourceTimestampNanos,
 )
 
+/** User-selected visual standoff scale; it is not a physical distance or meter estimate. */
+data class FollowDistanceReference(
+    val visualScale: Float,
+    val sourceFrameSequence: Long,
+    val sourceTimestampNanos: Long,
+    val sampleCount: Int,
+)
+
 /** Pure explicit-selection boundary. Nothing in detection or association calls this implicitly. */
 object TargetSelection {
     fun select(detection: PersonDetection): TrackedTarget = TrackedTarget(
@@ -123,6 +132,8 @@ data class DroneSessionState(
     val trackingErrors: TrackingErrors? = null,
     val targetAssociationState: TargetAssociationState = TargetAssociationState.None,
     val dryRunControlIntent: DryRunControlIntent? = null,
+    val followDistanceReference: FollowDistanceReference? = null,
+    val followDistanceCalibrationState: FollowDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
     val shadowAutonomyDecision: ShadowAutonomyDecision? = null,
     val speedPercent: Int = 20,
     val manualVector: ManualControlVector = ManualControlVector(),

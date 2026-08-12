@@ -150,6 +150,14 @@ Do not take off. Do not interpret any displayed intent as a flight command; Phas
 
 ## Grounded validation status
 
+## Phase 4F Xiaomi Mi A1 grounded visual-distance procedure
+
+No takeoff: select **CPU COMPARE**, Detect People, select one person, stand at the desired current
+visual standoff, and tap **SET CURRENT DISTANCE**. After `FOLLOW DISTANCE SET`, confirm forward/back
+is near zero at that visual scale, positive when walking farther, and negative when walking closer.
+Lose the target, reselect it, and confirm the reference is cleared and must be set again. This is a
+visual camera-scale reference only, not a meter-accurate distance measurement; no commands are sent.
+
 - **Xiaomi Mi A1, Android 9 / API 28:** manual TELLO Wi-Fi connection, SDK command-mode
   acknowledgement, fresh grounded telemetry, correct `Grounded` state, safe disconnect, and the
   adaptive phone UI check all passed. Flight validation remains unverified.

@@ -13,6 +13,8 @@ fun DroneSessionState.withPersonDetectionVideoState(nextVideo: VideoState): Dron
             trackingErrors = null,
             targetAssociationState = TargetAssociationState.None,
             dryRunControlIntent = null,
+            followDistanceReference = null,
+            followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
         )
     }
     if (streaming && nextVideo.personDetectionState == PersonDetectionState.Detecting) {
@@ -32,6 +34,8 @@ fun DroneSessionState.withPersonDetectionVideoState(nextVideo: VideoState): Dron
         trackingErrors = null,
         targetAssociationState = TargetAssociationState.None,
         dryRunControlIntent = null,
+        followDistanceReference = null,
+        followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
         lastMessage = if (nextVideo.personDetectionState == PersonDetectionState.Error) {
             nextVideo.detectorErrorReason ?: "Person detector failed"
         } else lastMessage,

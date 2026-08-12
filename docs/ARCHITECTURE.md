@@ -293,6 +293,20 @@ benchmark. There is no PID, autonomous RC, Follow mode, or non-manual control au
 
 ## Phase boundaries
 
+## Phase 4F visual follow-distance calibration
+
+REAL dry-run tracking uses an explicit user-selected **visual current-distance reference**, never a
+meter estimate. After a healthy selected/matched target is visible away from frame edges, `SET CURRENT
+DISTANCE` collects seven newer matched detector frames for at most three seconds and stores their
+median normalized visual scale (`sqrt(normalized box area)`). Missing, ambiguity, loss, invalid/clipped
+input, detector/video/connection reset, or timeout cancels without a partial reference.
+
+Without that reference, yaw and vertical remain diagnostic but forward/back is neutral and the dry-run
+planner reports `DISTANCE NOT SET`; it is not fully actionable. With it, relative scale error is
+`(reference - current) / reference`, clamped to [-1,1], with a 7% visual-scale deadzone: smaller/farther
+is positive and larger/closer is negative. Calibration is scoped to the selected target and clears on
+reselection, loss, detector restart/off, backend change, video loss, and disconnect. NO COMMANDS SENT.
+
 ## Phase 4E real explicit target selection and live dry-run tracking
 
 For REAL mode, every completed detector inference publishes its processed source-frame sequence and

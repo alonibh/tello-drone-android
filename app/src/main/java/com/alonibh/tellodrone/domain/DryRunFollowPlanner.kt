@@ -33,7 +33,7 @@ class PidController(private val config: PidConfig) {
     fun reset() { integral = 0f; previousError = null }
 }
 
-enum class DryRunControlReason { TARGET_MATCHED, TARGET_SELECTED, NO_TARGET, TARGET_MISSING, AMBIGUOUS, LOST, STALE, INVALID_TIMING, INVALID_ERRORS }
+enum class DryRunControlReason { TARGET_MATCHED, TARGET_SELECTED, DISTANCE_NOT_SET, NO_TARGET, TARGET_MISSING, AMBIGUOUS, LOST, STALE, INVALID_TIMING, INVALID_ERRORS }
 
 /** Diagnostic only: this type is intentionally separate from every flight-command transport type. */
 data class DryRunControlIntent(
@@ -93,6 +93,7 @@ class DryRunFollowPlanner(config: FollowPlannerConfig) {
         }
         if (errors == null) return DryRunControlReason.NO_TARGET
         if (!errors.targetPresent || !errors.targetFresh) return DryRunControlReason.STALE
+        if (!errors.distanceCalibrated) return DryRunControlReason.DISTANCE_NOT_SET
         if (!errors.yawError.isFinite() || !errors.verticalError.isFinite() || !errors.forwardBackError.isFinite()) return DryRunControlReason.INVALID_ERRORS
         return null
     }

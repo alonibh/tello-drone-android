@@ -4,6 +4,8 @@ import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DryRunFollowPlanner
 import com.alonibh.tellodrone.domain.FollowPlannerConfig
+import com.alonibh.tellodrone.domain.FollowDistanceCalibrator
+import com.alonibh.tellodrone.domain.FollowDistanceCalibrationState
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DroneSessionState
@@ -78,6 +80,7 @@ class TelloFlightSession(
     private val dryRunPlanner = DryRunFollowPlanner(FollowPlannerConfig.LEGACY_SIMULATION)
     private var latestAcceptedDetectorFrame: DetectorFrameIdentity? = null
     private var lastPlannerFrameTimestampNanos: Long? = null
+    private val distanceCalibrator = FollowDistanceCalibrator()
 
     private val rcLoop = RcControlLoop(
         scope = scope,
@@ -102,6 +105,8 @@ class TelloFlightSession(
                 video = VideoState(),
                 personDetections = emptyList(),
                 target = null,
+                followDistanceReference = null,
+                followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
                 lastMessage = "Tello Wi-Fi selected; entering SDK mode",
             )
         }
@@ -246,6 +251,8 @@ class TelloFlightSession(
                 tracking = TrackingMode.Off,
                 personDetections = emptyList(),
                 target = null,
+                followDistanceReference = null,
+                followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
                 manualVector = ManualControlVector(),
                 hoverActive = false,
                 lastMessage = "EMERGENCY MOTOR KILL sent; further flight commands are locked out",
@@ -395,10 +402,22 @@ class TelloFlightSession(
                     targetAssociationState = TargetAssociationState.Selected,
                     // A selection has no preceding detector-result interval. The planner fail-closes.
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Selected, Float.NaN),
+                    followDistanceReference = null,
+                    followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
                     lastMessage = "Real target selected; dry run only, no commands sent",
                 )
             }
         }
+    }
+
+    fun setCurrentFollowDistance() = synchronized(trackingLock) {
+        val state = mutableState.value
+        val target = state.target
+        if (target == null || state.targetAssociationState !in setOf(TargetAssociationState.Selected, TargetAssociationState.Matched) ||
+            !FollowDistanceCalibrator.isValidUnclipped(target.boundingBox) || state.trackingErrors?.targetFresh != true
+        ) { invalid("Current distance requires a fresh, unclipped selected target"); return@synchronized }
+        distanceCalibrator.start(sourceNowNanos())
+        mutableState.update { it.copy(followDistanceReference = null, followDistanceCalibrationState = FollowDistanceCalibrationState.Calibrating, lastMessage = "Collecting visual follow-distance samples") }
     }
 
     suspend fun refreshConnectionHealth(nowMillis: Long = clock.nowMillis()) {
@@ -581,7 +600,8 @@ class TelloFlightSession(
         lastPlannerFrameTimestampNanos = frame.sourceTimestampNanos
         return when (result) {
             is TargetAssociationResult.Matched -> {
-                val errors = trackingErrors.update(result.target, targetFresh = true)
+                val calibration = acceptCalibrationSample(baseline, result.target, frame)
+                val errors = trackingErrors.update(result.target, targetFresh = true, distanceReference = calibration.reference)
                 baseline.copy(
                     tracking = TrackingMode.TargetLocked,
                     authority = ControlAuthority.Manual,
@@ -589,11 +609,13 @@ class TelloFlightSession(
                     trackingErrors = errors,
                     targetAssociationState = TargetAssociationState.Matched,
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Matched, dtSeconds),
+                    followDistanceReference = calibration.reference,
+                    followDistanceCalibrationState = calibration.state,
                     lastMessage = "Real target matched; dry run only, no commands sent",
                 )
             }
             is TargetAssociationResult.TemporarilyMissing -> {
-                val errors = trackingErrors.update(result.target, targetFresh = false)
+                cancelCalibration(); val errors = trackingErrors.update(result.target, targetFresh = false, baseline.followDistanceReference)
                 baseline.copy(
                     tracking = TrackingMode.TargetLocked,
                     authority = ControlAuthority.Manual,
@@ -601,11 +623,13 @@ class TelloFlightSession(
                     trackingErrors = errors,
                     targetAssociationState = TargetAssociationState.TemporarilyMissing,
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.TemporarilyMissing, dtSeconds),
+                    followDistanceReference = null,
+                    followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
                     lastMessage = "Real target temporarily missing; no commands sent",
                 )
             }
             is TargetAssociationResult.Ambiguous -> {
-                val errors = trackingErrors.update(result.target, targetFresh = false)
+                cancelCalibration(); val errors = trackingErrors.update(result.target, targetFresh = false, baseline.followDistanceReference)
                 baseline.copy(
                     tracking = TrackingMode.TargetLocked,
                     authority = ControlAuthority.Manual,
@@ -613,15 +637,20 @@ class TelloFlightSession(
                     trackingErrors = errors,
                     targetAssociationState = TargetAssociationState.Ambiguous,
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Ambiguous, dtSeconds),
+                    followDistanceReference = null,
+                    followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
                     lastMessage = "Real target ambiguous; tap a person to select again",
                 )
             }
             is TargetAssociationResult.Lost -> {
                 trackingErrors.reset()
+                cancelCalibration()
                 baseline.copy(
                     tracking = TrackingMode.DetectOnly,
                     authority = ControlAuthority.Manual,
                     target = null,
+                    followDistanceReference = null,
+                    followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
                     trackingErrors = null,
                     targetAssociationState = TargetAssociationState.Lost,
                     dryRunControlIntent = dryRunPlanner.plan(null, TargetAssociationState.Lost, dtSeconds),
@@ -639,7 +668,18 @@ class TelloFlightSession(
         dryRunPlanner.reset()
         latestAcceptedDetectorFrame = null
         lastPlannerFrameTimestampNanos = null
+        distanceCalibrator.cancel()
     }
+
+    private data class CalibrationUpdate(val reference: com.alonibh.tellodrone.domain.FollowDistanceReference?, val state: FollowDistanceCalibrationState)
+    private fun acceptCalibrationSample(baseline: DroneSessionState, target: com.alonibh.tellodrone.domain.TrackedTarget, frame: DetectorFrameIdentity): CalibrationUpdate {
+        if (baseline.followDistanceCalibrationState != FollowDistanceCalibrationState.Calibrating) return CalibrationUpdate(baseline.followDistanceReference, baseline.followDistanceCalibrationState)
+        if (distanceCalibrator.timedOut(sourceNowNanos())) { cancelCalibration(); return CalibrationUpdate(null, FollowDistanceCalibrationState.NotSet) }
+        val reference = distanceCalibrator.add(frame.sequence, frame.sourceTimestampNanos, target.boundingBox)
+        if (reference != null) { trackingErrors.resetDistance(); dryRunPlanner.reset(); return CalibrationUpdate(reference, FollowDistanceCalibrationState.Set) }
+        return CalibrationUpdate(null, FollowDistanceCalibrationState.Calibrating)
+    }
+    private fun cancelCalibration() = distanceCalibrator.cancel()
 
     private suspend fun startVideoStreaming() {
         val activeVideo = video ?: return

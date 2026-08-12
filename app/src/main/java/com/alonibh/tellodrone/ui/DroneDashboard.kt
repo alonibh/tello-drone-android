@@ -647,7 +647,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     else OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, enabled, vm::stopAndHover, modifier, compact = compact)
 }
 
-@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON DETECTION / DRY RUN • PHASE 4B") {
+@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON DETECTION / DRY RUN • PHASE 4F") {
     val canStart = (state.controllerMode == ControllerMode.Mock && state.connection == DroneConnectionState.Connected) ||
         (state.controllerMode == ControllerMode.Real &&
             state.connection == DroneConnectionState.Connected &&
@@ -718,10 +718,22 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         TargetAssociationState.Ambiguous -> "TARGET AMBIGUOUS"
     }
     targetStatus?.let { StatusLine("Target", it, if (state.targetAssociationState == TargetAssociationState.Lost) TelloRed else TelloGreen) }
+    val canSetDistance = state.controllerMode == ControllerMode.Real && state.connection == DroneConnectionState.Connected &&
+        state.video.availability == VideoAvailability.Streaming && state.video.personDetectionState == PersonDetectionState.Detecting &&
+        state.target != null && state.trackingErrors?.targetFresh == true &&
+        state.targetAssociationState in setOf(TargetAssociationState.Selected, TargetAssociationState.Matched)
+    val distanceLabel = when (state.followDistanceCalibrationState) {
+        com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.NotSet -> "NOT SET"
+        com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Calibrating -> "CALIBRATING"
+        com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Set -> "SET"
+    }
+    StatusLine("Follow distance", distanceLabel, if (distanceLabel == "SET") TelloGreen else TelloTextMuted)
+    state.followDistanceReference?.let { StatusLine("Visual scale", "%.3f".format(it.visualScale)) }
+    if (state.controllerMode == ControllerMode.Real) ActionButton("SET CURRENT DISTANCE", Icons.Default.PersonSearch, canSetDistance, vm::setCurrentFollowDistance, Modifier.fillMaxWidth())
     state.trackingErrors?.let { errors ->
         StatusLine("Dry-run yaw", "%.3f".format(errors.yawError))
         StatusLine("Dry-run vertical", "%.3f".format(errors.verticalError))
-        StatusLine("Dry-run area", "%.3f".format(errors.forwardBackError))
+        StatusLine("Dry-run distance", "%.3f".format(errors.forwardBackError))
     }
     state.dryRunControlIntent?.let { intent ->
         StatusLine("DRY RUN", if (intent.actionable) "ACTIONABLE" else "NO COMMANDS SENT")

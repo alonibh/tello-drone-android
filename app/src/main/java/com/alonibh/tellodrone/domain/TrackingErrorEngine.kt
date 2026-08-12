@@ -2,6 +2,7 @@ package com.alonibh.tellodrone.domain
 
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.sqrt
 
 /** Dry-run normalized tracking errors. Positive yaw means target-right; positive vertical means target-above. */
 data class TrackingErrors(
@@ -11,6 +12,7 @@ data class TrackingErrors(
     val forwardBackError: Float = 0f,
     val targetPresent: Boolean = false,
     val targetFresh: Boolean = false,
+    val distanceCalibrated: Boolean = false,
 )
 
 /**
@@ -21,7 +23,7 @@ class TrackingErrorEngine {
     private var previous = TrackingErrors()
     private var seeded = false
 
-    fun update(target: TrackedTarget?, targetFresh: Boolean): TrackingErrors {
+    fun update(target: TrackedTarget?, targetFresh: Boolean, distanceReference: FollowDistanceReference? = null): TrackingErrors {
         if (target == null) {
             reset()
             return TrackingErrors()
@@ -31,19 +33,24 @@ class TrackingErrorEngine {
         val box = target.boundingBox
         val rawYaw = deadzone((box.left + box.right) / 2f - .5f, X_DEADZONE)
         val rawVertical = deadzone(.5f - (box.top + box.bottom) / 2f, Y_DEADZONE)
-        val rawArea = deadzone(DESIRED_TARGET_AREA_RATIO - area(box), AREA_DEADZONE_RATIO)
+        val rawDistance = distanceReference?.let { reference ->
+            val scale = sqrt(area(box))
+            deadzone(((reference.visualScale - scale) / reference.visualScale).coerceIn(-1f, 1f), DISTANCE_DEADZONE)
+        } ?: 0f
         previous = TrackingErrors(
             yawError = if (seeded) ema(previous.yawError, rawYaw) else rawYaw,
             verticalError = if (seeded) ema(previous.verticalError, rawVertical) else rawVertical,
-            forwardBackError = if (seeded) ema(previous.forwardBackError, rawArea) else rawArea,
+            forwardBackError = if (seeded && distanceReference != null) ema(previous.forwardBackError, rawDistance) else rawDistance,
             targetPresent = true,
             targetFresh = true,
+            distanceCalibrated = distanceReference != null,
         )
         seeded = true
         return previous
     }
 
     fun reset() { previous = TrackingErrors(); seeded = false }
+    fun resetDistance() { previous = previous.copy(forwardBackError = 0f, distanceCalibrated = false) }
 
     private fun ema(previous: Float, raw: Float) = EMA_ALPHA * raw + (1f - EMA_ALPHA) * previous
     private fun deadzone(value: Float, deadzone: Float) = if (abs(value) <= deadzone) 0f else value
@@ -53,10 +60,8 @@ class TrackingErrorEngine {
         /** Derived from 15 / 960 and 15 / 720, respectively; no pixels enter this engine. */
         const val X_DEADZONE = 15f / 960f
         const val Y_DEADZONE = 15f / 720f
-        /** Derived from 45,000 / (960 * 720). */
-        const val DESIRED_TARGET_AREA_RATIO = 45_000f / (960f * 720f)
-        /** Derived from 2,000 / (960 * 720). */
-        const val AREA_DEADZONE_RATIO = 2_000f / (960f * 720f)
+        /** Relative visual-scale jitter tolerance (7%); no pixel or meter calibration is implied. */
+        const val DISTANCE_DEADZONE = .07f
         const val EMA_ALPHA = .4f
     }
 }

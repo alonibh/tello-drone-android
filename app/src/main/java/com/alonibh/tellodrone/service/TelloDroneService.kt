@@ -83,6 +83,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     fun runDetectorBenchmark() { session?.runDetectorBenchmark() }
     fun cancelDetectorBenchmark() { session?.cancelDetectorBenchmark() }
     fun selectTarget(detection: PersonDetection) { session?.selectTarget(detection) }
+    fun setCurrentFollowDistance() { session?.setCurrentFollowDistance() }
     fun attachVideoSurface(surface: Surface) { videoController?.attachSurface(surface) }
     fun detachVideoSurface(surface: Surface) { videoController?.detachSurface(surface) }
 
@@ -391,6 +392,7 @@ object TelloServiceGateway {
     fun runDetectorBenchmark() = service?.runDetectorBenchmark()
     fun cancelDetectorBenchmark() = service?.cancelDetectorBenchmark()
     fun selectTarget(detection: PersonDetection) = service?.selectTarget(detection)
+    fun setCurrentFollowDistance() = service?.setCurrentFollowDistance()
     fun disconnect() = service?.disconnect()
     fun isAvailable(): Boolean = service != null
 }

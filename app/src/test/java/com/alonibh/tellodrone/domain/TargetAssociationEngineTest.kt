@@ -95,8 +95,9 @@ class TargetAssociationEngineTest {
 
     @Test fun `normalized error signs follow target position and area`() {
         val errors = TrackingErrorEngine()
+        val reference = FollowDistanceReference(.2f, 1L, 1L, 7)
         val rightAndSmall = TargetSelection.select(detection(box = box(.65f, .15f, .75f, .25f)))
-        val result = errors.update(rightAndSmall, targetFresh = true)
+        val result = errors.update(rightAndSmall, targetFresh = true, distanceReference = reference)
 
         assertTrue(result.yawError > 0f)
         assertTrue(result.verticalError > 0f)
@@ -106,7 +107,7 @@ class TargetAssociationEngineTest {
 
         errors.reset()
         val leftAndLarge = TargetSelection.select(detection(box = box(.05f, .70f, .55f, .95f)))
-        val opposite = errors.update(leftAndLarge, targetFresh = true)
+        val opposite = errors.update(leftAndLarge, targetFresh = true, distanceReference = reference)
         assertTrue(opposite.yawError < 0f)
         assertTrue(opposite.verticalError < 0f)
         assertTrue(opposite.forwardBackError < 0f)
