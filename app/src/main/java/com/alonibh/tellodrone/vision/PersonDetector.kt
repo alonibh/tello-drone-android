@@ -134,10 +134,10 @@ object PersonDetectionMapper {
 /** Conservative app-owned duplicate suppression for one completed detector frame. */
 object PersonDetectionDeduplicator {
     /** Keeps distinct people when any one of these same-object checks is inconclusive. */
-    const val MAX_CENTER_DISTANCE = .08f
+    const val MAX_CENTER_DISTANCE = .12f
     const val MIN_INTERSECTION_OVER_SMALLER = .75f
-    const val MIN_AREA_RATIO = .60f
-    const val MAX_AREA_RATIO = 1.67f
+    const val MIN_AREA_RATIO = .50f
+    const val MAX_AREA_RATIO = 2.00f
 
     fun suppressSameFrameDuplicates(detections: List<PersonDetection>): List<PersonDetection> {
         val ordered = detections.sortedWith(

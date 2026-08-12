@@ -76,6 +76,15 @@ class PersonDetectionMapperTest {
         assertEquals(900L, results.single().sourceTimestampNanos)
     }
 
+    @Test fun `physical broad and narrow overlapping boxes with shifted centers are deduplicated`() {
+        val results = PersonDetectionMapper.map(listOf(
+            raw("person", .91f, 64f, 28f, 184f, 220f),
+            raw("person", .72f, 86f, 40f, 166f, 212f),
+        ), metadata())
+        assertEquals(1, results.size)
+        assertEquals(.91f, results.single().confidence, 0f)
+    }
+
     @Test fun `nested high overlap same person box is suppressed`() {
         val results = PersonDetectionMapper.map(
             listOf(

@@ -6,6 +6,8 @@ import com.alonibh.tellodrone.domain.DryRunFollowPlanner
 import com.alonibh.tellodrone.domain.FollowPlannerConfig
 import com.alonibh.tellodrone.domain.FollowDistanceCalibrator
 import com.alonibh.tellodrone.domain.FollowDistanceCalibrationState
+import com.alonibh.tellodrone.domain.FollowDistanceEligibility
+import com.alonibh.tellodrone.domain.FollowDistanceEligibilityReason
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DroneSessionState
@@ -412,12 +414,9 @@ class TelloFlightSession(
 
     fun setCurrentFollowDistance() = synchronized(trackingLock) {
         val state = mutableState.value
-        val target = state.target
-        if (target == null || state.targetAssociationState !in setOf(TargetAssociationState.Selected, TargetAssociationState.Matched) ||
-            !FollowDistanceCalibrator.isValidUnclipped(target.boundingBox) || state.trackingErrors?.targetFresh != true
-        ) { invalid("Current distance requires a fresh, unclipped selected target"); return@synchronized }
+        if (FollowDistanceEligibility.evaluate(state) != FollowDistanceEligibilityReason.READY) { invalid("Current distance target is not ready"); return@synchronized }
         distanceCalibrator.start(sourceNowNanos())
-        mutableState.update { it.copy(followDistanceReference = null, followDistanceCalibrationState = FollowDistanceCalibrationState.Calibrating, lastMessage = "Collecting visual follow-distance samples") }
+        mutableState.update { it.copy(followDistanceReference = null, followDistanceCalibrationState = FollowDistanceCalibrationState.Calibrating, followDistanceCalibrationSamples = 0, lastMessage = "Collecting visual follow-distance samples") }
     }
 
     suspend fun refreshConnectionHealth(nowMillis: Long = clock.nowMillis()) {
@@ -611,6 +610,7 @@ class TelloFlightSession(
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Matched, dtSeconds),
                     followDistanceReference = calibration.reference,
                     followDistanceCalibrationState = calibration.state,
+                    followDistanceCalibrationSamples = calibration.samples,
                     lastMessage = "Real target matched; dry run only, no commands sent",
                 )
             }
@@ -629,6 +629,7 @@ class TelloFlightSession(
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.TemporarilyMissing, dtSeconds),
                     followDistanceReference = reference,
                     followDistanceCalibrationState = state,
+                    followDistanceCalibrationSamples = if (preserveSet) baseline.followDistanceCalibrationSamples else 0,
                     lastMessage = "Real target temporarily missing; no commands sent",
                 )
             }
@@ -647,6 +648,7 @@ class TelloFlightSession(
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Ambiguous, dtSeconds),
                     followDistanceReference = reference,
                     followDistanceCalibrationState = state,
+                    followDistanceCalibrationSamples = if (preserveSet) baseline.followDistanceCalibrationSamples else 0,
                     lastMessage = "Real target ambiguous; tap a person to select again",
                 )
             }
@@ -679,13 +681,13 @@ class TelloFlightSession(
         distanceCalibrator.cancel()
     }
 
-    private data class CalibrationUpdate(val reference: com.alonibh.tellodrone.domain.FollowDistanceReference?, val state: FollowDistanceCalibrationState)
+    private data class CalibrationUpdate(val reference: com.alonibh.tellodrone.domain.FollowDistanceReference?, val state: FollowDistanceCalibrationState, val samples: Int)
     private fun acceptCalibrationSample(baseline: DroneSessionState, target: com.alonibh.tellodrone.domain.TrackedTarget, frame: DetectorFrameIdentity): CalibrationUpdate {
-        if (baseline.followDistanceCalibrationState != FollowDistanceCalibrationState.Calibrating) return CalibrationUpdate(baseline.followDistanceReference, baseline.followDistanceCalibrationState)
-        if (distanceCalibrator.timedOut(sourceNowNanos())) { cancelCalibration(); return CalibrationUpdate(null, FollowDistanceCalibrationState.NotSet) }
+        if (baseline.followDistanceCalibrationState != FollowDistanceCalibrationState.Calibrating) return CalibrationUpdate(baseline.followDistanceReference, baseline.followDistanceCalibrationState, baseline.followDistanceCalibrationSamples)
+        if (distanceCalibrator.timedOut(sourceNowNanos())) { cancelCalibration(); return CalibrationUpdate(null, FollowDistanceCalibrationState.NotSet, 0) }
         val reference = distanceCalibrator.add(frame.sequence, frame.sourceTimestampNanos, target.boundingBox)
-        if (reference != null) { trackingErrors.resetDistance(); dryRunPlanner.reset(); return CalibrationUpdate(reference, FollowDistanceCalibrationState.Set) }
-        return CalibrationUpdate(null, FollowDistanceCalibrationState.Calibrating)
+        if (reference != null) { trackingErrors.resetDistance(); dryRunPlanner.reset(); return CalibrationUpdate(reference, FollowDistanceCalibrationState.Set, FollowDistanceCalibrator.REQUIRED_SAMPLES) }
+        return CalibrationUpdate(null, FollowDistanceCalibrationState.Calibrating, distanceCalibrator.sampleCount)
     }
     private fun cancelCalibration() = distanceCalibrator.cancel()
 

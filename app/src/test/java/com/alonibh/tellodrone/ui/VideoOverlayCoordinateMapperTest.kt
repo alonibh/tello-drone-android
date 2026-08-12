@@ -3,9 +3,17 @@ package com.alonibh.tellodrone.ui
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class VideoOverlayCoordinateMapperTest {
+    @Test fun `current target detection is not rendered as a yellow person`() {
+        val detection = com.alonibh.tellodrone.domain.PersonDetection(NormalizedBoundingBox(.2f, .2f, .5f, .8f), .9f, 4L, 5L)
+        val state = com.alonibh.tellodrone.domain.DroneSessionState(target = com.alonibh.tellodrone.domain.TargetSelection.select(detection))
+        assertTrue(state.isCurrentTargetDetection(detection))
+        assertFalse(state.isCurrentTargetDetection(detection.copy(boundingBox = NormalizedBoundingBox(.21f, .2f, .5f, .8f))))
+    }
     @Test fun `maps normalized analysis surface box into stretched preview overlay`() {
         val result = VideoOverlayCoordinateMapper.mapFillBounds(
             NormalizedBoundingBox(.25f, .10f, .75f, .90f),

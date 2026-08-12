@@ -11,6 +11,7 @@ class FollowDistanceCalibrator(
     private var startedAtNanos: Long? = null
     private var lastFrameSequence: Long? = null
     private var lastSourceTimestampNanos: Long? = null
+    val sampleCount: Int get() = samples.size
 
     fun start(nowNanos: Long) { samples.clear(); startedAtNanos = nowNanos; lastFrameSequence = null; lastSourceTimestampNanos = null }
     fun cancel() { samples.clear(); startedAtNanos = null; lastFrameSequence = null; lastSourceTimestampNanos = null }
@@ -41,5 +42,18 @@ class FollowDistanceCalibrator(
         fun isValidUnclipped(box: NormalizedBoundingBox): Boolean =
             visualScale(box) != null && box.left > EDGE_MARGIN && box.top > EDGE_MARGIN &&
                 box.right < 1f - EDGE_MARGIN && box.bottom < 1f - EDGE_MARGIN
+    }
+}
+
+enum class FollowDistanceEligibilityReason { READY, SELECT_A_PERSON, KEEP_PERSON_FULLY_IN_FRAME, TARGET_NOT_STABLE, CALIBRATING }
+
+object FollowDistanceEligibility {
+    fun evaluate(state: DroneSessionState): FollowDistanceEligibilityReason = when {
+        state.followDistanceCalibrationState == FollowDistanceCalibrationState.Calibrating -> FollowDistanceEligibilityReason.CALIBRATING
+        state.connection != DroneConnectionState.Connected || state.video.availability != VideoAvailability.Streaming ||
+            state.video.personDetectionState != PersonDetectionState.Detecting || state.target == null -> FollowDistanceEligibilityReason.SELECT_A_PERSON
+        state.targetAssociationState !in setOf(TargetAssociationState.Selected, TargetAssociationState.Matched) || state.trackingErrors?.targetFresh != true -> FollowDistanceEligibilityReason.TARGET_NOT_STABLE
+        !FollowDistanceCalibrator.isValidUnclipped(state.target.boundingBox) -> FollowDistanceEligibilityReason.KEEP_PERSON_FULLY_IN_FRAME
+        else -> FollowDistanceEligibilityReason.READY
     }
 }

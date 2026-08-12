@@ -134,6 +134,7 @@ data class DroneSessionState(
     val dryRunControlIntent: DryRunControlIntent? = null,
     val followDistanceReference: FollowDistanceReference? = null,
     val followDistanceCalibrationState: FollowDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
+    val followDistanceCalibrationSamples: Int = 0,
     val shadowAutonomyDecision: ShadowAutonomyDecision? = null,
     val speedPercent: Int = 20,
     val manualVector: ManualControlVector = ManualControlVector(),

@@ -479,16 +479,18 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
             textAlign = TextAlign.Center,
             maxLines = 1,
         )
-        state.personDetections.forEach { detection ->
+        state.target?.let { target ->
+            val mapped = VideoOverlayCoordinateMapper.mapFillBounds(target.boundingBox, maxWidth.value, maxHeight.value)
+            if (mapped != null) Column(Modifier.offset(mapped.left.dp, mapped.top.dp).size((mapped.right - mapped.left).dp, (mapped.bottom - mapped.top).dp).border(2.dp, TelloGreen, RoundedCornerShape(3.dp))) {
+                Text("TARGET SELECTED", color = TelloInk, modifier = Modifier.background(TelloGreen).padding(horizontal = 5.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+        }
+        state.personDetections.filterNot { detection -> state.isCurrentTargetDetection(detection) }.forEach { detection ->
             val mapped = VideoOverlayCoordinateMapper.mapFillBounds(
                 detection.boundingBox,
                 maxWidth.value,
                 maxHeight.value,
             ) ?: return@forEach
-            val selected = state.target?.let { target ->
-                target.boundingBox == detection.boundingBox &&
-                    target.lastSeenSourceTimestampNanos == detection.sourceTimestampNanos
-            } == true
             val selectable = state.controllerMode == ControllerMode.Mock ||
                 (state.connection == DroneConnectionState.Connected &&
                     state.video.availability == VideoAvailability.Streaming &&
@@ -498,13 +500,13 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
             Column(
                 Modifier.offset(mapped.left.dp, mapped.top.dp)
                     .size((mapped.right - mapped.left).dp, (mapped.bottom - mapped.top).dp)
-                    .border(2.dp, if (selected) TelloGreen else Color(0xFFFFC857), RoundedCornerShape(3.dp))
+                    .border(2.dp, Color(0xFFFFC857), RoundedCornerShape(3.dp))
                     .clickable(enabled = selectable) { vm.selectTarget(detection) },
             ) {
                 Text(
-                    if (selected) "TARGET SELECTED" else "PERSON ${(detection.confidence * 100f).roundToInt()}%",
+                    "PERSON ${(detection.confidence * 100f).roundToInt()}%",
                     color = TelloInk,
-                    modifier = Modifier.background(if (selected) TelloGreen else Color(0xFFFFC857)).padding(horizontal = 5.dp, vertical = 2.dp),
+                    modifier = Modifier.background(Color(0xFFFFC857)).padding(horizontal = 5.dp, vertical = 2.dp),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -718,16 +720,16 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         TargetAssociationState.Ambiguous -> "TARGET AMBIGUOUS"
     }
     targetStatus?.let { StatusLine("Target", it, if (state.targetAssociationState == TargetAssociationState.Lost) TelloRed else TelloGreen) }
-    val canSetDistance = state.controllerMode == ControllerMode.Real && state.connection == DroneConnectionState.Connected &&
-        state.video.availability == VideoAvailability.Streaming && state.video.personDetectionState == PersonDetectionState.Detecting &&
-        state.target != null && state.trackingErrors?.targetFresh == true &&
-        state.targetAssociationState in setOf(TargetAssociationState.Selected, TargetAssociationState.Matched)
+    val distanceEligibility = com.alonibh.tellodrone.domain.FollowDistanceEligibility.evaluate(state)
+    val canSetDistance = state.controllerMode == ControllerMode.Real && distanceEligibility == com.alonibh.tellodrone.domain.FollowDistanceEligibilityReason.READY
     val distanceLabel = when (state.followDistanceCalibrationState) {
         com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.NotSet -> "NOT SET"
         com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Calibrating -> "CALIBRATING"
         com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Set -> "SET"
     }
-    StatusLine("Follow distance", distanceLabel, if (distanceLabel == "SET") TelloGreen else TelloTextMuted)
+    val distanceStatus = if (state.followDistanceCalibrationState == com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Calibrating) "CALIBRATING ${state.followDistanceCalibrationSamples}/7" else distanceLabel
+    StatusLine("Follow distance", distanceStatus, if (distanceLabel == "SET") TelloGreen else TelloTextMuted)
+    if (state.followDistanceCalibrationState != com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Set) StatusLine("Distance", distanceEligibility.name.replace('_', ' '), TelloTextMuted)
     state.followDistanceReference?.let { StatusLine("Visual scale", "%.3f".format(it.visualScale)) }
     if (state.controllerMode == ControllerMode.Real) ActionButton("SET CURRENT DISTANCE", Icons.Default.PersonSearch, canSetDistance, vm::setCurrentFollowDistance, Modifier.fillMaxWidth())
     state.trackingErrors?.let { errors ->
@@ -758,6 +760,10 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     }
     Text("Frame-local boxes only • Manual authority", color = TelloTextMuted, fontSize = 11.sp)
 }
+
+internal fun DroneSessionState.isCurrentTargetDetection(detection: com.alonibh.tellodrone.domain.PersonDetection): Boolean = target?.let {
+    detection.frameSequence == it.lastSeenFrameSequence && detection.sourceTimestampNanos == it.lastSeenSourceTimestampNanos && detection.boundingBox == it.boundingBox
+} == true
 
 @Composable
 private fun DetectorBenchmarkControls(state: DroneSessionState, vm: DroneViewModel) {
