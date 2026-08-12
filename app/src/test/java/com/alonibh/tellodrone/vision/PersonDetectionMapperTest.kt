@@ -33,7 +33,7 @@ class PersonDetectionMapperTest {
         val results = PersonDetectionMapper.map(raw, metadata())
 
         assertEquals(2, results.size)
-        assertEquals(listOf(.50f, .91f), results.map { it.confidence })
+        assertEquals(listOf(.91f, .50f), results.map { it.confidence })
     }
 
     @Test fun `clamps partially out of range boxes and rejects malformed boxes`() {
@@ -55,10 +55,90 @@ class PersonDetectionMapperTest {
 
     @Test fun `returns at most five people`() {
         val raw = (0 until 8).map { index ->
-            raw("person", .8f, index.toFloat(), 0f, index + 10f, 20f)
+            raw("person", .8f, (index * 30).toFloat(), 0f, index * 30 + 10f, 20f)
         }
 
         assertEquals(5, PersonDetectionMapper.map(raw, metadata()).size)
+    }
+
+    @Test fun `near identical duplicate boxes retain the stronger detection and frame identity`() {
+        val results = PersonDetectionMapper.map(
+            listOf(
+                raw("person", .72f, 64f, 36f, 176f, 212f),
+                raw("person", .91f, 66f, 38f, 178f, 214f),
+            ),
+            metadata(),
+        )
+
+        assertEquals(1, results.size)
+        assertEquals(.91f, results.single().confidence, 0f)
+        assertEquals(41L, results.single().frameSequence)
+        assertEquals(900L, results.single().sourceTimestampNanos)
+    }
+
+    @Test fun `nested high overlap same person box is suppressed`() {
+        val results = PersonDetectionMapper.map(
+            listOf(
+                raw("person", .88f, 64f, 36f, 176f, 212f),
+                raw("person", .70f, 70f, 44f, 170f, 204f),
+            ),
+            metadata(),
+        )
+
+        assertEquals(1, results.size)
+        assertEquals(.88f, results.single().confidence, 0f)
+    }
+
+    @Test fun `confidence tie keeps deterministic geometry order`() {
+        val results = PersonDetectionMapper.map(
+            listOf(
+                raw("person", .80f, 66f, 38f, 178f, 214f),
+                raw("person", .80f, 64f, 36f, 176f, 212f),
+            ),
+            metadata(),
+        )
+
+        assertEquals(1, results.size)
+        assertEquals(.2f, results.single().boundingBox.left, .0001f)
+    }
+
+    @Test fun `distinct side by side partial overlap and materially different people are retained`() {
+        val sideBySide = PersonDetectionMapper.map(
+            listOf(
+                raw("person", .90f, 20f, 30f, 100f, 210f),
+                raw("person", .80f, 120f, 30f, 200f, 210f), // side by side
+            ),
+            metadata(),
+        )
+        val partialOverlap = PersonDetectionMapper.map(
+            listOf(
+                raw("person", .90f, 20f, 30f, 100f, 210f),
+                raw("person", .75f, 80f, 35f, 160f, 215f), // partial overlap, separated center
+            ),
+            metadata(),
+        )
+        val substantiallyDifferent = PersonDetectionMapper.map(
+            listOf(
+                raw("person", .70f, 64f, 36f, 176f, 212f),
+                raw("person", .69f, 66f, 40f, 122f, 126f), // high overlap but substantially smaller
+            ),
+            metadata(),
+        )
+
+        assertEquals(2, sideBySide.size)
+        assertEquals(2, partialOverlap.size)
+        assertEquals(2, substantiallyDifferent.size)
+    }
+
+    @Test fun `duplicate geometry predicate exposes conservative normalized metrics`() {
+        val first = com.alonibh.tellodrone.domain.NormalizedBoundingBox(.2f, .2f, .6f, .8f)
+        val duplicate = com.alonibh.tellodrone.domain.NormalizedBoundingBox(.21f, .21f, .61f, .81f)
+        val separate = com.alonibh.tellodrone.domain.NormalizedBoundingBox(.5f, .2f, .9f, .8f)
+
+        assertTrue(PersonDetectionDeduplicator.centerDistance(first, duplicate) <= .08f)
+        assertTrue(PersonDetectionDeduplicator.intersectionOverSmaller(first, duplicate) >= .75f)
+        assertTrue(PersonDetectionDeduplicator.areaRatio(duplicate, first) in .60f..1.67f)
+        assertTrue(!PersonDetectionDeduplicator.areSamePhysicalObject(first, separate))
     }
 
     private fun metadata() = AnalysisFrameMetadata(

@@ -6,6 +6,9 @@ import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.tello.AnalysisFrameMetadata
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.min
 
 class PersonDetectorFrame(
     val metadata: AnalysisFrameMetadata,
@@ -95,7 +98,7 @@ object PersonDetectionMapper {
         if (frame.width <= 0 || frame.height <= 0) return emptyList()
         val width = frame.width.toFloat()
         val height = frame.height.toFloat()
-        return rawDetections.asSequence()
+        val normalized = rawDetections.asSequence()
             .filter { it.categoryName == PERSON_CATEGORY }
             .filter { it.confidence.isFinite() && it.confidence >= MIN_CONFIDENCE }
             .mapNotNull { raw ->
@@ -123,7 +126,63 @@ object PersonDetectionMapper {
                     sourceTimestampNanos = frame.captureTimestampNanos,
                 )
             }
-            .take(MAX_RESULTS)
             .toList()
+        return PersonDetectionDeduplicator.suppressSameFrameDuplicates(normalized).take(MAX_RESULTS)
     }
+}
+
+/** Conservative app-owned duplicate suppression for one completed detector frame. */
+object PersonDetectionDeduplicator {
+    /** Keeps distinct people when any one of these same-object checks is inconclusive. */
+    const val MAX_CENTER_DISTANCE = .08f
+    const val MIN_INTERSECTION_OVER_SMALLER = .75f
+    const val MIN_AREA_RATIO = .60f
+    const val MAX_AREA_RATIO = 1.67f
+
+    fun suppressSameFrameDuplicates(detections: List<PersonDetection>): List<PersonDetection> {
+        val ordered = detections.sortedWith(
+            compareByDescending<PersonDetection> { it.confidence }
+                .thenBy { it.boundingBox.left }
+                .thenBy { it.boundingBox.top }
+                .thenBy { it.boundingBox.right }
+                .thenBy { it.boundingBox.bottom },
+        )
+        val retained = mutableListOf<PersonDetection>()
+        ordered.forEach { candidate ->
+            if (retained.none { kept -> areSamePhysicalObject(kept.boundingBox, candidate.boundingBox) }) {
+                retained += candidate
+            }
+        }
+        return retained
+    }
+
+    fun areSamePhysicalObject(kept: NormalizedBoundingBox, candidate: NormalizedBoundingBox): Boolean =
+        centerDistance(kept, candidate) <= MAX_CENTER_DISTANCE &&
+            intersectionOverSmaller(kept, candidate) >= MIN_INTERSECTION_OVER_SMALLER &&
+            areaRatio(candidate, kept) in MIN_AREA_RATIO..MAX_AREA_RATIO
+
+    fun centerDistance(first: NormalizedBoundingBox, second: NormalizedBoundingBox): Float = hypot(
+        centerX(first) - centerX(second), centerY(first) - centerY(second),
+    )
+
+    fun intersectionOverSmaller(first: NormalizedBoundingBox, second: NormalizedBoundingBox): Float {
+        val smaller = min(area(first), area(second))
+        return if (smaller > 0f) intersection(first, second) / smaller else 0f
+    }
+
+    /** Candidate area divided by retained area. */
+    fun areaRatio(candidate: NormalizedBoundingBox, kept: NormalizedBoundingBox): Float {
+        val keptArea = area(kept)
+        return if (keptArea > 0f) area(candidate) / keptArea else 0f
+    }
+
+    private fun intersection(first: NormalizedBoundingBox, second: NormalizedBoundingBox): Float =
+        max(0f, min(first.right, second.right) - max(first.left, second.left)) *
+            max(0f, min(first.bottom, second.bottom) - max(first.top, second.top))
+
+    private fun area(box: NormalizedBoundingBox): Float =
+        max(0f, box.right - box.left) * max(0f, box.bottom - box.top)
+
+    private fun centerX(box: NormalizedBoundingBox): Float = (box.left + box.right) / 2f
+    private fun centerY(box: NormalizedBoundingBox): Float = (box.top + box.bottom) / 2f
 }
