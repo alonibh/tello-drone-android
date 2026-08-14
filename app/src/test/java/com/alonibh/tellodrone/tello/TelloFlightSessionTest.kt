@@ -301,8 +301,8 @@ class TelloFlightSessionTest {
         fixture.session.setDetectorConfidenceThreshold(0.75f)
 
         val after = fixture.session.state.value
-        assertEquals(0.50f, video.confidenceThreshold)
-        assertEquals(0.50f, after.video.detectorConfidenceThreshold)
+        assertEquals(0.55f, video.confidenceThreshold)
+        assertEquals(0.55f, after.video.detectorConfidenceThreshold)
         assertEquals(TrackingMode.DetectOnly, after.tracking)
         assertEquals(before.authority, after.authority)
         assertEquals(before.target, after.target)
@@ -587,7 +587,7 @@ class TelloFlightSessionTest {
         var prepared = false
         var closed = false
         var backendPreference = DetectorBackendPreference.Accelerated
-        var confidenceThreshold = 0.50f
+        var confidenceThreshold = 0.55f
         var model = DetectorModel.Default
 
         override suspend fun prepare(): Result<Unit> {

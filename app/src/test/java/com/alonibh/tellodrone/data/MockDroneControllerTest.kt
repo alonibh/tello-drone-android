@@ -86,7 +86,7 @@ class MockDroneControllerTest {
     @Test fun `confidence threshold update is rejected when tracking is active`() {
         val controller = detectingFlyingController()
         controller.setDetectorConfidenceThreshold(0.70f)
-        assertEquals(0.50f, controller.state.value.video.detectorConfidenceThreshold)
+        assertEquals(0.55f, controller.state.value.video.detectorConfidenceThreshold)
         assertEquals("Turn person detection off before changing confidence threshold", controller.state.value.lastMessage)
     }
 

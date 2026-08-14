@@ -16,7 +16,7 @@ interface DroneController {
     fun stopAndHover()
     fun emergencyMotorKill()
     fun setTrackingMode(mode: TrackingMode)
-    fun setDetectorModel(model: DetectorModel) = Unit
+    fun setDetectorModel(model: DetectorModel)
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) = Unit
     fun setDetectorConfidenceThreshold(threshold: Float)
     fun runDetectorBenchmark() = Unit
