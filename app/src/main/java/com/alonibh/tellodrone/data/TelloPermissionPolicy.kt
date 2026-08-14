@@ -10,7 +10,7 @@ object TelloPermissionPolicy {
     fun requiredRuntimePermissions(sdkInt: Int = Build.VERSION.SDK_INT): Array<String> = buildList {
         when {
             sdkInt >= 33 -> add(Manifest.permission.NEARBY_WIFI_DEVICES)
-            sdkInt >= 29 -> {
+            sdkInt >= 28 -> {
                 add(Manifest.permission.ACCESS_COARSE_LOCATION)
                 add(Manifest.permission.ACCESS_FINE_LOCATION)
             }

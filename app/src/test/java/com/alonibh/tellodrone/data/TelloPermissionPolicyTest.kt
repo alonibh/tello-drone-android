@@ -5,14 +5,18 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Test
 
 class TelloPermissionPolicyTest {
-    @Test fun api_28_manual_wifi_fallback_requires_no_runtime_wifi_or_location_permission() {
-        assertArrayEquals(emptyArray(), TelloPermissionPolicy.requiredRuntimePermissions(28))
-    }
-
-    @Test fun api_29_to_32_keep_specifier_location_permissions() {
+    @Test fun api_28_to_32_require_location_permissions_for_wifi_scanning() {
+        assertArrayEquals(
+            arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION),
+            TelloPermissionPolicy.requiredRuntimePermissions(28),
+        )
         assertArrayEquals(
             arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION),
             TelloPermissionPolicy.requiredRuntimePermissions(29),
+        )
+        assertArrayEquals(
+            arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION),
+            TelloPermissionPolicy.requiredRuntimePermissions(32),
         )
     }
 

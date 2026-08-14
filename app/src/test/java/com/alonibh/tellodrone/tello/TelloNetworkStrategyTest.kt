@@ -4,8 +4,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TelloNetworkStrategyTest {
-    @Test fun api_28_uses_existing_wifi_manual_selection() {
-        assertEquals(TelloNetworkStrategy.ExistingWifi, TelloNetworkStrategy.forSdk(28))
+    @Test fun api_28_uses_api28_scan_and_connect() {
+        assertEquals(TelloNetworkStrategy.Api28ScanAndConnect, TelloNetworkStrategy.forSdk(28))
     }
 
     @Test fun api_29_and_later_use_wifi_network_specifier() {

@@ -35,8 +35,8 @@ their pressed state on pointer cancellation and disposal.
 
 ## Android network and permission contract
 
-Permissions are requested only after **CONNECT TELLO** is pressed. Android 10–12 request the
-platform-required coarse+fine location pair for the Wi-Fi selection API, Android 13+ use `NEARBY_WIFI_DEVICES` with
+Permissions are requested only after **CONNECT TELLO** is pressed. Android 9–12 request the
+platform-required coarse+fine location pair for Wi-Fi scanning / selection, Android 13+ use `NEARBY_WIFI_DEVICES` with
 `neverForLocation`, and target/API 37 also requests `ACCESS_LOCAL_NETWORK`. Denial is visible and
 does not start a physical session.
 
