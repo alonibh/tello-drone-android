@@ -38,17 +38,21 @@ sealed interface Api28ScanDecision {
 }
 
 object Api28WifiScanPolicy {
+    fun isTelloSsid(ssid: String?): Boolean {
+        val clean = ssid?.removeSurrounding("\"")?.trim() ?: return false
+        return clean.isNotBlank() &&
+            clean.startsWith(TelloWifiNetworkManager.TELLO_SSID_PREFIX, ignoreCase = true) &&
+            clean != "<unknown ssid>"
+    }
+
     fun evaluate(
         scanResults: List<DiscoveredWifiNetwork>,
         currentSsid: String? = null,
         isLocationEnabled: Boolean = true,
     ): Api28ScanDecision {
         val cleanCurrentSsid = currentSsid?.removeSurrounding("\"")
-        if (cleanCurrentSsid != null &&
-            cleanCurrentSsid.startsWith(TelloWifiNetworkManager.TELLO_SSID_PREFIX, ignoreCase = true) &&
-            cleanCurrentSsid != "<unknown ssid>"
-        ) {
-            return Api28ScanDecision.AlreadyConnected(cleanCurrentSsid)
+        if (isTelloSsid(cleanCurrentSsid)) {
+            return Api28ScanDecision.AlreadyConnected(cleanCurrentSsid!!)
         }
 
         if (!isLocationEnabled) {
@@ -80,5 +84,42 @@ object Api28WifiScanPolicy {
         }
 
         return Api28ScanDecision.Connect(ssid)
+    }
+}
+
+/**
+ * Ensures that on API 28, a generic Wi-Fi network callback is only accepted when
+ * the active network is verified to be a TELLO-* network. Pre-existing non-TELLO
+ * Wi-Fi networks (e.g. Home Wi-Fi) are ignored and do not cancel the scan/connect flow.
+ */
+class Api28NetworkAcceptanceGate<TNetwork>(
+    private val getCurrentSsid: () -> String?,
+    private val onTelloNetworkAccepted: (TNetwork) -> Unit,
+    private val onTelloNetworkLost: (TNetwork) -> Unit,
+) {
+    var retainedNetwork: TNetwork? = null
+        private set
+
+    fun onNetworkAvailable(network: TNetwork): Boolean {
+        val currentSsid = getCurrentSsid()
+        if (Api28WifiScanPolicy.isTelloSsid(currentSsid)) {
+            retainedNetwork = network
+            onTelloNetworkAccepted(network)
+            return true
+        }
+        return false
+    }
+
+    fun onNetworkLost(network: TNetwork): Boolean {
+        if (retainedNetwork == network) {
+            retainedNetwork = null
+            onTelloNetworkLost(network)
+            return true
+        }
+        return false
+    }
+
+    fun reset() {
+        retainedNetwork = null
     }
 }

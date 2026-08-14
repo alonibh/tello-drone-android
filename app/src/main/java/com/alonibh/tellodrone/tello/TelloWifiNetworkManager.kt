@@ -33,15 +33,36 @@ class TelloWifiNetworkManager(private val context: Context) {
     private var scanTimeoutRunnable: Runnable? = null
     private var connectionTimeoutRunnable: Runnable? = null
     private var retainedNetwork: Network? = null
+    private var activeListener: Listener? = null
+
+    @Suppress("DEPRECATION")
+    private val api28Gate = Api28NetworkAcceptanceGate<Network>(
+        getCurrentSsid = { wifiManager?.connectionInfo?.ssid?.removeSurrounding("\"") },
+        onTelloNetworkAccepted = { network ->
+            cancelTimeouts()
+            unregisterScanReceiver()
+            retainedNetwork = network
+            activeListener?.onAvailable(network)
+        },
+        onTelloNetworkLost = { network ->
+            retainedNetwork = null
+            activeListener?.onLost(network)
+        },
+    )
 
     fun request(listener: Listener) {
         cancel()
+        activeListener = listener
         val networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                cancelTimeouts()
-                unregisterScanReceiver()
-                retainedNetwork = network
-                listener.onAvailable(network)
+                if (Build.VERSION.SDK_INT >= 29) {
+                    cancelTimeouts()
+                    unregisterScanReceiver()
+                    retainedNetwork = network
+                    listener.onAvailable(network)
+                } else {
+                    api28Gate.onNetworkAvailable(network)
+                }
             }
 
             override fun onUnavailable() {
@@ -51,9 +72,13 @@ class TelloWifiNetworkManager(private val context: Context) {
             }
 
             override fun onLost(network: Network) {
-                if (retainedNetwork == network) {
-                    retainedNetwork = null
-                    listener.onLost(network)
+                if (Build.VERSION.SDK_INT >= 29) {
+                    if (retainedNetwork == network) {
+                        retainedNetwork = null
+                        listener.onLost(network)
+                    }
+                } else {
+                    api28Gate.onNetworkLost(network)
                 }
             }
         }
@@ -85,18 +110,13 @@ class TelloWifiNetworkManager(private val context: Context) {
         connectivityManager.registerNetworkCallback(request, networkCallback)
 
         val currentSsid = wifiManager?.connectionInfo?.ssid?.removeSurrounding("\"")
-        val isAlreadyTello = currentSsid != null &&
-            currentSsid.startsWith(TELLO_SSID_PREFIX, ignoreCase = true) &&
-            currentSsid != "<unknown ssid>"
-
-        if (isAlreadyTello) {
+        if (Api28WifiScanPolicy.isTelloSsid(currentSsid)) {
             val existingWifi = connectivityManager.allNetworks.firstOrNull { network ->
                 connectivityManager.getNetworkCapabilities(network)
                     ?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
             }
             if (existingWifi != null) {
-                retainedNetwork = existingWifi
-                listener.onAvailable(existingWifi)
+                api28Gate.onNetworkAvailable(existingWifi)
                 return
             }
             listener.onManualSelectionRequired("Connected to $currentSsid; waiting for network...")
@@ -172,8 +192,7 @@ class TelloWifiNetworkManager(private val context: Context) {
                         ?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
                 }
                 if (existingWifi != null) {
-                    retainedNetwork = existingWifi
-                    listener.onAvailable(existingWifi)
+                    api28Gate.onNetworkAvailable(existingWifi)
                 } else {
                     startConnectionTimeout(listener)
                 }
@@ -280,6 +299,7 @@ class TelloWifiNetworkManager(private val context: Context) {
     }
 
     fun cancel() {
+        api28Gate.reset()
         cancelTimeouts()
         unregisterScanReceiver()
         callback?.let {
@@ -291,6 +311,7 @@ class TelloWifiNetworkManager(private val context: Context) {
         }
         callback = null
         retainedNetwork = null
+        activeListener = null
     }
 
     companion object {

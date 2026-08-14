@@ -1,10 +1,60 @@
 package com.alonibh.tellodrone.tello
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class Api28WifiScanPolicyTest {
+
+    @Test
+    fun home_wifi_callback_first_is_ignored_then_tello_connection_later_is_accepted() {
+        var currentSsid: String? = "Home-WiFi"
+        var acceptedNetwork: String? = null
+        var lostNetwork: String? = null
+
+        val gate = Api28NetworkAcceptanceGate<String>(
+            getCurrentSsid = { currentSsid },
+            onTelloNetworkAccepted = { acceptedNetwork = it },
+            onTelloNetworkLost = { lostNetwork = it },
+        )
+
+        // 1. Initial onAvailable callback for Home Wi-Fi must be ignored
+        val homeAccepted = gate.onNetworkAvailable("network-home-wifi")
+        assertFalse("Home Wi-Fi must not be accepted", homeAccepted)
+        assertNull("No network should be accepted yet", acceptedNetwork)
+        assertNull("Gate should not retain Home Wi-Fi", gate.retainedNetwork)
+
+        // 2. Home Wi-Fi lost while switching networks must not trigger Tello lost callback
+        val homeLost = gate.onNetworkLost("network-home-wifi")
+        assertFalse("Home Wi-Fi lost must not trigger Tello lost callback", homeLost)
+        assertNull(lostNetwork)
+
+        // 3. Device associates and connects to Tello Wi-Fi
+        currentSsid = "TELLO-998877"
+        val telloAccepted = gate.onNetworkAvailable("network-tello")
+        assertTrue("TELLO network must be accepted", telloAccepted)
+        assertEquals("network-tello", acceptedNetwork)
+        assertEquals("network-tello", gate.retainedNetwork)
+
+        // 4. TELLO network lost triggers lost callback
+        val telloLost = gate.onNetworkLost("network-tello")
+        assertTrue("TELLO network lost must trigger lost callback", telloLost)
+        assertEquals("network-tello", lostNetwork)
+        assertNull(gate.retainedNetwork)
+    }
+
+    @Test
+    fun is_tello_ssid_validation() {
+        assertTrue(Api28WifiScanPolicy.isTelloSsid("TELLO-123456"))
+        assertTrue(Api28WifiScanPolicy.isTelloSsid("\"TELLO-123456\""))
+        assertFalse(Api28WifiScanPolicy.isTelloSsid("Home-WiFi"))
+        assertFalse(Api28WifiScanPolicy.isTelloSsid("\"Home-WiFi\""))
+        assertFalse(Api28WifiScanPolicy.isTelloSsid("<unknown ssid>"))
+        assertFalse(Api28WifiScanPolicy.isTelloSsid(null))
+        assertFalse(Api28WifiScanPolicy.isTelloSsid(""))
+    }
 
     @Test
     fun already_connected_to_tello_reuses_unquoted_network() {
