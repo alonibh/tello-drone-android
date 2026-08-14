@@ -4,6 +4,7 @@ package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
@@ -213,6 +214,41 @@ class TelloFlightSessionTest {
 
         val after = fixture.session.state.value
         assertEquals(DetectorBackendPreference.Cpu, video.backendPreference)
+        assertEquals(before.authority, after.authority)
+        assertEquals(before.target, after.target)
+    }
+
+    @Test fun `detector model switch applies when detection is off`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        val before = fixture.session.state.value
+
+        fixture.session.setDetectorModel(DetectorModel.EfficientDetLite0)
+
+        val after = fixture.session.state.value
+        assertEquals(DetectorModel.EfficientDetLite0, video.model)
+        assertEquals(DetectorModel.EfficientDetLite0, after.video.detectorModel)
+        assertEquals(before.authority, after.authority)
+        assertEquals(before.target, after.target)
+    }
+
+    @Test fun `detector model switch is rejected while detection is active`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+        fixture.session.setTrackingMode(com.alonibh.tellodrone.domain.TrackingMode.DetectOnly)
+        runCurrent()
+        assertEquals(TrackingMode.DetectOnly, fixture.session.state.value.tracking)
+        val before = fixture.session.state.value
+
+        fixture.session.setDetectorModel(DetectorModel.EfficientDetLite0)
+
+        val after = fixture.session.state.value
+        assertEquals(DetectorModel.MobileNetV1, video.model)
+        assertEquals(DetectorModel.MobileNetV1, after.video.detectorModel)
+        assertEquals(TrackingMode.DetectOnly, after.tracking)
         assertEquals(before.authority, after.authority)
         assertEquals(before.target, after.target)
     }
@@ -552,6 +588,7 @@ class TelloFlightSessionTest {
         var closed = false
         var backendPreference = DetectorBackendPreference.Accelerated
         var confidenceThreshold = 0.50f
+        var model = DetectorModel.Default
 
         override suspend fun prepare(): Result<Unit> {
             prepared = true
@@ -564,6 +601,12 @@ class TelloFlightSessionTest {
 
         override fun streamFailed(reason: String) {
             mutableState.value = VideoState(VideoAvailability.Error, errorReason = reason)
+        }
+
+        override fun setPersonDetectorModel(model: DetectorModel): Result<Unit> {
+            this.model = model
+            mutableState.value = mutableState.value.copy(detectorModel = model)
+            return Result.success(Unit)
         }
 
         override fun setPersonDetectorBackendPreference(preference: DetectorBackendPreference): Result<Unit> {

@@ -21,6 +21,7 @@ import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
@@ -77,6 +78,9 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     fun publishManualControl(vector: ManualControlVector) { session?.publishManualControl(vector) }
     fun setSpeed(percent: Int) { session?.setSpeed(percent) }
     fun setTrackingMode(mode: TrackingMode) { session?.setTrackingMode(mode) }
+    fun setDetectorModel(model: DetectorModel) {
+        session?.setDetectorModel(model)
+    }
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
         session?.setDetectorBackendPreference(preference)
     }
@@ -390,6 +394,8 @@ object TelloServiceGateway {
     fun publishManualControl(vector: ManualControlVector) = service?.publishManualControl(vector)
     fun setSpeed(percent: Int) = service?.setSpeed(percent)
     fun setTrackingMode(mode: TrackingMode) = service?.setTrackingMode(mode)
+    fun setDetectorModel(model: DetectorModel) =
+        service?.setDetectorModel(model)
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         service?.setDetectorBackendPreference(preference)
     fun setDetectorConfidenceThreshold(threshold: Float) =

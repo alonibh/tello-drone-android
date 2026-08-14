@@ -8,6 +8,8 @@ import com.alonibh.tellodrone.tello.DecodedFrameConsumer
 import com.alonibh.tellodrone.tello.DecodedVideoFrame
 import java.util.concurrent.atomic.AtomicLong
 
+import com.alonibh.tellodrone.domain.DetectorModel
+
 data class PersonDetectionSnapshot(
     val state: PersonDetectionState = PersonDetectionState.Off,
     val detections: List<PersonDetection> = emptyList(),
@@ -109,34 +111,63 @@ class PersonDetectionStore(
  * no additional frame queue; generation checks discard an in-flight result after stop/surface loss.
  */
 class PersonDetectionPipeline(
-    private val detectorFactory: (DetectorBackendPreference) -> PersonDetector,
-    private val modelName: String,
+    private val detectorFactory: (DetectorModel, DetectorBackendPreference) -> PersonDetector,
+    private val defaultModel: DetectorModel = DetectorModel.Default,
     private val clockNanos: () -> Long = System::nanoTime,
     private val onSnapshot: (PersonDetectionSnapshot) -> Unit,
     private val onInferenceMeasurement: (DetectorInferenceMeasurement) -> Unit = {},
 ) : DecodedFrameConsumer, AutoCloseable {
+    constructor(
+        detectorFactory: (DetectorBackendPreference) -> PersonDetector,
+        modelName: String = DetectorModel.Default.displayName,
+        clockNanos: () -> Long = System::nanoTime,
+        onSnapshot: (PersonDetectionSnapshot) -> Unit,
+        onInferenceMeasurement: (DetectorInferenceMeasurement) -> Unit = {},
+    ) : this(
+        detectorFactory = { _, pref -> detectorFactory(pref) },
+        defaultModel = DetectorModel.Default,
+        clockNanos = clockNanos,
+        onSnapshot = onSnapshot,
+        onInferenceMeasurement = onInferenceMeasurement,
+    )
+
     private val detectorLock = Any()
     private val stateLock = Any()
     private val generation = AtomicLong()
     private val store = PersonDetectionStore()
     private val frameRate = DetectionFrameRate()
     @Volatile private var enabled = false
+    @Volatile private var model = defaultModel
     @Volatile private var preference = DetectorBackendPreference.Accelerated
     @Volatile private var confidenceThreshold = DEFAULT_PERSON_CONFIDENCE_THRESHOLD
     private var detector: PersonDetector? = null
+    private var detectorModel: DetectorModel? = null
     private var detectorPreference: DetectorBackendPreference? = null
 
     fun start(
-        preference: DetectorBackendPreference = DetectorBackendPreference.Accelerated,
+        model: DetectorModel = this.model,
+        preference: DetectorBackendPreference = this.preference,
         confidenceThreshold: Float = this.confidenceThreshold,
     ) {
         synchronized(stateLock) {
+            this.model = model
             this.preference = preference
             this.confidenceThreshold = normalizeConfidenceThreshold(confidenceThreshold)
             generation.incrementAndGet()
             enabled = true
             frameRate.reset()
-            onSnapshot(store.start(modelName))
+            onSnapshot(store.start(model.displayName))
+        }
+    }
+
+    fun start(
+        preference: DetectorBackendPreference,
+        confidenceThreshold: Float = this.confidenceThreshold,
+    ) = start(this.model, preference, confidenceThreshold)
+
+    fun setDetectorModel(model: DetectorModel) {
+        synchronized(stateLock) {
+            this.model = model
         }
     }
 
@@ -166,20 +197,22 @@ class PersonDetectionPipeline(
             var creationNanos: Long? = null
             val (detections, descriptor) = synchronized(detectorLock) {
                 if (!isRequestCurrent(request)) return
-                if (detectorPreference != request.preference) {
+                if (detectorModel != request.model || detectorPreference != request.preference) {
                     runCatching { detector?.close() }
                     detector = null
+                    detectorModel = null
                     detectorPreference = null
                 }
                 val activeDetector = detector ?: run {
                     val creationStartedAt = clockNanos()
-                    val createdDetector = detectorFactory(request.preference)
+                    val createdDetector = detectorFactory(request.model, request.preference)
                     creationNanos = (clockNanos() - creationStartedAt).coerceAtLeast(0L)
                     if (!isRequestCurrent(request)) {
                         runCatching { createdDetector.close() }
                         return
                     }
                     detector = createdDetector
+                    detectorModel = request.model
                     detectorPreference = request.preference
                     createdDetector
                 }
@@ -219,12 +252,13 @@ class PersonDetectionPipeline(
                     val descriptor = detector?.descriptor
                     runCatching { detector?.close() }
                     detector = null
+                    detectorModel = null
                     detectorPreference = null
                     onSnapshot(
                         store.fail(
                             "Person detector failed: ${error.message ?: error.javaClass.simpleName}",
                             descriptor,
-                            modelName,
+                            request.model.displayName,
                         ),
                     )
                 }
@@ -243,6 +277,7 @@ class PersonDetectionPipeline(
             if (enabled) return
             runCatching { detector?.close() }
             detector = null
+            detectorModel = null
             detectorPreference = null
         }
     }
@@ -252,12 +287,13 @@ class PersonDetectionPipeline(
         synchronized(detectorLock) {
             runCatching { detector?.close() }
             detector = null
+            detectorModel = null
             detectorPreference = null
         }
     }
 
     private fun activeRequestSnapshot(): DetectorRequest? = synchronized(stateLock) {
-        if (!enabled) null else DetectorRequest(generation.get(), preference, confidenceThreshold)
+        if (!enabled) null else DetectorRequest(generation.get(), model, preference, confidenceThreshold)
     }
 
     private fun isRequestCurrent(request: DetectorRequest): Boolean = synchronized(stateLock) {
@@ -265,10 +301,11 @@ class PersonDetectionPipeline(
     }
 
     private fun isRequestCurrentLocked(request: DetectorRequest): Boolean =
-        enabled && generation.get() == request.generation && preference == request.preference && confidenceThreshold == request.confidenceThreshold
+        enabled && generation.get() == request.generation && model == request.model && preference == request.preference && confidenceThreshold == request.confidenceThreshold
 
     private data class DetectorRequest(
         val generation: Long,
+        val model: DetectorModel,
         val preference: DetectorBackendPreference,
         val confidenceThreshold: Float,
     )

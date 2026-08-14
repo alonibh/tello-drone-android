@@ -13,6 +13,23 @@ enum class VideoAvailability { Unavailable, Mock, Streaming, Error }
 enum class PersonDetectionState { Off, Starting, Detecting, Error }
 enum class DetectorBackendPreference { Accelerated, Cpu }
 enum class DetectorBackend { Gpu, Cpu }
+enum class DetectorModel(
+    val assetFileName: String,
+    val displayName: String,
+) {
+    MobileNetV1(
+        assetFileName = "ssd_mobilenet_v1_metadata_v2.tflite",
+        displayName = "SSD MobileNet V1 COCO metadata v2",
+    ),
+    EfficientDetLite0(
+        assetFileName = "efficientdet_lite0_v1.tflite",
+        displayName = "EfficientDet-Lite0 COCO metadata v1",
+    );
+
+    companion object {
+        val Default = MobileNetV1
+    }
+}
 enum class DetectorBenchmarkState { Off, Running, Cancelled, Failed, Complete }
 enum class FollowDistanceCalibrationState { NotSet, Calibrating, Set }
 
@@ -62,6 +79,7 @@ data class VideoState(
     val personDetectionState: PersonDetectionState = PersonDetectionState.Off,
     val detectorMeasuredFps: Float? = null,
     val detectorInferenceMillis: Long? = null,
+    val detectorModel: DetectorModel = DetectorModel.Default,
     val detectorBackendPreference: DetectorBackendPreference = DetectorBackendPreference.Accelerated,
     val detectorBackend: DetectorBackend? = null,
     val detectorConfidenceThreshold: Float = com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD,

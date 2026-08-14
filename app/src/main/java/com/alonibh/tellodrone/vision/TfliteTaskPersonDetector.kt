@@ -2,6 +2,7 @@ package com.alonibh.tellodrone.vision
 
 import android.content.Context
 import com.alonibh.tellodrone.domain.DetectorBackend
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.PersonDetection
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.task.core.BaseOptions
@@ -10,13 +11,16 @@ import org.tensorflow.lite.task.vision.detector.ObjectDetector
 /** Official TensorFlow Lite Task ObjectDetector, confined to the analysis-consumer thread. */
 class TfliteTaskPersonDetector(
     context: Context,
+    val model: DetectorModel = DetectorModel.Default,
     backend: DetectorBackend,
 ) : PersonDetector {
-    override val descriptor = PersonDetectorDescriptor(MODEL_DISPLAY_NAME, backend)
+    constructor(context: Context, backend: DetectorBackend) : this(context, DetectorModel.Default, backend)
+
+    override val descriptor = PersonDetectorDescriptor(model.displayName, backend)
 
     private val detector = ObjectDetector.createFromFileAndOptions(
         context.applicationContext,
-        MODEL_ASSET,
+        model.assetFileName,
         ObjectDetector.ObjectDetectorOptions.builder()
             .setBaseOptions(
                 BaseOptions.builder().apply {

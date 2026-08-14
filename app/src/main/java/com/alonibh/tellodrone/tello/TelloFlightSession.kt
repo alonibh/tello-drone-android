@@ -10,6 +10,7 @@ import com.alonibh.tellodrone.domain.FollowDistanceEligibility
 import com.alonibh.tellodrone.domain.FollowDistanceEligibilityReason
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
@@ -331,6 +332,27 @@ class TelloFlightSession(
             }
             TrackingMode.TargetLocked, TrackingMode.Follow ->
                 invalid("Target lock and Follow are not available in Phase 4A")
+        }
+    }
+
+    fun setDetectorModel(model: DetectorModel) {
+        val current = mutableState.value
+        if (current.tracking != TrackingMode.Off) {
+            invalid("Turn person detection off before changing model")
+            return
+        }
+        val changed = video?.setPersonDetectorModel(model)
+            ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
+        if (changed.isFailure) {
+            invalid(changed.exceptionOrNull()?.message ?: "Detector model could not be changed")
+            return
+        }
+        resetRealTracking()
+        mutableState.update { state ->
+            state.copy(
+                video = state.video.copy(detectorModel = model),
+                lastMessage = "${model.displayName} selected",
+            )
         }
     }
 

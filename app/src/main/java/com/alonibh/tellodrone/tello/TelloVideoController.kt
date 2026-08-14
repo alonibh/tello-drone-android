@@ -1,6 +1,7 @@
 package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.VideoState
 import kotlinx.coroutines.flow.StateFlow
 
@@ -14,6 +15,8 @@ interface TelloVideoController {
     fun setPersonDetectionEnabled(enabled: Boolean): Result<Unit> =
         if (enabled) Result.failure(UnsupportedOperationException("Person detection is unavailable"))
         else Result.success(Unit)
+    fun setPersonDetectorModel(model: DetectorModel): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Detector model selection is unavailable"))
     fun setPersonDetectorBackendPreference(preference: DetectorBackendPreference): Result<Unit> =
         Result.failure(UnsupportedOperationException("Detector backend selection is unavailable"))
     fun setPersonDetectorConfidenceThreshold(threshold: Float): Result<Unit> =

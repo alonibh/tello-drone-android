@@ -4,6 +4,7 @@ import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.DryRunFollowPlanner
@@ -160,6 +161,14 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
             } else state.invalid("Detection requires a connected mock drone")
             TrackingMode.TargetLocked, TrackingMode.Follow ->
                 state.invalid("Target lock and Follow are not available in Phase 4A")
+        }
+    }
+
+    override fun setDetectorModel(model: DetectorModel) = update { state ->
+        if (state.tracking != TrackingMode.Off || state.video.personDetectionState != PersonDetectionState.Off) {
+            state.invalid("Turn person detection off before changing model")
+        } else {
+            state.copy(video = state.video.copy(detectorModel = model))
         }
     }
 

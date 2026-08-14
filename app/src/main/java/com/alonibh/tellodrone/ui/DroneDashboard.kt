@@ -123,6 +123,7 @@ import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DetectorBackend
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DetectorBenchmarkState
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
@@ -690,14 +691,36 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         { OutlineAction("OFF", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Off) },
         { ActionButton("DETECT PEOPLE", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly) },
     )
-    val canSelectBackend = state.tracking == TrackingMode.Off &&
+    val canSelectConfig = state.tracking == TrackingMode.Off &&
         state.video.personDetectionState !in setOf(PersonDetectionState.Starting, PersonDetectionState.Detecting)
+    AdaptiveActionPair(
+        {
+            OutlineAction(
+                "MOBILENET V1",
+                Icons.Default.Settings,
+                canSelectConfig,
+                { vm.setDetectorModel(DetectorModel.MobileNetV1) },
+                Modifier.fillMaxWidth(),
+                active = state.video.detectorModel == DetectorModel.MobileNetV1,
+            )
+        },
+        {
+            OutlineAction(
+                "EFFICIENTDET LITE0",
+                Icons.Default.Settings,
+                canSelectConfig,
+                { vm.setDetectorModel(DetectorModel.EfficientDetLite0) },
+                Modifier.fillMaxWidth(),
+                active = state.video.detectorModel == DetectorModel.EfficientDetLite0,
+            )
+        },
+    )
     AdaptiveActionPair(
         {
             OutlineAction(
                 "GPU PREFERRED",
                 Icons.Default.Settings,
-                canSelectBackend,
+                canSelectConfig,
                 { vm.setDetectorBackendPreference(DetectorBackendPreference.Accelerated) },
                 Modifier.fillMaxWidth(),
                 active = state.video.detectorBackendPreference == DetectorBackendPreference.Accelerated,
@@ -707,7 +730,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
             OutlineAction(
                 "CPU COMPARE",
                 Icons.Default.Settings,
-                canSelectBackend,
+                canSelectConfig,
                 { vm.setDetectorBackendPreference(DetectorBackendPreference.Cpu) },
                 Modifier.fillMaxWidth(),
                 active = state.video.detectorBackendPreference == DetectorBackendPreference.Cpu,
@@ -719,7 +742,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
             OutlineAction(
                 "- 5% THRESHOLD",
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                canSelectBackend && state.video.detectorConfidenceThreshold > MIN_PERSON_CONFIDENCE_THRESHOLD + 0.001f,
+                canSelectConfig && state.video.detectorConfidenceThreshold > MIN_PERSON_CONFIDENCE_THRESHOLD + 0.001f,
                 { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold - PERSON_CONFIDENCE_THRESHOLD_STEP) },
                 Modifier.fillMaxWidth(),
             )
@@ -728,7 +751,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
             OutlineAction(
                 "+ 5% THRESHOLD",
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                canSelectBackend && state.video.detectorConfidenceThreshold < MAX_PERSON_CONFIDENCE_THRESHOLD - 0.001f,
+                canSelectConfig && state.video.detectorConfidenceThreshold < MAX_PERSON_CONFIDENCE_THRESHOLD - 0.001f,
                 { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold + PERSON_CONFIDENCE_THRESHOLD_STEP) },
                 Modifier.fillMaxWidth(),
             )
@@ -741,12 +764,12 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         PersonDetectionState.Error -> "ERROR"
     }
     StatusLine("State", status, if (state.video.personDetectionState == PersonDetectionState.Error) TelloRed else TelloGreen)
+    StatusLine("Model", state.video.detectorModelName ?: state.video.detectorModel.displayName)
     StatusLine(
         "Threshold",
         "${(state.video.detectorConfidenceThreshold * 100f).roundToInt()}%",
         if (state.video.detectorConfidenceThreshold > DEFAULT_PERSON_CONFIDENCE_THRESHOLD) TelloGreen else TelloTextMuted,
     )
-    state.video.detectorModelName?.let { StatusLine("Model", it) }
     state.video.detectorBackend?.let { backend ->
         StatusLine("Backend", if (backend == DetectorBackend.Gpu) "GPU" else "CPU (4 threads)")
     }

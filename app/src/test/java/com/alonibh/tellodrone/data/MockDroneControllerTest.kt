@@ -2,6 +2,7 @@ package com.alonibh.tellodrone.data
 
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.DroneConnectionState
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
@@ -87,6 +88,19 @@ class MockDroneControllerTest {
         controller.setDetectorConfidenceThreshold(0.70f)
         assertEquals(0.50f, controller.state.value.video.detectorConfidenceThreshold)
         assertEquals("Turn person detection off before changing confidence threshold", controller.state.value.lastMessage)
+    }
+
+    @Test fun `detector model update is applied when tracking is off`() {
+        val controller = connectedController()
+        controller.setDetectorModel(DetectorModel.EfficientDetLite0)
+        assertEquals(DetectorModel.EfficientDetLite0, controller.state.value.video.detectorModel)
+    }
+
+    @Test fun `detector model update is rejected when tracking is active`() {
+        val controller = detectingFlyingController()
+        controller.setDetectorModel(DetectorModel.EfficientDetLite0)
+        assertEquals(DetectorModel.MobileNetV1, controller.state.value.video.detectorModel)
+        assertEquals("Turn person detection off before changing model", controller.state.value.lastMessage)
     }
 
     @Test fun `mock person detections are filtered by configured confidence threshold`() {

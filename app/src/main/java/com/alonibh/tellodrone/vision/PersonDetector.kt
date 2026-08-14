@@ -10,6 +10,8 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
+import com.alonibh.tellodrone.domain.DetectorModel
+
 class PersonDetectorFrame(
     val metadata: AnalysisFrameMetadata,
     private val bitmapProvider: () -> Bitmap,
@@ -30,19 +32,23 @@ interface PersonDetector : AutoCloseable {
 }
 
 fun interface PersonDetectorCreator {
-    fun create(backend: DetectorBackend): PersonDetector
+    fun create(model: DetectorModel, backend: DetectorBackend): PersonDetector
 }
 
 /** GPU-preferred factory whose initialization and runtime failures retry once on CPU. */
 class FallbackPersonDetectorFactory(
     private val creator: PersonDetectorCreator,
 ) {
-    fun create(preference: DetectorBackendPreference): PersonDetector = when (preference) {
-        DetectorBackendPreference.Cpu -> creator.create(DetectorBackend.Cpu)
-        DetectorBackendPreference.Accelerated -> GpuFallbackPersonDetector(creator)
+    fun create(model: DetectorModel, preference: DetectorBackendPreference): PersonDetector = when (preference) {
+        DetectorBackendPreference.Cpu -> creator.create(model, DetectorBackend.Cpu)
+        DetectorBackendPreference.Accelerated -> GpuFallbackPersonDetector(model, creator)
     }
 
+    fun create(preference: DetectorBackendPreference): PersonDetector =
+        create(DetectorModel.Default, preference)
+
     private class GpuFallbackPersonDetector(
+        private val model: DetectorModel,
         private val creator: PersonDetectorCreator,
     ) : PersonDetector {
         private var active: PersonDetector
@@ -50,10 +56,10 @@ class FallbackPersonDetectorFactory(
 
         init {
             active = try {
-                creator.create(DetectorBackend.Gpu)
+                creator.create(model, DetectorBackend.Gpu)
             } catch (_: Throwable) {
                 fellBack = true
-                creator.create(DetectorBackend.Cpu)
+                creator.create(model, DetectorBackend.Cpu)
             }
         }
 
@@ -67,7 +73,7 @@ class FallbackPersonDetectorFactory(
                 if (active.descriptor.backend != DetectorBackend.Gpu) throw gpuFailure
                 runCatching { active.close() }
                 fellBack = true
-                active = creator.create(DetectorBackend.Cpu)
+                active = creator.create(model, DetectorBackend.Cpu)
                 active.detect(frame)
             }
         }

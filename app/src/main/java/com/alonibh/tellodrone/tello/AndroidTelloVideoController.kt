@@ -8,8 +8,10 @@ import android.net.Network
 import android.os.Build
 import android.view.Surface
 import androidx.annotation.RequiresApi
+import com.alonibh.tellodrone.domain.DetectorBackend
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DetectorBenchmarkState
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
@@ -72,14 +74,15 @@ class AndroidTelloVideoController(
     private val mutableState = MutableStateFlow(VideoState())
     override val state: StateFlow<VideoState> = mutableState.asStateFlow()
     private val decodedFrameSource: DecodedFrameSource = PixelCopyDecodedFrameSource(::updateAnalysisDiagnostics)
+    private val detectorModel = AtomicReference(DetectorModel.Default)
     private val detectorPreference = AtomicReference(DetectorBackendPreference.Accelerated)
     private val detectorConfidenceThreshold = AtomicReference(DEFAULT_PERSON_CONFIDENCE_THRESHOLD)
-    private val detectorFactory = FallbackPersonDetectorFactory { backend ->
-        TfliteTaskPersonDetector(context.applicationContext, backend)
+    private val detectorFactory = FallbackPersonDetectorFactory { model, backend ->
+        TfliteTaskPersonDetector(context.applicationContext, model, backend)
     }
     private val detectionPipeline = PersonDetectionPipeline(
         detectorFactory = detectorFactory::create,
-        modelName = TfliteTaskPersonDetector.MODEL_DISPLAY_NAME,
+        defaultModel = DetectorModel.Default,
         onSnapshot = ::publishDetectionSnapshot,
         onInferenceMeasurement = ::onInferenceMeasurement,
     )
@@ -131,6 +134,7 @@ class AndroidTelloVideoController(
         streamIsAcknowledged.set(true)
         mutableState.value = VideoState(
             availability = VideoAvailability.Streaming,
+            detectorModel = detectorModel.get(),
             detectorBackendPreference = detectorPreference.get(),
             detectorConfidenceThreshold = detectorConfidenceThreshold.get(),
         )
@@ -152,6 +156,7 @@ class AndroidTelloVideoController(
         scope.launch { decodedFrameSource.close() }
         mutableState.value = VideoState(
             availability = VideoAvailability.Error,
+            detectorModel = detectorModel.get(),
             detectorBackendPreference = detectorPreference.get(),
             detectorConfidenceThreshold = detectorConfidenceThreshold.get(),
             detectorBenchmarkState = if (benchmarkCancelled) DetectorBenchmarkState.Cancelled else DetectorBenchmarkState.Off,
@@ -191,7 +196,19 @@ class AndroidTelloVideoController(
         ) {
             return Result.failure(IllegalStateException("Live preview analysis is not ready"))
         }
-        detectionPipeline.start(detectorPreference.get(), detectorConfidenceThreshold.get())
+        detectionPipeline.start(detectorModel.get(), detectorPreference.get(), detectorConfidenceThreshold.get())
+        return Result.success(Unit)
+    }
+
+    override fun setPersonDetectorModel(model: DetectorModel): Result<Unit> {
+        if (mutableState.value.personDetectionState in setOf(
+                PersonDetectionState.Starting,
+                PersonDetectionState.Detecting,
+            )
+        ) return Result.failure(IllegalStateException("Turn person detection off before changing model"))
+        detectorModel.set(model)
+        detectionPipeline.setDetectorModel(model)
+        mutableState.update { it.copy(detectorModel = model) }
         return Result.success(Unit)
     }
 
@@ -238,7 +255,7 @@ class AndroidTelloVideoController(
             delay(BENCHMARK_STARTUP_TIMEOUT_MILLIS)
             cancelBenchmark("DETECTOR STARTUP TIMEOUT", DetectorBenchmarkState.Failed)
         }
-        detectionPipeline.start(detectorPreference.get())
+        detectionPipeline.start(detectorModel.get(), detectorPreference.get(), detectorConfidenceThreshold.get())
         mutableState.update { it.copy(detectorBenchmarkState = DetectorBenchmarkState.Running, detectorBenchmarkResult = null, detectorBenchmarkReason = null) }
         return Result.success(Unit)
     }

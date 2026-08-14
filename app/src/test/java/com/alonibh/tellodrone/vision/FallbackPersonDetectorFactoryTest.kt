@@ -2,6 +2,7 @@ package com.alonibh.tellodrone.vision
 
 import com.alonibh.tellodrone.domain.DetectorBackend
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.tello.AnalysisFrameMetadata
 import com.alonibh.tellodrone.tello.AnalysisPixelRepresentation
@@ -13,7 +14,7 @@ import org.junit.Test
 class FallbackPersonDetectorFactoryTest {
     @Test fun `accelerated selection keeps a working GPU detector`() {
         val created = mutableListOf<DetectorBackend>()
-        val factory = FallbackPersonDetectorFactory { backend ->
+        val factory = FallbackPersonDetectorFactory { _, backend ->
             created += backend
             FakeDetector(backend)
         }
@@ -27,7 +28,7 @@ class FallbackPersonDetectorFactoryTest {
 
     @Test fun `GPU initialization failure falls back to CPU`() {
         val created = mutableListOf<DetectorBackend>()
-        val factory = FallbackPersonDetectorFactory { backend ->
+        val factory = FallbackPersonDetectorFactory { _, backend ->
             created += backend
             if (backend == DetectorBackend.Gpu) error("delegate unavailable")
             FakeDetector(backend)
@@ -43,7 +44,7 @@ class FallbackPersonDetectorFactoryTest {
     @Test fun `GPU runtime failure closes GPU and retries the same frame on CPU`() {
         lateinit var gpu: FakeDetector
         val cpu = FakeDetector(DetectorBackend.Cpu, result = listOf(detection()))
-        val factory = FallbackPersonDetectorFactory { backend ->
+        val factory = FallbackPersonDetectorFactory { _, backend ->
             if (backend == DetectorBackend.Gpu) {
                 FakeDetector(backend, failure = IllegalStateException("delegate runtime failure")).also { gpu = it }
             } else cpu
@@ -58,7 +59,7 @@ class FallbackPersonDetectorFactoryTest {
 
     @Test fun `CPU comparison selection never attempts GPU`() {
         val created = mutableListOf<DetectorBackend>()
-        val detector = FallbackPersonDetectorFactory { backend ->
+        val detector = FallbackPersonDetectorFactory { _, backend ->
             created += backend
             FakeDetector(backend)
         }.create(DetectorBackendPreference.Cpu)
@@ -70,12 +71,35 @@ class FallbackPersonDetectorFactoryTest {
         assertFalse(detector.descriptor.fellBackFromGpu)
     }
 
+    @Test fun `factory forwards requested model to creator`() {
+        val created = mutableListOf<Pair<DetectorModel, DetectorBackend>>()
+        val factory = FallbackPersonDetectorFactory { model, backend ->
+            created += model to backend
+            FakeDetector(backend, modelName = model.displayName)
+        }
+
+        val detectorMobileNet = factory.create(DetectorModel.MobileNetV1, DetectorBackendPreference.Cpu)
+        assertEquals(DetectorModel.MobileNetV1.displayName, detectorMobileNet.descriptor.modelName)
+
+        val detectorEfficient = factory.create(DetectorModel.EfficientDetLite0, DetectorBackendPreference.Cpu)
+        assertEquals(DetectorModel.EfficientDetLite0.displayName, detectorEfficient.descriptor.modelName)
+
+        assertEquals(
+            listOf(
+                DetectorModel.MobileNetV1 to DetectorBackend.Cpu,
+                DetectorModel.EfficientDetLite0 to DetectorBackend.Cpu,
+            ),
+            created,
+        )
+    }
+
     private class FakeDetector(
         backend: DetectorBackend,
+        modelName: String = "fake-model",
         private val failure: Throwable? = null,
         private val result: List<PersonDetection> = emptyList(),
     ) : PersonDetector {
-        override val descriptor = PersonDetectorDescriptor("fake-model", backend)
+        override val descriptor = PersonDetectorDescriptor(modelName, backend)
         var closeCount = 0
         override fun detect(frame: PersonDetectorFrame): List<PersonDetection> {
             failure?.let { throw it }

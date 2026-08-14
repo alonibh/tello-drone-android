@@ -3,6 +3,7 @@ package com.alonibh.tellodrone.vision
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.DetectorBackend
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.tello.AnalysisFrameMetadata
@@ -236,6 +237,34 @@ class PersonDetectionPipelineTest {
         assertEquals(0, activeDetector.closeCount)
     }
 
+    @Test fun `switching model recreates detector only when detection next starts`() {
+        val createdModels = mutableListOf<DetectorModel>()
+        val snapshots = mutableListOf<PersonDetectionSnapshot>()
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { model, pref ->
+                createdModels += model
+                FakePersonDetector(backendFor(pref), modelName = model.displayName) { emptyList() }
+            },
+            onSnapshot = snapshots::add,
+        )
+
+        pipeline.start(DetectorModel.MobileNetV1)
+        pipeline.process(frame())
+        assertEquals(listOf(DetectorModel.MobileNetV1), createdModels)
+        assertEquals(DetectorModel.MobileNetV1.displayName, snapshots.last().modelName)
+
+        pipeline.stop()
+        pipeline.setDetectorModel(DetectorModel.EfficientDetLite0)
+        // Detector was not recreated immediately while stopped
+        assertEquals(listOf(DetectorModel.MobileNetV1), createdModels)
+
+        pipeline.start()
+        pipeline.process(frame())
+        // Recreated on start when processing frame
+        assertEquals(listOf(DetectorModel.MobileNetV1, DetectorModel.EfficientDetLite0), createdModels)
+        assertEquals(DetectorModel.EfficientDetLite0.displayName, snapshots.last().modelName)
+    }
+
     private fun frame() = PersonDetectorFrame(
         AnalysisFrameMetadata(320, 240, 100L, AnalysisPixelRepresentation.ARGB_8888_BITMAP, 1L),
     ) { error("Fake detector must not request bitmap pixels") }
@@ -256,9 +285,10 @@ class PersonDetectionPipelineTest {
 
     private class FakePersonDetector(
         backend: DetectorBackend = DetectorBackend.Cpu,
+        modelName: String = "fake-model",
         private val result: () -> List<PersonDetection>,
     ) : PersonDetector {
-        override val descriptor = PersonDetectorDescriptor("fake-model", backend)
+        override val descriptor = PersonDetectorDescriptor(modelName, backend)
         var closeCount = 0
         override fun detect(frame: PersonDetectorFrame) = result()
         override fun close() { closeCount++ }

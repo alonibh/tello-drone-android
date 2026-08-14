@@ -8,6 +8,7 @@ import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
+import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.TrackingMode
@@ -28,6 +29,8 @@ class DroneViewModel(private val controller: DroneController) : ViewModel() {
     fun stopAndHover() = controller.stopAndHover()
     fun emergencyMotorKill() = controller.emergencyMotorKill()
     fun setTrackingMode(mode: TrackingMode) = controller.setTrackingMode(mode)
+    fun setDetectorModel(model: DetectorModel) =
+        controller.setDetectorModel(model)
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         controller.setDetectorBackendPreference(preference)
     fun setDetectorConfidenceThreshold(threshold: Float) =
