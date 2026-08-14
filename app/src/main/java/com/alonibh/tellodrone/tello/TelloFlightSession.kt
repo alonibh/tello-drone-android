@@ -62,6 +62,8 @@ class TelloFlightSession(
         networkSelection = NetworkSelectionState.Available,
         flight = FlightState.Unknown,
     ),
+    /** Test-only interleaving point immediately before a yaw-owned state commit. */
+    private val beforeYawFollowStateCommit: ((MutableStateFlow<DroneSessionState>) -> Unit)? = null,
 ) {
     private val mutableState = MutableStateFlow(initialState)
     val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
@@ -297,15 +299,17 @@ class TelloFlightSession(
                     rcLoop.publish(vector, state.speedPercent)
                     yawFollowGeneration = null
                     val decision = yawFollowGate.preempt(YawFollowReason.MANUAL_OVERRIDE)
-                    mutableState.value = state.copy(
-                        authority = ControlAuthority.Manual,
-                        manualVector = vector,
-                        hoverActive = false,
-                        yawFollowDecision = decision,
-                    )
+                    updateYawFollowState {
+                        it.copy(
+                            authority = ControlAuthority.Manual,
+                            manualVector = vector,
+                            hoverActive = false,
+                            yawFollowDecision = decision,
+                        )
+                    }
                 } else if (state.yawFollowDecision.state != YawFollowState.ACTIVE) {
                     rcLoop.publish(vector, state.speedPercent)
-                    mutableState.value = state.copy(manualVector = vector)
+                    updateYawFollowState { it.copy(manualVector = vector) }
                 }
             }
         }
@@ -325,12 +329,14 @@ class TelloFlightSession(
                 yawFollowGeneration = null
                 zeroGeneration = rcLoop.preemptAutonomy()
             }
-            mutableState.value = current.copy(
-                authority = if (decision.state == YawFollowState.ACTIVE) ControlAuthority.Autonomous else ControlAuthority.Manual,
-                yawFollowDecision = decision,
-                lastMessage = if (armed) "Yaw follow ${decision.state.name}: ${decision.reason.displayName()}" else
-                    "Yaw follow disarmed; zero movement selected",
-            )
+            updateYawFollowState {
+                it.copy(
+                    authority = if (decision.state == YawFollowState.ACTIVE) ControlAuthority.Autonomous else ControlAuthority.Manual,
+                    yawFollowDecision = decision,
+                    lastMessage = if (armed) "Yaw follow ${decision.state.name}: ${decision.reason.displayName()}" else
+                        "Yaw follow disarmed; zero movement selected",
+                )
+            }
         }
         if (!armed || zeroGeneration != null && mutableState.value.yawFollowDecision.requiresExplicitRearm) {
             zeroGeneration?.let(::sendYawFollowZero)
@@ -808,10 +814,12 @@ class TelloFlightSession(
                 }
                 yawFollowGeneration = null
             }
-            mutableState.value = current.copy(
-                authority = if (decision.state == YawFollowState.ACTIVE) ControlAuthority.Autonomous else ControlAuthority.Manual,
-                yawFollowDecision = decision,
-            )
+            updateYawFollowState {
+                it.copy(
+                    authority = if (decision.state == YawFollowState.ACTIVE) ControlAuthority.Autonomous else ControlAuthority.Manual,
+                    yawFollowDecision = decision,
+                )
+            }
         }
         zeroGeneration?.let(::sendYawFollowZero)
     }
@@ -827,10 +835,12 @@ class TelloFlightSession(
         } else {
             null
         }
-        mutableState.value = current.copy(
-            authority = ControlAuthority.Manual,
-            yawFollowDecision = decision,
-        )
+        updateYawFollowState {
+            it.copy(
+                authority = ControlAuthority.Manual,
+                yawFollowDecision = decision,
+            )
+        }
         generation
     }
 
@@ -840,6 +850,12 @@ class TelloFlightSession(
 
     private fun sendYawFollowZero(generation: Long) {
         scope.launch { rcLoop.sendZeroIfCurrent(generation) }
+    }
+
+    /** Commits only yaw-follow-owned fields against the latest session state. */
+    private fun updateYawFollowState(transform: (DroneSessionState) -> DroneSessionState) {
+        beforeYawFollowStateCommit?.invoke(mutableState)
+        mutableState.update(transform)
     }
 
     private fun DroneSessionState.toYawFollowInput() = YawFollowInput(

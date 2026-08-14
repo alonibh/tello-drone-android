@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -32,6 +33,78 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TelloFlightSessionTest {
+    @Test fun `first telemetry connection update cannot be reverted by yaw state commit`() = runTest {
+        val clock = RcControlLoopTest.FakeClock(1_000)
+        val transport = FakeTransport()
+        val detectorNowNanos = AtomicLong(1_000_000_000L)
+        var injected = false
+        val session = TelloFlightSession(
+            transport = transport,
+            scope = backgroundScope,
+            clock = clock,
+            sourceNowNanos = detectorNowNanos::get,
+            beforeYawFollowStateCommit = { stateFlow ->
+                if (!injected) {
+                    injected = true
+                    // Runs after yaw follow has read Connecting, modeling first telemetry completing
+                    // the connection transition before that stale yaw snapshot is committed.
+                    stateFlow.update {
+                        it.copy(
+                            connection = DroneConnectionState.Connected,
+                            telemetry = it.telemetry.copy(batteryPercent = 73, isFresh = true),
+                            video = it.video.copy(availability = VideoAvailability.Streaming),
+                            speedPercent = 37,
+                            tracking = TrackingMode.DetectOnly,
+                        )
+                    }
+                }
+            },
+        )
+
+        session.setYawFollowArmed(false)
+
+        val state = session.state.value
+        assertTrue(injected)
+        assertEquals(DroneConnectionState.Connected, state.connection)
+        assertTrue(state.telemetry.isFresh)
+        assertEquals(73, state.telemetry.batteryPercent)
+        assertEquals(VideoAvailability.Streaming, state.video.availability)
+        assertEquals(37, state.speedPercent)
+        assertEquals(TrackingMode.DetectOnly, state.tracking)
+    }
+
+    @Test fun `yaw reconciliation preserves newer unrelated fields`() = runTest {
+        val video = FakeVideoController()
+        var injectOnNextYawCommit = false
+        val fixture = fixture(video) { stateFlow ->
+            if (injectOnNextYawCommit) {
+                injectOnNextYawCommit = false
+                stateFlow.update {
+                    it.copy(
+                        speedPercent = 37,
+                        manualVector = ManualControlVector(forward = .4f),
+                        hoverActive = true,
+                        lastMessage = "Newer non-yaw state",
+                    )
+                }
+            }
+        }
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        injectOnNextYawCommit = true
+        fixture.transport.emitTelemetry(fixture.clock.value + 1L)
+        runCurrent()
+
+        val state = fixture.session.state.value
+        assertFalse(injectOnNextYawCommit)
+        assertEquals(37, state.speedPercent)
+        assertEquals(ManualControlVector(forward = .4f), state.manualVector)
+        assertTrue(state.hoverActive)
+        assertEquals("Newer non-yaw state", state.lastMessage)
+    }
+
     @Test fun `invalid takeoff is gated without transport command`() = runTest {
         val fixture = fixture()
         fixture.session.takeOff()
@@ -732,14 +805,24 @@ class TelloFlightSessionTest {
         assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
     }
 
-    private fun TestScope.fixture(video: TelloVideoController? = null): Fixture {
+    private fun TestScope.fixture(
+        video: TelloVideoController? = null,
+        beforeYawFollowStateCommit: ((MutableStateFlow<com.alonibh.tellodrone.domain.DroneSessionState>) -> Unit)? = null,
+    ): Fixture {
         val clock = RcControlLoopTest.FakeClock(1_000)
         val transport = FakeTransport()
         val detectorNowNanos = AtomicLong(1_000_000_000L)
         return Fixture(
             clock,
             transport,
-            TelloFlightSession(transport, backgroundScope, clock, video, detectorNowNanos::get),
+            TelloFlightSession(
+                transport,
+                backgroundScope,
+                clock,
+                video,
+                detectorNowNanos::get,
+                beforeYawFollowStateCommit = beforeYawFollowStateCommit,
+            ),
             detectorNowNanos,
         )
     }
