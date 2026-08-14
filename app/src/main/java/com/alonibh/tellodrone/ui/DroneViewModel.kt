@@ -30,6 +30,8 @@ class DroneViewModel(private val controller: DroneController) : ViewModel() {
     fun setTrackingMode(mode: TrackingMode) = controller.setTrackingMode(mode)
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         controller.setDetectorBackendPreference(preference)
+    fun setDetectorConfidenceThreshold(threshold: Float) =
+        controller.setDetectorConfidenceThreshold(threshold)
     fun runDetectorBenchmark() = controller.runDetectorBenchmark()
     fun cancelDetectorBenchmark() = controller.cancelDetectorBenchmark()
     fun selectTarget(detection: PersonDetection) = controller.selectTarget(detection)

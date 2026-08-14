@@ -76,6 +76,27 @@ class MockDroneControllerTest {
         assertEquals(TrackingMode.Off, controller.state.value.tracking)
     }
 
+    @Test fun `confidence threshold update is applied when tracking is off`() {
+        val controller = connectedController()
+        controller.setDetectorConfidenceThreshold(0.70f)
+        assertEquals(0.70f, controller.state.value.video.detectorConfidenceThreshold)
+    }
+
+    @Test fun `confidence threshold update is rejected when tracking is active`() {
+        val controller = detectingFlyingController()
+        controller.setDetectorConfidenceThreshold(0.70f)
+        assertEquals(0.50f, controller.state.value.video.detectorConfidenceThreshold)
+        assertEquals("Turn person detection off before changing confidence threshold", controller.state.value.lastMessage)
+    }
+
+    @Test fun `mock person detections are filtered by configured confidence threshold`() {
+        val controller = connectedController()
+        controller.setDetectorConfidenceThreshold(0.90f)
+        controller.setTrackingMode(TrackingMode.DetectOnly)
+        assertEquals(1, controller.state.value.personDetections.size)
+        assertEquals(0.92f, controller.state.value.personDetections.single().confidence)
+    }
+
     private fun connectedController() = MockDroneController(DroneSessionState(connection = DroneConnectionState.Connected))
     private fun detectingFlyingController() = connectedController().also { it.takeOff(); it.setTrackingMode(TrackingMode.DetectOnly) }
 }

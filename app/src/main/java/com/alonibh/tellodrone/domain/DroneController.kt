@@ -17,6 +17,7 @@ interface DroneController {
     fun emergencyMotorKill()
     fun setTrackingMode(mode: TrackingMode)
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) = Unit
+    fun setDetectorConfidenceThreshold(threshold: Float) = Unit
     fun runDetectorBenchmark() = Unit
     fun cancelDetectorBenchmark() = Unit
     /** Explicit observational selection only; implementations must never infer a target. */

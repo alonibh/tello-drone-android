@@ -64,6 +64,7 @@ data class VideoState(
     val detectorInferenceMillis: Long? = null,
     val detectorBackendPreference: DetectorBackendPreference = DetectorBackendPreference.Accelerated,
     val detectorBackend: DetectorBackend? = null,
+    val detectorConfidenceThreshold: Float = com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD,
     val detectorModelName: String? = null,
     val detectorFellBackFromGpu: Boolean = false,
     val detectorErrorReason: String? = null,

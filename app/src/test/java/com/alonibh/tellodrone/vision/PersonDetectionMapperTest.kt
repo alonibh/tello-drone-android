@@ -36,6 +36,24 @@ class PersonDetectionMapperTest {
         assertEquals(listOf(.91f, .50f), results.map { it.confidence })
     }
 
+    @Test fun `applies configurable minConfidence threshold`() {
+        val raw = listOf(
+            raw("person", .52f, 1f, 2f, 30f, 40f),
+            raw("person", .64f, 50f, 2f, 80f, 40f),
+            raw("person", .75f, 100f, 20f, 200f, 220f),
+            raw("person", .88f, 210f, 20f, 300f, 220f),
+        )
+
+        val atDefault = PersonDetectionMapper.map(raw, metadata(), 0.50f)
+        assertEquals(4, atDefault.size)
+
+        val at65 = PersonDetectionMapper.map(raw, metadata(), 0.65f)
+        assertEquals(listOf(.88f, .75f), at65.map { it.confidence })
+
+        val at80 = PersonDetectionMapper.map(raw, metadata(), 0.80f)
+        assertEquals(listOf(.88f), at80.map { it.confidence })
+    }
+
     @Test fun `clamps partially out of range boxes and rejects malformed boxes`() {
         val raw = listOf(
             raw("person", .8f, -10f, -20f, 330f, 250f),

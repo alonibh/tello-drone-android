@@ -86,6 +86,17 @@ data class RawObjectDetection(
     val bottomPixels: Float,
 )
 
+const val DEFAULT_PERSON_CONFIDENCE_THRESHOLD = 0.50f
+const val MIN_PERSON_CONFIDENCE_THRESHOLD = 0.50f
+const val MAX_PERSON_CONFIDENCE_THRESHOLD = 0.90f
+const val PERSON_CONFIDENCE_THRESHOLD_STEP = 0.05f
+
+fun normalizeConfidenceThreshold(value: Float): Float {
+    if (!value.isFinite()) return DEFAULT_PERSON_CONFIDENCE_THRESHOLD
+    val stepped = Math.round(value * 20f) / 20f
+    return stepped.coerceIn(MIN_PERSON_CONFIDENCE_THRESHOLD, MAX_PERSON_CONFIDENCE_THRESHOLD)
+}
+
 object PersonDetectionMapper {
     const val PERSON_CATEGORY = "person"
     const val MIN_CONFIDENCE = 0.50f
@@ -94,13 +105,15 @@ object PersonDetectionMapper {
     fun map(
         rawDetections: List<RawObjectDetection>,
         frame: AnalysisFrameMetadata,
+        minConfidence: Float = MIN_CONFIDENCE,
     ): List<PersonDetection> {
         if (frame.width <= 0 || frame.height <= 0) return emptyList()
         val width = frame.width.toFloat()
         val height = frame.height.toFloat()
+        val effectiveThreshold = normalizeConfidenceThreshold(minConfidence)
         val normalized = rawDetections.asSequence()
             .filter { it.categoryName == PERSON_CATEGORY }
-            .filter { it.confidence.isFinite() && it.confidence >= MIN_CONFIDENCE }
+            .filter { it.confidence.isFinite() && it.confidence >= effectiveThreshold }
             .mapNotNull { raw ->
                 val values = listOf(
                     raw.leftPixels,

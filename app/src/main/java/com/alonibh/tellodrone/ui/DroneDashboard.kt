@@ -133,6 +133,10 @@ import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
+import com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD
+import com.alonibh.tellodrone.vision.MIN_PERSON_CONFIDENCE_THRESHOLD
+import com.alonibh.tellodrone.vision.MAX_PERSON_CONFIDENCE_THRESHOLD
+import com.alonibh.tellodrone.vision.PERSON_CONFIDENCE_THRESHOLD_STEP
 import com.alonibh.tellodrone.vision.formatReport
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
@@ -481,8 +485,27 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
         )
         state.target?.let { target ->
             val mapped = VideoOverlayCoordinateMapper.mapFillBounds(target.boundingBox, maxWidth.value, maxHeight.value)
-            if (mapped != null) Column(Modifier.offset(mapped.left.dp, mapped.top.dp).size((mapped.right - mapped.left).dp, (mapped.bottom - mapped.top).dp).border(2.dp, TelloGreen, RoundedCornerShape(3.dp))) {
-                Text("TARGET SELECTED", color = TelloInk, modifier = Modifier.background(TelloGreen).padding(horizontal = 5.dp, vertical = 2.dp), fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            if (mapped != null) {
+                val boxWidth = (mapped.right - mapped.left).dp
+                val boxHeight = (mapped.bottom - mapped.top).dp
+                Box(Modifier.offset(mapped.left.dp, mapped.top.dp)) {
+                    Box(
+                        Modifier
+                            .size(boxWidth, boxHeight)
+                            .border(2.dp, TelloGreen, RoundedCornerShape(3.dp)),
+                    )
+                    Text(
+                        "TARGET SELECTED",
+                        color = TelloInk,
+                        modifier = Modifier
+                            .background(TelloGreen)
+                            .padding(horizontal = 5.dp, vertical = 2.dp),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
             }
         }
         state.personDetections.filterNot { detection -> state.isCurrentTargetDetection(detection) }.forEach { detection ->
@@ -497,19 +520,27 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
                     state.video.personDetectionState == PersonDetectionState.Detecting &&
                     state.video.processedDetectorFrameSequence == detection.frameSequence &&
                     state.video.processedDetectorSourceTimestampNanos == detection.sourceTimestampNanos)
-            Column(
-                Modifier.offset(mapped.left.dp, mapped.top.dp)
-                    .size((mapped.right - mapped.left).dp, (mapped.bottom - mapped.top).dp)
-                    .border(2.dp, Color(0xFFFFC857), RoundedCornerShape(3.dp))
-                    .clickable(enabled = selectable) { vm.selectTarget(detection) },
+            val boxWidth = (mapped.right - mapped.left).dp
+            val boxHeight = (mapped.bottom - mapped.top).dp
+            Box(
+                Modifier.offset(mapped.left.dp, mapped.top.dp),
             ) {
+                Box(
+                    Modifier
+                        .size(boxWidth, boxHeight)
+                        .border(2.dp, Color(0xFFFFC857), RoundedCornerShape(3.dp))
+                        .clickable(enabled = selectable) { vm.selectTarget(detection) },
+                )
                 Text(
                     "PERSON ${(detection.confidence * 100f).roundToInt()}%",
                     color = TelloInk,
-                    modifier = Modifier.background(Color(0xFFFFC857)).padding(horizontal = 5.dp, vertical = 2.dp),
+                    modifier = Modifier
+                        .background(Color(0xFFFFC857))
+                        .padding(horizontal = 5.dp, vertical = 2.dp),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
+                    softWrap = false,
                 )
             }
         }
@@ -649,7 +680,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     else OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, enabled, vm::stopAndHover, modifier, compact = compact)
 }
 
-@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON DETECTION / DRY RUN • PHASE 4F") {
+@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON DETECTION / DRY RUN • PHASE 4G") {
     val canStart = (state.controllerMode == ControllerMode.Mock && state.connection == DroneConnectionState.Connected) ||
         (state.controllerMode == ControllerMode.Real &&
             state.connection == DroneConnectionState.Connected &&
@@ -683,6 +714,26 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
             )
         },
     )
+    AdaptiveActionPair(
+        {
+            OutlineAction(
+                "- 5% THRESHOLD",
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                canSelectBackend && state.video.detectorConfidenceThreshold > MIN_PERSON_CONFIDENCE_THRESHOLD + 0.001f,
+                { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold - PERSON_CONFIDENCE_THRESHOLD_STEP) },
+                Modifier.fillMaxWidth(),
+            )
+        },
+        {
+            OutlineAction(
+                "+ 5% THRESHOLD",
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                canSelectBackend && state.video.detectorConfidenceThreshold < MAX_PERSON_CONFIDENCE_THRESHOLD - 0.001f,
+                { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold + PERSON_CONFIDENCE_THRESHOLD_STEP) },
+                Modifier.fillMaxWidth(),
+            )
+        },
+    )
     val status = when (state.video.personDetectionState) {
         PersonDetectionState.Off -> "OFF"
         PersonDetectionState.Starting -> "STARTING"
@@ -690,6 +741,11 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         PersonDetectionState.Error -> "ERROR"
     }
     StatusLine("State", status, if (state.video.personDetectionState == PersonDetectionState.Error) TelloRed else TelloGreen)
+    StatusLine(
+        "Threshold",
+        "${(state.video.detectorConfidenceThreshold * 100f).roundToInt()}%",
+        if (state.video.detectorConfidenceThreshold > DEFAULT_PERSON_CONFIDENCE_THRESHOLD) TelloGreen else TelloTextMuted,
+    )
     state.video.detectorModelName?.let { StatusLine("Model", it) }
     state.video.detectorBackend?.let { backend ->
         StatusLine("Backend", if (backend == DetectorBackend.Gpu) "GPU" else "CPU (4 threads)")

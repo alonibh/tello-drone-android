@@ -358,6 +358,28 @@ class TelloFlightSession(
         }
     }
 
+    fun setDetectorConfidenceThreshold(threshold: Float) {
+        val current = mutableState.value
+        if (current.tracking != TrackingMode.Off) {
+            invalid("Turn person detection off before changing confidence threshold")
+            return
+        }
+        val normalized = com.alonibh.tellodrone.vision.normalizeConfidenceThreshold(threshold)
+        val changed = video?.setPersonDetectorConfidenceThreshold(normalized)
+            ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
+        if (changed.isFailure) {
+            invalid(changed.exceptionOrNull()?.message ?: "Detector confidence threshold could not be changed")
+            return
+        }
+        resetRealTracking()
+        mutableState.update { state ->
+            state.copy(
+                video = state.video.copy(detectorConfidenceThreshold = normalized),
+                lastMessage = "Person confidence threshold set to ${(normalized * 100f).toInt()}%",
+            )
+        }
+    }
+
     fun runDetectorBenchmark() {
         val current = mutableState.value
         if (current.tracking != TrackingMode.Off) {

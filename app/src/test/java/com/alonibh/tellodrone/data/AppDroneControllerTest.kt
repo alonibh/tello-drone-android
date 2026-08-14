@@ -50,12 +50,31 @@ class AppDroneControllerTest {
         assertEquals(1, mock.setCurrentFollowDistanceCalls)
     }
 
+    @Test
+    fun `setDetectorConfidenceThreshold forwards to selected underlying controller`() {
+        val real = RecordingDroneController(DroneSessionState(controllerMode = ControllerMode.Real))
+        val mock = RecordingDroneController(DroneSessionState(controllerMode = ControllerMode.Mock))
+        val appController = AppDroneController(real, mock)
+
+        // Real mode (default): forwards to real controller
+        appController.setDetectorConfidenceThreshold(0.70f)
+        assertEquals(0.70f, real.lastConfidenceThreshold)
+        assertEquals(null, mock.lastConfidenceThreshold)
+
+        // Mock mode: forwards to mock controller
+        appController.setControllerMode(ControllerMode.Mock)
+        appController.setDetectorConfidenceThreshold(0.85f)
+        assertEquals(0.70f, real.lastConfidenceThreshold)
+        assertEquals(0.85f, mock.lastConfidenceThreshold)
+    }
+
     private class RecordingDroneController(
         initialState: DroneSessionState,
     ) : DroneController {
         private val mutableState = MutableStateFlow(initialState)
         override val state: StateFlow<DroneSessionState> = mutableState
         var setCurrentFollowDistanceCalls = 0
+        var lastConfidenceThreshold: Float? = null
 
         override fun connect() = Unit
         override fun disconnect() = Unit
@@ -67,6 +86,9 @@ class AppDroneControllerTest {
         override fun selectTarget(detection: PersonDetection) = Unit
         override fun setCurrentFollowDistance() {
             setCurrentFollowDistanceCalls++
+        }
+        override fun setDetectorConfidenceThreshold(threshold: Float) {
+            lastConfidenceThreshold = threshold
         }
         override fun setManualControlVector(vector: ManualControlVector) = Unit
         override fun setSpeed(percent: Int) = Unit

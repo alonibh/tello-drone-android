@@ -122,16 +122,27 @@ class PersonDetectionPipeline(
     private val frameRate = DetectionFrameRate()
     @Volatile private var enabled = false
     @Volatile private var preference = DetectorBackendPreference.Accelerated
+    @Volatile private var confidenceThreshold = DEFAULT_PERSON_CONFIDENCE_THRESHOLD
     private var detector: PersonDetector? = null
     private var detectorPreference: DetectorBackendPreference? = null
 
-    fun start(preference: DetectorBackendPreference = DetectorBackendPreference.Accelerated) {
+    fun start(
+        preference: DetectorBackendPreference = DetectorBackendPreference.Accelerated,
+        confidenceThreshold: Float = this.confidenceThreshold,
+    ) {
         synchronized(stateLock) {
             this.preference = preference
+            this.confidenceThreshold = normalizeConfidenceThreshold(confidenceThreshold)
             generation.incrementAndGet()
             enabled = true
             frameRate.reset()
             onSnapshot(store.start(modelName))
+        }
+    }
+
+    fun setConfidenceThreshold(threshold: Float) {
+        synchronized(stateLock) {
+            this.confidenceThreshold = normalizeConfidenceThreshold(threshold)
         }
     }
 
@@ -175,13 +186,14 @@ class PersonDetectionPipeline(
                 if (!isRequestCurrent(request)) return
                 activeDetector.detect(frame) to activeDetector.descriptor
             }
+            val filteredDetections = detections.filter { it.confidence >= request.confidenceThreshold }
             val finishedAt = clockNanos()
             val measuredFps = frameRate.onResult(finishedAt)
             synchronized(stateLock) {
                 if (!isRequestCurrentLocked(request)) return
                 onSnapshot(
                     store.result(
-                        detections = detections,
+                        detections = filteredDetections,
                         processedFrameSequence = frame.metadata.sequence,
                         processedSourceTimestampNanos = frame.metadata.captureTimestampNanos,
                         measuredFps = measuredFps,
@@ -245,7 +257,7 @@ class PersonDetectionPipeline(
     }
 
     private fun activeRequestSnapshot(): DetectorRequest? = synchronized(stateLock) {
-        if (!enabled) null else DetectorRequest(generation.get(), preference)
+        if (!enabled) null else DetectorRequest(generation.get(), preference, confidenceThreshold)
     }
 
     private fun isRequestCurrent(request: DetectorRequest): Boolean = synchronized(stateLock) {
@@ -253,11 +265,12 @@ class PersonDetectionPipeline(
     }
 
     private fun isRequestCurrentLocked(request: DetectorRequest): Boolean =
-        enabled && generation.get() == request.generation && preference == request.preference
+        enabled && generation.get() == request.generation && preference == request.preference && confidenceThreshold == request.confidenceThreshold
 
     private data class DetectorRequest(
         val generation: Long,
         val preference: DetectorBackendPreference,
+        val confidenceThreshold: Float,
     )
 
     private class DetectionFrameRate {

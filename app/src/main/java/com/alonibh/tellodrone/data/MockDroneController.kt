@@ -143,7 +143,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                 dryRunControlIntent = null,
             )
             TrackingMode.DetectOnly -> if (state.connection == DroneConnectionState.Connected) {
-                val detections = mockPersonDetections()
+                val detections = mockPersonDetections(state.video.detectorConfidenceThreshold)
                 state.copy(
                     tracking = TrackingMode.DetectOnly,
                     authority = ControlAuthority.Manual,
@@ -166,6 +166,15 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
     override fun setDetectorBackendPreference(preference: DetectorBackendPreference) = update { state ->
         if (state.tracking != TrackingMode.Off) state.invalid("Turn person detection off before changing backend")
         else state.copy(video = state.video.copy(detectorBackendPreference = preference))
+    }
+
+    override fun setDetectorConfidenceThreshold(threshold: Float) = update { state ->
+        if (state.tracking != TrackingMode.Off || state.video.personDetectionState != PersonDetectionState.Off) {
+            state.invalid("Turn person detection off before changing confidence threshold")
+        } else {
+            val normalized = com.alonibh.tellodrone.vision.normalizeConfidenceThreshold(threshold)
+            state.copy(video = state.video.copy(detectorConfidenceThreshold = normalized))
+        }
     }
 
     override fun selectTarget(detection: PersonDetection) = update { state ->
@@ -214,7 +223,9 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
 
     private fun update(transform: (DroneSessionState) -> DroneSessionState) { mutableState.value = transform(mutableState.value) }
     private fun DroneSessionState.invalid(message: String) = copy(lastMessage = message)
-    private fun mockPersonDetections(): List<PersonDetection> {
+    private fun mockPersonDetections(
+        threshold: Float = com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD,
+    ): List<PersonDetection> {
         val timestamp = System.nanoTime()
         return listOf(
             PersonDetection(
@@ -229,7 +240,7 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
                 frameSequence = 1L,
                 sourceTimestampNanos = timestamp,
             ),
-        )
+        ).filter { it.confidence >= threshold }
     }
 
     companion object {

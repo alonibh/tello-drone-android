@@ -21,6 +21,8 @@ import com.alonibh.tellodrone.vision.DetectorBenchmarkAggregator
 import com.alonibh.tellodrone.vision.BenchmarkDeviceInfo
 import com.alonibh.tellodrone.vision.DetectorInferenceMeasurement
 import com.alonibh.tellodrone.vision.TfliteTaskPersonDetector
+import com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD
+import com.alonibh.tellodrone.vision.normalizeConfidenceThreshold
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetSocketAddress
@@ -71,6 +73,7 @@ class AndroidTelloVideoController(
     override val state: StateFlow<VideoState> = mutableState.asStateFlow()
     private val decodedFrameSource: DecodedFrameSource = PixelCopyDecodedFrameSource(::updateAnalysisDiagnostics)
     private val detectorPreference = AtomicReference(DetectorBackendPreference.Accelerated)
+    private val detectorConfidenceThreshold = AtomicReference(DEFAULT_PERSON_CONFIDENCE_THRESHOLD)
     private val detectorFactory = FallbackPersonDetectorFactory { backend ->
         TfliteTaskPersonDetector(context.applicationContext, backend)
     }
@@ -129,6 +132,7 @@ class AndroidTelloVideoController(
         mutableState.value = VideoState(
             availability = VideoAvailability.Streaming,
             detectorBackendPreference = detectorPreference.get(),
+            detectorConfidenceThreshold = detectorConfidenceThreshold.get(),
         )
         unitSignal.trySend(Unit)
     }
@@ -149,6 +153,7 @@ class AndroidTelloVideoController(
         mutableState.value = VideoState(
             availability = VideoAvailability.Error,
             detectorBackendPreference = detectorPreference.get(),
+            detectorConfidenceThreshold = detectorConfidenceThreshold.get(),
             detectorBenchmarkState = if (benchmarkCancelled) DetectorBenchmarkState.Cancelled else DetectorBenchmarkState.Off,
             detectorBenchmarkReason = if (benchmarkCancelled) "Video lost: $reason" else null,
             errorReason = reason.take(MAX_ERROR_REASON_CHARS),
@@ -186,7 +191,7 @@ class AndroidTelloVideoController(
         ) {
             return Result.failure(IllegalStateException("Live preview analysis is not ready"))
         }
-        detectionPipeline.start(detectorPreference.get())
+        detectionPipeline.start(detectorPreference.get(), detectorConfidenceThreshold.get())
         return Result.success(Unit)
     }
 
@@ -199,6 +204,19 @@ class AndroidTelloVideoController(
         detectorPreference.set(preference)
         stopDetectionAndScheduleRelease()
         mutableState.update { it.copy(detectorBackendPreference = preference) }
+        return Result.success(Unit)
+    }
+
+    override fun setPersonDetectorConfidenceThreshold(threshold: Float): Result<Unit> {
+        if (mutableState.value.personDetectionState in setOf(
+                PersonDetectionState.Starting,
+                PersonDetectionState.Detecting,
+            )
+        ) return Result.failure(IllegalStateException("Turn person detection off before changing confidence threshold"))
+        val normalized = normalizeConfidenceThreshold(threshold)
+        detectorConfidenceThreshold.set(normalized)
+        detectionPipeline.setConfidenceThreshold(normalized)
+        mutableState.update { it.copy(detectorConfidenceThreshold = normalized) }
         return Result.success(Unit)
     }
 

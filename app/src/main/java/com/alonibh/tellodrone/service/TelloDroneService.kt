@@ -80,6 +80,9 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
         session?.setDetectorBackendPreference(preference)
     }
+    fun setDetectorConfidenceThreshold(threshold: Float) {
+        session?.setDetectorConfidenceThreshold(threshold)
+    }
     fun runDetectorBenchmark() { session?.runDetectorBenchmark() }
     fun cancelDetectorBenchmark() { session?.cancelDetectorBenchmark() }
     fun selectTarget(detection: PersonDetection) { session?.selectTarget(detection) }
@@ -389,6 +392,8 @@ object TelloServiceGateway {
     fun setTrackingMode(mode: TrackingMode) = service?.setTrackingMode(mode)
     fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         service?.setDetectorBackendPreference(preference)
+    fun setDetectorConfidenceThreshold(threshold: Float) =
+        service?.setDetectorConfidenceThreshold(threshold)
     fun runDetectorBenchmark() = service?.runDetectorBenchmark()
     fun cancelDetectorBenchmark() = service?.cancelDetectorBenchmark()
     fun selectTarget(detection: PersonDetection) = service?.selectTarget(detection)

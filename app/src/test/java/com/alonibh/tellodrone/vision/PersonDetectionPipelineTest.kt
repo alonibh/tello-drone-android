@@ -43,6 +43,57 @@ class PersonDetectionPipelineTest {
         assertEquals(100L, snapshots.last().processedSourceTimestampNanos)
     }
 
+    @Test fun `runtime threshold filters detections below configured threshold`() {
+        val result = listOf(
+            detection(sourceTimestamp = 100L, confidence = 0.55f),
+            detection(sourceTimestamp = 100L, confidence = 0.75f),
+            detection(sourceTimestamp = 100L, confidence = 0.85f),
+        )
+        val fake = FakePersonDetector { result }
+        val snapshots = mutableListOf<PersonDetectionSnapshot>()
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { fake },
+            modelName = "fake-model",
+            onSnapshot = snapshots::add,
+        )
+
+        pipeline.start(confidenceThreshold = 0.70f)
+        pipeline.process(frame())
+
+        assertEquals(2, snapshots.last().detections.size)
+        assertEquals(listOf(0.75f, 0.85f), snapshots.last().detections.map { it.confidence })
+
+        pipeline.stop()
+        pipeline.start(confidenceThreshold = 0.80f)
+        pipeline.process(frame())
+
+        assertEquals(1, snapshots.last().detections.size)
+        assertEquals(listOf(0.85f), snapshots.last().detections.map { it.confidence })
+    }
+
+    @Test fun `changing confidence threshold does not recreate detector instance`() {
+        var createCount = 0
+        val fake = FakePersonDetector { emptyList() }
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = {
+                createCount++
+                fake
+            },
+            modelName = "fake-model",
+            onSnapshot = {},
+        )
+
+        pipeline.start(confidenceThreshold = 0.50f)
+        pipeline.process(frame())
+        assertEquals(1, createCount)
+
+        pipeline.stop()
+        pipeline.setConfidenceThreshold(0.75f)
+        pipeline.start()
+        pipeline.process(frame())
+        assertEquals(1, createCount)
+    }
+
     @Test fun `stale result expires at five hundred milliseconds and off clears state`() {
         val store = PersonDetectionStore()
         store.start("fake-model")
@@ -189,9 +240,9 @@ class PersonDetectionPipelineTest {
         AnalysisFrameMetadata(320, 240, 100L, AnalysisPixelRepresentation.ARGB_8888_BITMAP, 1L),
     ) { error("Fake detector must not request bitmap pixels") }
 
-    private fun detection(sourceTimestamp: Long) = PersonDetection(
+    private fun detection(sourceTimestamp: Long, confidence: Float = .8f) = PersonDetection(
         NormalizedBoundingBox(.1f, .2f, .4f, .8f),
-        .8f,
+        confidence,
         1L,
         sourceTimestamp,
     )

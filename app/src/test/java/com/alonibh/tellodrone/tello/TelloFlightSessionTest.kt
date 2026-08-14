@@ -237,6 +237,41 @@ class TelloFlightSessionTest {
         assertEquals(before.target, after.target)
     }
 
+    @Test fun `detector confidence threshold update applies when detection is off`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        val before = fixture.session.state.value
+
+        fixture.session.setDetectorConfidenceThreshold(0.75f)
+
+        val after = fixture.session.state.value
+        assertEquals(0.75f, video.confidenceThreshold)
+        assertEquals(0.75f, after.video.detectorConfidenceThreshold)
+        assertEquals(before.authority, after.authority)
+        assertEquals(before.target, after.target)
+    }
+
+    @Test fun `detector confidence threshold update is rejected while detection is active`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+        fixture.session.setTrackingMode(com.alonibh.tellodrone.domain.TrackingMode.DetectOnly)
+        runCurrent()
+        assertEquals(TrackingMode.DetectOnly, fixture.session.state.value.tracking)
+        val before = fixture.session.state.value
+
+        fixture.session.setDetectorConfidenceThreshold(0.75f)
+
+        val after = fixture.session.state.value
+        assertEquals(0.50f, video.confidenceThreshold)
+        assertEquals(0.50f, after.video.detectorConfidenceThreshold)
+        assertEquals(TrackingMode.DetectOnly, after.tracking)
+        assertEquals(before.authority, after.authority)
+        assertEquals(before.target, after.target)
+    }
+
     @Test fun `flight acknowledgements require post acknowledgement height verification`() = runTest {
         val fixture = connectedFixture()
 
@@ -516,6 +551,7 @@ class TelloFlightSessionTest {
         var prepared = false
         var closed = false
         var backendPreference = DetectorBackendPreference.Accelerated
+        var confidenceThreshold = 0.50f
 
         override suspend fun prepare(): Result<Unit> {
             prepared = true
@@ -533,6 +569,12 @@ class TelloFlightSessionTest {
         override fun setPersonDetectorBackendPreference(preference: DetectorBackendPreference): Result<Unit> {
             backendPreference = preference
             mutableState.value = mutableState.value.copy(detectorBackendPreference = preference)
+            return Result.success(Unit)
+        }
+
+        override fun setPersonDetectorConfidenceThreshold(threshold: Float): Result<Unit> {
+            confidenceThreshold = threshold
+            mutableState.value = mutableState.value.copy(detectorConfidenceThreshold = threshold)
             return Result.success(Unit)
         }
 
