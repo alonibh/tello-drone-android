@@ -25,7 +25,7 @@ interface DroneController {
     fun selectTarget(detection: PersonDetection)
     fun setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = Unit
-    fun setYawFollowArmed(armed: Boolean) = Unit
+    fun setYawFollowArmed(armed: Boolean)
     fun setManualControlVector(vector: ManualControlVector)
     fun setSpeed(percent: Int)
     /** The UI owns only this display surface; the service owns the physical video session. */

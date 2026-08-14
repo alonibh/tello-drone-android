@@ -208,6 +208,9 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
 
     override fun setCurrentFollowDistance() = Unit
 
+    /** Mock mode remains observational; it never grants real yaw-follow authority. */
+    override fun setYawFollowArmed(armed: Boolean) = Unit
+
     override fun setShadowAutonomyArmed(armed: Boolean) = update { state ->
         state.copy(shadowAutonomyDecision = shadowGate.evaluate(
             ShadowAutonomyInput(state.connection, state.flight, state.telemetry.isFresh, state.video.availability,

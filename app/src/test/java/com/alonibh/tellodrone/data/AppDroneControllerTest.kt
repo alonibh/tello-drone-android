@@ -87,6 +87,22 @@ class AppDroneControllerTest {
         assertEquals(DetectorModel.MobileNetV1, mock.lastModel)
     }
 
+    @Test
+    fun `setYawFollowArmed forwards to selected underlying controller`() {
+        val real = RecordingDroneController(DroneSessionState(controllerMode = ControllerMode.Real))
+        val mock = RecordingDroneController(DroneSessionState(controllerMode = ControllerMode.Mock))
+        val appController = AppDroneController(real, mock)
+
+        appController.setYawFollowArmed(true)
+        assertEquals(listOf(true), real.yawFollowArmRequests)
+        assertEquals(emptyList<Boolean>(), mock.yawFollowArmRequests)
+
+        appController.setControllerMode(ControllerMode.Mock)
+        appController.setYawFollowArmed(false)
+        assertEquals(listOf(true), real.yawFollowArmRequests)
+        assertEquals(listOf(false), mock.yawFollowArmRequests)
+    }
+
     private class RecordingDroneController(
         initialState: DroneSessionState,
     ) : DroneController {
@@ -95,6 +111,7 @@ class AppDroneControllerTest {
         var setCurrentFollowDistanceCalls = 0
         var lastConfidenceThreshold: Float? = null
         var lastModel: DetectorModel? = null
+        val yawFollowArmRequests = mutableListOf<Boolean>()
 
         override fun connect() = Unit
         override fun disconnect() = Unit
@@ -109,6 +126,9 @@ class AppDroneControllerTest {
         override fun selectTarget(detection: PersonDetection) = Unit
         override fun setCurrentFollowDistance() {
             setCurrentFollowDistanceCalls++
+        }
+        override fun setYawFollowArmed(armed: Boolean) {
+            yawFollowArmRequests += armed
         }
         override fun setDetectorConfidenceThreshold(threshold: Float) {
             lastConfidenceThreshold = threshold

@@ -279,7 +279,12 @@ class TelloFlightSession(
     }
 
     fun publishManualControl(vector: ManualControlVector) {
-        if (requiresNeutralInput(vector)) return
+        if (requiresNeutralInput(vector)) {
+            // Preserve the neutral interlock for manual RC, but never let it leave yaw autonomy
+            // active after the pilot has made a non-zero control attempt.
+            if (!vector.isZero()) latchYawFollowAndSendZero(YawFollowReason.MANUAL_OVERRIDE)
+            return
+        }
         val current = mutableState.value
         if (current.connection == DroneConnectionState.Connected && current.flight == FlightState.Flying && current.telemetry.isFresh) {
             synchronized(yawFollowLock) {

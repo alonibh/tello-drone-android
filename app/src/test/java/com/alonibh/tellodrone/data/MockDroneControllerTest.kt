@@ -69,6 +69,15 @@ class MockDroneControllerTest {
         assertEquals(TrackingMode.TargetLocked, controller.state.value.tracking)
     }
 
+    @Test fun `yaw follow arm remains a no-op in mock mode`() {
+        val controller = detectingFlyingController()
+        val before = controller.state.value
+
+        controller.setYawFollowArmed(true)
+
+        assertEquals(before, controller.state.value)
+    }
+
     @Test fun `disconnect clears unsafe states`() {
         val controller = detectingFlyingController()
         controller.disconnect()

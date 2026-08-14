@@ -614,6 +614,43 @@ class TelloFlightSessionTest {
         assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
     }
 
+    @Test fun `blocked first manual attempt preempts yaw then neutral permits the next manual command`() = runTest {
+        val box = NormalizedBoundingBox(.55f, .20f, .85f, .80f)
+        val (fixture, video) = yawReadyFixture(box)
+        // takeoff's neutral interlock has not yet seen a zero input.
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+        assertTrue(fixture.transport.rc.last().yaw > 0)
+
+        fixture.session.publishManualControl(ManualControlVector(forward = .5f))
+        runCurrent()
+        assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals(com.alonibh.tellodrone.domain.YawFollowReason.MANUAL_OVERRIDE, fixture.session.state.value.yawFollowDecision.reason)
+        assertEquals(ManualControlVector(), fixture.session.state.value.manualVector)
+        assertEquals(RcVector.Zero, fixture.transport.rc.last())
+        assertFalse(fixture.transport.rc.any { it.forward != 0 })
+
+        fixture.session.publishManualControl(ManualControlVector())
+        fixture.session.publishManualControl(ManualControlVector(forward = .5f))
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
+
+        fixture.detectorNowNanos.set(1_200_000_000L)
+        video.publishDetections(
+            3L,
+            1_200_000_000L,
+            listOf(detection(box = box, frame = 3L, timestamp = 1_200_000_000L)),
+        )
+        runCurrent()
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
+    }
+
     @Test fun `hover land emergency stale telemetry and video loss zero and latch`() = runTest {
         val (hoverFixture, _) = yawReadyFixture()
         hoverFixture.session.setYawFollowArmed(true)
