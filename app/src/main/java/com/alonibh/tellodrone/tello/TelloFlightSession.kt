@@ -318,6 +318,14 @@ class TelloFlightSession(
     fun setYawFollowArmed(armed: Boolean) {
         var zeroGeneration: Long? = null
         synchronized(yawFollowLock) {
+            if (armed) {
+                // ARM is the explicit acknowledgement for a previous STOP / HOVER intervention.
+                // It clears only that sticky UI/session flag; every other yaw safety prerequisite
+                // is still evaluated below and may latch or wait as usual.
+                mutableState.update { state ->
+                    if (state.hoverActive) state.copy(hoverActive = false) else state
+                }
+            }
             val current = mutableState.value
             val decision = if (armed) yawFollowGate.arm(current.toYawFollowInput()) else yawFollowGate.disarm()
             val manualWins = decision.reason == YawFollowReason.MANUAL_OVERRIDE && !current.manualVector.isZero()

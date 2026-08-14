@@ -688,54 +688,194 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
             state.connection == DroneConnectionState.Connected &&
             state.video.availability == VideoAvailability.Streaming &&
             state.video.analysisLatestSequence != null)
-    AdaptiveActionPair(
-        { OutlineAction("OFF", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Off) },
-        { ActionButton("DETECT PEOPLE", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly) },
+    if (state.controllerMode == ControllerMode.Real) {
+        RealPersonDetectionAction(state, vm, canStart)
+        AdvancedDetectorControls(state, vm)
+    } else {
+        AdaptiveActionPair(
+            { OutlineAction("OFF", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Off) },
+            { ActionButton("DETECT PEOPLE", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly) },
+        )
+        MockDetectorControls(state, vm)
+    }
+    if (state.controllerMode == ControllerMode.Mock && state.personDetections.isNotEmpty()) {
+        Text("Tap a mock person box to select the dry-run target.", color = TelloTextMuted, fontSize = 11.sp)
+        state.personDetections.forEachIndexed { index, detection ->
+            OutlineAction(
+                "SELECT PERSON ${index + 1}",
+                Icons.Default.PersonSearch,
+                true,
+                { vm.selectTarget(detection) },
+                Modifier.fillMaxWidth(),
+                active = state.target?.boundingBox == detection.boundingBox,
+            )
+        }
+    }
+    val targetStatus = when (state.targetAssociationState) {
+        TargetAssociationState.None -> null
+        TargetAssociationState.Selected, TargetAssociationState.Matched -> "TARGET SELECTED"
+        TargetAssociationState.TemporarilyMissing -> "TARGET MISSING"
+        TargetAssociationState.Lost -> "TARGET LOST"
+        TargetAssociationState.Ambiguous -> "TARGET AMBIGUOUS"
+    }
+    targetStatus?.let { StatusLine("Target", it, if (state.targetAssociationState == TargetAssociationState.Lost) TelloRed else TelloGreen) }
+    if (state.controllerMode == ControllerMode.Real && state.target == null) {
+        Text("Tap a person to select.", color = TelloTextMuted, fontSize = 11.sp)
+    }
+    if (state.controllerMode == ControllerMode.Mock) {
+        MockFollowDiagnostics(state, vm)
+    }
+    if (state.controllerMode == ControllerMode.Real) {
+        HorizontalDivider(color = TelloLine)
+        Text("REAL YAW FOLLOW", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        StatusLine("State", state.yawFollowDecision.state.name, if (state.yawFollowDecision.state == YawFollowState.ACTIVE) TelloGreen else TelloTextMuted)
+        StatusLine("Reason", state.yawFollowDecision.reason.name.replace('_', ' '))
+        if (state.yawFollowDecision.state == YawFollowState.ACTIVE) {
+            StatusLine("Yaw RC", state.yawFollowDecision.yawRc.toString())
+        }
+        if (state.yawFollowDecision.requiresExplicitRearm) {
+            Text("EXPLICIT RE-ARM REQUIRED", color = TelloRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        AdaptiveActionPair(
+            {
+                ActionButton(
+                    if (state.yawFollowDecision.requiresExplicitRearm) "RE-ARM YAW FOLLOW" else "ARM YAW FOLLOW",
+                    Icons.Default.CheckCircle,
+                    state.yawFollowDecision.state != YawFollowState.ACTIVE,
+                    { vm.setYawFollowArmed(true) },
+                    Modifier.fillMaxWidth().testTag("arm_yaw_follow"),
+                    active = state.yawFollowDecision.state in setOf(YawFollowState.ARMED_WAITING, YawFollowState.ACTIVE),
+                )
+            },
+            {
+                OutlineAction(
+                    "DISARM",
+                    Icons.Default.Close,
+                    state.yawFollowDecision.state != YawFollowState.DISARMED,
+                    { vm.setYawFollowArmed(false) },
+                    Modifier.fillMaxWidth().testTag("disarm_yaw_follow"),
+                )
+            },
+        )
+        Surface(
+            color = TelloRed.copy(alpha = .12f),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().border(1.dp, TelloRed.copy(alpha = .65f), RoundedCornerShape(8.dp))
+                .testTag("yaw_only_warning"),
+        ) {
+            Text(
+                "YAW ONLY • NO ALTITUDE / FORWARD / LATERAL",
+                color = TelloRed,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(10.dp),
+            )
+        }
+    }
+    if (state.controllerMode == ControllerMode.Mock) {
+        state.shadowAutonomyDecision?.let { decision ->
+            StatusLine("SHADOW AUTONOMY", decision.state.name)
+            StatusLine("Eligibility", if (decision.eligible) "YES" else "NO")
+            StatusLine("Reason", decision.reason.name.replace('_', ' '))
+            if (decision.requiresExplicitRearm) Text("RE-ARM REQUIRED", color = TelloRed, fontSize = 11.sp)
+        }
+        AdaptiveActionPair(
+            { OutlineAction("ARM DRY RUN", Icons.Default.CheckCircle, true, { vm.setShadowAutonomyArmed(true) }, Modifier.fillMaxWidth()) },
+            { OutlineAction("DISARM", Icons.Default.Close, true, { vm.setShadowAutonomyArmed(false) }, Modifier.fillMaxWidth()) },
+        )
+        Text("SHADOW ONLY • NO AUTONOMOUS COMMANDS", color = TelloTextMuted, fontSize = 11.sp)
+    }
+    if (state.controllerMode == ControllerMode.Mock) {
+        Text("Frame-local boxes only • Explicit target selection", color = TelloTextMuted, fontSize = 11.sp)
+    }
+}
+
+@Composable
+private fun RealPersonDetectionAction(state: DroneSessionState, vm: DroneViewModel, canStart: Boolean) {
+    val detecting = state.video.personDetectionState in setOf(
+        PersonDetectionState.Starting,
+        PersonDetectionState.Detecting,
     )
+    if (detecting) {
+        OutlineAction("STOP PERSON DETECTION", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth())
+    } else {
+        ActionButton("START PERSON DETECTION", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth())
+    }
+}
+
+@Composable
+private fun AdvancedDetectorControls(state: DroneSessionState, vm: DroneViewModel) {
+    var expanded by remember { mutableStateOf(false) }
+    OutlineAction(
+        "ADVANCED DETECTOR",
+        Icons.Default.Settings,
+        true,
+        { expanded = !expanded },
+        Modifier.fillMaxWidth(),
+        active = expanded,
+    )
+    if (!expanded) return
+
     val canSelectConfig = state.tracking == TrackingMode.Off &&
         state.video.personDetectionState !in setOf(PersonDetectionState.Starting, PersonDetectionState.Detecting)
     AdaptiveActionPair(
         {
-            OutlineAction(
-                "MOBILENET V1",
-                Icons.Default.Settings,
-                canSelectConfig,
-                { vm.setDetectorModel(DetectorModel.MobileNetV1) },
-                Modifier.fillMaxWidth(),
-                active = state.video.detectorModel == DetectorModel.MobileNetV1,
-            )
+            OutlineAction("MOBILENET V1", Icons.Default.Settings, canSelectConfig, { vm.setDetectorModel(DetectorModel.MobileNetV1) }, Modifier.fillMaxWidth(), active = state.video.detectorModel == DetectorModel.MobileNetV1)
         },
         {
-            OutlineAction(
-                "EFFICIENTDET LITE0",
-                Icons.Default.Settings,
-                canSelectConfig,
-                { vm.setDetectorModel(DetectorModel.EfficientDetLite0) },
-                Modifier.fillMaxWidth(),
-                active = state.video.detectorModel == DetectorModel.EfficientDetLite0,
-            )
+            OutlineAction("EFFICIENTDET LITE0", Icons.Default.Settings, canSelectConfig, { vm.setDetectorModel(DetectorModel.EfficientDetLite0) }, Modifier.fillMaxWidth(), active = state.video.detectorModel == DetectorModel.EfficientDetLite0)
+        },
+    )
+    AdaptiveActionPair(
+        {
+            OutlineAction("GPU PREFERRED", Icons.Default.Settings, canSelectConfig, { vm.setDetectorBackendPreference(DetectorBackendPreference.Accelerated) }, Modifier.fillMaxWidth(), active = state.video.detectorBackendPreference == DetectorBackendPreference.Accelerated)
+        },
+        {
+            OutlineAction("CPU COMPARE", Icons.Default.Settings, canSelectConfig, { vm.setDetectorBackendPreference(DetectorBackendPreference.Cpu) }, Modifier.fillMaxWidth(), active = state.video.detectorBackendPreference == DetectorBackendPreference.Cpu)
         },
     )
     AdaptiveActionPair(
         {
             OutlineAction(
-                "GPU PREFERRED",
-                Icons.Default.Settings,
-                canSelectConfig,
-                { vm.setDetectorBackendPreference(DetectorBackendPreference.Accelerated) },
+                "- 5% THRESHOLD",
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                canSelectConfig && state.video.detectorConfidenceThreshold > MIN_PERSON_CONFIDENCE_THRESHOLD + 0.001f,
+                { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold - PERSON_CONFIDENCE_THRESHOLD_STEP) },
                 Modifier.fillMaxWidth(),
-                active = state.video.detectorBackendPreference == DetectorBackendPreference.Accelerated,
             )
         },
         {
             OutlineAction(
-                "CPU COMPARE",
-                Icons.Default.Settings,
-                canSelectConfig,
-                { vm.setDetectorBackendPreference(DetectorBackendPreference.Cpu) },
+                "+ 5% THRESHOLD",
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                canSelectConfig && state.video.detectorConfidenceThreshold < MAX_PERSON_CONFIDENCE_THRESHOLD - 0.001f,
+                { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold + PERSON_CONFIDENCE_THRESHOLD_STEP) },
                 Modifier.fillMaxWidth(),
-                active = state.video.detectorBackendPreference == DetectorBackendPreference.Cpu,
             )
+        },
+    )
+    DetectorBenchmarkControls(state, vm)
+}
+
+@Composable
+private fun MockDetectorControls(state: DroneSessionState, vm: DroneViewModel) {
+    val canSelectConfig = state.tracking == TrackingMode.Off &&
+        state.video.personDetectionState !in setOf(PersonDetectionState.Starting, PersonDetectionState.Detecting)
+    AdaptiveActionPair(
+        {
+            OutlineAction("MOBILENET V1", Icons.Default.Settings, canSelectConfig, { vm.setDetectorModel(DetectorModel.MobileNetV1) }, Modifier.fillMaxWidth(), active = state.video.detectorModel == DetectorModel.MobileNetV1)
+        },
+        {
+            OutlineAction("EFFICIENTDET LITE0", Icons.Default.Settings, canSelectConfig, { vm.setDetectorModel(DetectorModel.EfficientDetLite0) }, Modifier.fillMaxWidth(), active = state.video.detectorModel == DetectorModel.EfficientDetLite0)
+        },
+    )
+    AdaptiveActionPair(
+        {
+            OutlineAction("GPU PREFERRED", Icons.Default.Settings, canSelectConfig, { vm.setDetectorBackendPreference(DetectorBackendPreference.Accelerated) }, Modifier.fillMaxWidth(), active = state.video.detectorBackendPreference == DetectorBackendPreference.Accelerated)
+        },
+        {
+            OutlineAction("CPU COMPARE", Icons.Default.Settings, canSelectConfig, { vm.setDetectorBackendPreference(DetectorBackendPreference.Cpu) }, Modifier.fillMaxWidth(), active = state.video.detectorBackendPreference == DetectorBackendPreference.Cpu)
         },
     )
     AdaptiveActionPair(
@@ -779,29 +919,11 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     state.video.detectorMeasuredFps?.let { StatusLine("Detector rate", "%.1f FPS".format(it)) }
     state.video.detectorErrorReason?.let { Text(it, color = TelloRed, fontSize = 11.sp) }
     DetectorBenchmarkControls(state, vm)
-    if (state.controllerMode == ControllerMode.Mock && state.personDetections.isNotEmpty()) {
-        Text("Tap a mock person box to select the dry-run target.", color = TelloTextMuted, fontSize = 11.sp)
-        state.personDetections.forEachIndexed { index, detection ->
-            OutlineAction(
-                "SELECT PERSON ${index + 1}",
-                Icons.Default.PersonSearch,
-                true,
-                { vm.selectTarget(detection) },
-                Modifier.fillMaxWidth(),
-                active = state.target?.boundingBox == detection.boundingBox,
-            )
-        }
-    }
-    val targetStatus = when (state.targetAssociationState) {
-        TargetAssociationState.None -> null
-        TargetAssociationState.Selected, TargetAssociationState.Matched -> "TARGET SELECTED"
-        TargetAssociationState.TemporarilyMissing -> "TARGET MISSING"
-        TargetAssociationState.Lost -> "TARGET LOST"
-        TargetAssociationState.Ambiguous -> "TARGET AMBIGUOUS"
-    }
-    targetStatus?.let { StatusLine("Target", it, if (state.targetAssociationState == TargetAssociationState.Lost) TelloRed else TelloGreen) }
+}
+
+@Composable
+private fun MockFollowDiagnostics(state: DroneSessionState, vm: DroneViewModel) {
     val distanceEligibility = com.alonibh.tellodrone.domain.FollowDistanceEligibility.evaluate(state)
-    val canSetDistance = state.controllerMode == ControllerMode.Real && distanceEligibility == com.alonibh.tellodrone.domain.FollowDistanceEligibilityReason.READY
     val distanceLabel = when (state.followDistanceCalibrationState) {
         com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.NotSet -> "NOT SET"
         com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Calibrating -> "CALIBRATING"
@@ -811,7 +933,6 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     StatusLine("Follow distance", distanceStatus, if (distanceLabel == "SET") TelloGreen else TelloTextMuted)
     if (state.followDistanceCalibrationState != com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Set) StatusLine("Distance", distanceEligibility.name.replace('_', ' '), TelloTextMuted)
     state.followDistanceReference?.let { StatusLine("Visual scale", "%.3f".format(it.visualScale)) }
-    if (state.controllerMode == ControllerMode.Real) ActionButton("SET CURRENT DISTANCE", Icons.Default.PersonSearch, canSetDistance, vm::setCurrentFollowDistance, Modifier.fillMaxWidth())
     state.trackingErrors?.let { errors ->
         StatusLine("Dry-run yaw", "%.3f".format(errors.yawError))
         StatusLine("Dry-run vertical", "%.3f".format(errors.verticalError))
@@ -825,66 +946,6 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         StatusLine("Reason", intent.reason.name.replace('_', ' '))
         Text("NO COMMANDS SENT", color = TelloTextMuted, fontSize = 11.sp)
     }
-    if (state.controllerMode == ControllerMode.Real) {
-        HorizontalDivider(color = TelloLine)
-        Text("REAL YAW FOLLOW", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-        StatusLine("State", state.yawFollowDecision.state.name, if (state.yawFollowDecision.state == YawFollowState.ACTIVE) TelloGreen else TelloTextMuted)
-        StatusLine("Reason", state.yawFollowDecision.reason.name.replace('_', ' '))
-        StatusLine("Yaw RC", state.yawFollowDecision.yawRc.toString())
-        if (state.yawFollowDecision.requiresExplicitRearm) {
-            Text("EXPLICIT RE-ARM REQUIRED", color = TelloRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        AdaptiveActionPair(
-            {
-                ActionButton(
-                    "ARM YAW FOLLOW",
-                    Icons.Default.CheckCircle,
-                    state.yawFollowDecision.state != YawFollowState.ACTIVE,
-                    { vm.setYawFollowArmed(true) },
-                    Modifier.fillMaxWidth().testTag("arm_yaw_follow"),
-                    active = state.yawFollowDecision.state in setOf(YawFollowState.ARMED_WAITING, YawFollowState.ACTIVE),
-                )
-            },
-            {
-                OutlineAction(
-                    "DISARM",
-                    Icons.Default.Close,
-                    state.yawFollowDecision.state != YawFollowState.DISARMED,
-                    { vm.setYawFollowArmed(false) },
-                    Modifier.fillMaxWidth().testTag("disarm_yaw_follow"),
-                )
-            },
-        )
-        Surface(
-            color = TelloRed.copy(alpha = .12f),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().border(1.dp, TelloRed.copy(alpha = .65f), RoundedCornerShape(8.dp))
-                .testTag("yaw_only_warning"),
-        ) {
-            Text(
-                "YAW ONLY • NO ALTITUDE / FORWARD / LATERAL MOVEMENT",
-                color = TelloRed,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(10.dp),
-            )
-        }
-    }
-    if (state.controllerMode == ControllerMode.Mock) {
-        state.shadowAutonomyDecision?.let { decision ->
-            StatusLine("SHADOW AUTONOMY", decision.state.name)
-            StatusLine("Eligibility", if (decision.eligible) "YES" else "NO")
-            StatusLine("Reason", decision.reason.name.replace('_', ' '))
-            if (decision.requiresExplicitRearm) Text("RE-ARM REQUIRED", color = TelloRed, fontSize = 11.sp)
-        }
-        AdaptiveActionPair(
-            { OutlineAction("ARM DRY RUN", Icons.Default.CheckCircle, true, { vm.setShadowAutonomyArmed(true) }, Modifier.fillMaxWidth()) },
-            { OutlineAction("DISARM", Icons.Default.Close, true, { vm.setShadowAutonomyArmed(false) }, Modifier.fillMaxWidth()) },
-        )
-        Text("SHADOW ONLY • NO AUTONOMOUS COMMANDS", color = TelloTextMuted, fontSize = 11.sp)
-    }
-    Text("Frame-local boxes only • Explicit target selection", color = TelloTextMuted, fontSize = 11.sp)
 }
 
 internal fun DroneSessionState.isCurrentTargetDetection(detection: com.alonibh.tellodrone.domain.PersonDetection): Boolean = target?.let {
@@ -930,7 +991,7 @@ private fun DetectorBenchmarkControls(state: DroneSessionState, vm: DroneViewMod
         VideoPanel(state, vm, Modifier.weight(1.4f).fillMaxHeight())
         Column(Modifier.weight(.8f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             TrackingControls(state, vm)
-            StatusPanel(state, Modifier.fillMaxWidth())
+            if (state.controllerMode == ControllerMode.Mock) StatusPanel(state, Modifier.fillMaxWidth())
         }
     }
 }
@@ -947,7 +1008,7 @@ private fun DetectorBenchmarkControls(state: DroneSessionState, vm: DroneViewMod
         contentPadding = PaddingValues(bottom = 8.dp),
     ) {
         item { TrackingControls(state, vm) }
-        item { StatusPanel(state) }
+        if (state.controllerMode == ControllerMode.Mock) item { StatusPanel(state) }
     }
 }
 

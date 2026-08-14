@@ -753,6 +753,32 @@ class TelloFlightSessionTest {
         assertYawFollowLatchedAtZero(videoFixture)
     }
 
+    @Test fun `explicit arm acknowledges hover intervention and resumes healthy matched target`() = runTest {
+        val (fixture, _) = yawReadyFixture()
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+
+        fixture.session.stopAndHover()
+
+        assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals(com.alonibh.tellodrone.domain.YawFollowReason.HOVER_INTERVENTION, fixture.session.state.value.yawFollowDecision.reason)
+        assertTrue(fixture.session.state.value.hoverActive)
+        assertEquals(RcVector.Zero, fixture.transport.rc.last())
+
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        assertFalse(fixture.session.state.value.hoverActive)
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+        assertTrue(fixture.transport.rc.last().yaw > 0)
+        assertEquals(0, fixture.transport.rc.last().lateral)
+        assertEquals(0, fixture.transport.rc.last().forward)
+        assertEquals(0, fixture.transport.rc.last().vertical)
+    }
+
     private fun assertYawFollowLatchedAtZero(fixture: Fixture) {
         assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
         assertEquals(RcVector.Zero, fixture.transport.rc.last())
