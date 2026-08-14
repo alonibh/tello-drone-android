@@ -188,6 +188,8 @@ class MockDroneController(initialState: DroneSessionState = mockInitialState()) 
         }
     }
 
+    override fun setCurrentFollowDistance() = Unit
+
     override fun setShadowAutonomyArmed(armed: Boolean) = update { state ->
         state.copy(shadowAutonomyDecision = shadowGate.evaluate(
             ShadowAutonomyInput(state.connection, state.flight, state.telemetry.isFresh, state.video.availability,

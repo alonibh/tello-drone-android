@@ -53,6 +53,7 @@ class AppDroneController(
     override fun runDetectorBenchmark() = selected().runDetectorBenchmark()
     override fun cancelDetectorBenchmark() = selected().cancelDetectorBenchmark()
     override fun selectTarget(detection: PersonDetection) = selected().selectTarget(detection)
+    override fun setCurrentFollowDistance() = selected().setCurrentFollowDistance()
     override fun setShadowAutonomyArmed(armed: Boolean) = selected().setShadowAutonomyArmed(armed)
     override fun setManualControlVector(vector: ManualControlVector) = selected().setManualControlVector(vector)
     override fun setSpeed(percent: Int) = selected().setSpeed(percent)

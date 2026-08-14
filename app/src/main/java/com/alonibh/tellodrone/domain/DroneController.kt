@@ -21,7 +21,7 @@ interface DroneController {
     fun cancelDetectorBenchmark() = Unit
     /** Explicit observational selection only; implementations must never infer a target. */
     fun selectTarget(detection: PersonDetection)
-    fun setCurrentFollowDistance() = Unit
+    fun setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = Unit
     fun setManualControlVector(vector: ManualControlVector)
     fun setSpeed(percent: Int)
