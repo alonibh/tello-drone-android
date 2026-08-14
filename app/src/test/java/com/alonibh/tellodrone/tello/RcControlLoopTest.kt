@@ -87,5 +87,37 @@ class RcControlLoopTest {
         assertEquals(listOf(RcVector(forward = 20), RcVector.Zero), sent)
     }
 
+    @Test fun `manual preemption invalidates autonomous publisher generation`() = runTest {
+        val clock = FakeClock(1_000)
+        val loop = RcControlLoop(backgroundScope, {}, clock)
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+        val generation = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(12, generation)
+        assertEquals(RcVector(yaw = 12), loop.currentVector())
+
+        loop.publish(ManualControlVector(forward = .5f), 20)
+        loop.publishAutonomousYaw(-12, generation)
+
+        assertEquals(RcVector(forward = 10), loop.currentVector())
+    }
+
+    @Test fun `delayed safety zero cannot overwrite newer manual command`() = runTest {
+        val sent = mutableListOf<RcVector>()
+        val clock = FakeClock(1_000)
+        val loop = RcControlLoop(backgroundScope, { sent += it }, clock)
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+        val generation = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(8, generation)
+        val preemption = loop.preemptAutonomy()
+
+        loop.publish(ManualControlVector(yaw = 1f), 20)
+        loop.sendZeroIfCurrent(preemption)
+        loop.sendCycle()
+
+        assertEquals(listOf(RcVector(yaw = 20)), sent)
+    }
+
     internal class FakeClock(var value: Long) : MonotonicClock { override fun nowMillis() = value }
 }

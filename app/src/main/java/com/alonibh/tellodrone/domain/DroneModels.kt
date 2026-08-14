@@ -155,6 +155,7 @@ data class DroneSessionState(
     val followDistanceCalibrationState: FollowDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
     val followDistanceCalibrationSamples: Int = 0,
     val shadowAutonomyDecision: ShadowAutonomyDecision? = null,
+    val yawFollowDecision: YawFollowDecision = YawFollowDecision(),
     val speedPercent: Int = 20,
     val manualVector: ManualControlVector = ManualControlVector(),
     /** App command state only: STOP/HOVER completed its explicit RC-zero action. */

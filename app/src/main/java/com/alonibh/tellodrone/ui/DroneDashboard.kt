@@ -134,6 +134,7 @@ import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
+import com.alonibh.tellodrone.domain.YawFollowState
 import com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD
 import com.alonibh.tellodrone.vision.MIN_PERSON_CONFIDENCE_THRESHOLD
 import com.alonibh.tellodrone.vision.MAX_PERSON_CONFIDENCE_THRESHOLD
@@ -681,7 +682,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     else OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, enabled, vm::stopAndHover, modifier, compact = compact)
 }
 
-@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON DETECTION / DRY RUN • PHASE 4G") {
+@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON TRACKING / YAW FOLLOW • PHASE 4H1") {
     val canStart = (state.controllerMode == ControllerMode.Mock && state.connection == DroneConnectionState.Connected) ||
         (state.controllerMode == ControllerMode.Real &&
             state.connection == DroneConnectionState.Connected &&
@@ -824,6 +825,52 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         StatusLine("Reason", intent.reason.name.replace('_', ' '))
         Text("NO COMMANDS SENT", color = TelloTextMuted, fontSize = 11.sp)
     }
+    if (state.controllerMode == ControllerMode.Real) {
+        HorizontalDivider(color = TelloLine)
+        Text("REAL YAW FOLLOW", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        StatusLine("State", state.yawFollowDecision.state.name, if (state.yawFollowDecision.state == YawFollowState.ACTIVE) TelloGreen else TelloTextMuted)
+        StatusLine("Reason", state.yawFollowDecision.reason.name.replace('_', ' '))
+        StatusLine("Yaw RC", state.yawFollowDecision.yawRc.toString())
+        if (state.yawFollowDecision.requiresExplicitRearm) {
+            Text("EXPLICIT RE-ARM REQUIRED", color = TelloRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        AdaptiveActionPair(
+            {
+                ActionButton(
+                    "ARM YAW FOLLOW",
+                    Icons.Default.CheckCircle,
+                    state.yawFollowDecision.state != YawFollowState.ACTIVE,
+                    { vm.setYawFollowArmed(true) },
+                    Modifier.fillMaxWidth().testTag("arm_yaw_follow"),
+                    active = state.yawFollowDecision.state in setOf(YawFollowState.ARMED_WAITING, YawFollowState.ACTIVE),
+                )
+            },
+            {
+                OutlineAction(
+                    "DISARM",
+                    Icons.Default.Close,
+                    state.yawFollowDecision.state != YawFollowState.DISARMED,
+                    { vm.setYawFollowArmed(false) },
+                    Modifier.fillMaxWidth().testTag("disarm_yaw_follow"),
+                )
+            },
+        )
+        Surface(
+            color = TelloRed.copy(alpha = .12f),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().border(1.dp, TelloRed.copy(alpha = .65f), RoundedCornerShape(8.dp))
+                .testTag("yaw_only_warning"),
+        ) {
+            Text(
+                "YAW ONLY • NO ALTITUDE / FORWARD / LATERAL MOVEMENT",
+                color = TelloRed,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(10.dp),
+            )
+        }
+    }
     if (state.controllerMode == ControllerMode.Mock) {
         state.shadowAutonomyDecision?.let { decision ->
             StatusLine("SHADOW AUTONOMY", decision.state.name)
@@ -837,7 +884,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         )
         Text("SHADOW ONLY • NO AUTONOMOUS COMMANDS", color = TelloTextMuted, fontSize = 11.sp)
     }
-    Text("Frame-local boxes only • Manual authority", color = TelloTextMuted, fontSize = 11.sp)
+    Text("Frame-local boxes only • Explicit target selection", color = TelloTextMuted, fontSize = 11.sp)
 }
 
 internal fun DroneSessionState.isCurrentTargetDetection(detection: com.alonibh.tellodrone.domain.PersonDetection): Boolean = target?.let {

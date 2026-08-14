@@ -26,6 +26,11 @@ import com.alonibh.tellodrone.domain.TrackingErrorEngine
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
+import com.alonibh.tellodrone.domain.YawFollowDecision
+import com.alonibh.tellodrone.domain.YawFollowGate
+import com.alonibh.tellodrone.domain.YawFollowInput
+import com.alonibh.tellodrone.domain.YawFollowReason
+import com.alonibh.tellodrone.domain.YawFollowState
 import com.alonibh.tellodrone.domain.withPersonDetectionVideoState
 import com.alonibh.tellodrone.domain.isZero
 import com.alonibh.tellodrone.vision.PersonDetectionStore
@@ -84,6 +89,9 @@ class TelloFlightSession(
     private var latestAcceptedDetectorFrame: DetectorFrameIdentity? = null
     private var lastPlannerFrameTimestampNanos: Long? = null
     private val distanceCalibrator = FollowDistanceCalibrator()
+    private val yawFollowLock = Any()
+    private val yawFollowGate = YawFollowGate()
+    private var yawFollowGeneration: Long? = null
 
     private val rcLoop = RcControlLoop(
         scope = scope,
@@ -95,6 +103,7 @@ class TelloFlightSession(
     suspend fun connect(): Boolean = commandStateMutex.withLock {
         if (closed) return@withLock false
         resetRealTracking()
+        val yawDecision = resetYawFollowForNewSession()
         takeoffAcknowledged = false
         landingAcknowledged = false
         videoStreamAcknowledged = false
@@ -108,6 +117,7 @@ class TelloFlightSession(
                 video = VideoState(),
                 personDetections = emptyList(),
                 target = null,
+                yawFollowDecision = yawDecision,
                 followDistanceReference = null,
                 followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
                 lastMessage = "Tello Wi-Fi selected; entering SDK mode",
@@ -184,6 +194,7 @@ class TelloFlightSession(
         takeoffAcknowledged = false
         landingAcknowledged = false
         requireManualNeutral()
+        latchYawFollow(YawFollowReason.LANDING)
         rcLoop.clearAndSendZero()
         rcLoop.setEnabled(false)
         mutableState.update {
@@ -222,6 +233,7 @@ class TelloFlightSession(
             return@withLock
         }
         requireManualNeutral()
+        latchYawFollow(YawFollowReason.HOVER_INTERVENTION)
         rcLoop.clearAndSendZero()
         mutableState.update { state ->
             if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying) {
@@ -244,6 +256,7 @@ class TelloFlightSession(
         takeoffAcknowledged = false
         landingAcknowledged = false
         requireManualNeutral()
+        latchYawFollow(YawFollowReason.EMERGENCY)
         rcLoop.lockOutAfterZero()
         video?.setPersonDetectionEnabled(false)
         resetRealTracking()
@@ -269,18 +282,53 @@ class TelloFlightSession(
         if (requiresNeutralInput(vector)) return
         val current = mutableState.value
         if (current.connection == DroneConnectionState.Connected && current.flight == FlightState.Flying && current.telemetry.isFresh) {
-            rcLoop.publish(vector, current.speedPercent)
-            mutableState.update { state ->
-                if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying && state.telemetry.isFresh &&
-                    (state.manualVector != vector || state.authority != ControlAuthority.Manual)
-                ) {
-                    state.copy(
+            synchronized(yawFollowLock) {
+                val state = mutableState.value
+                if (state.connection != DroneConnectionState.Connected || state.flight != FlightState.Flying || !state.telemetry.isFresh) {
+                    return@synchronized
+                }
+                if (!vector.isZero()) {
+                    // RC invalidation and gate latching share this lock with every autonomous publish.
+                    rcLoop.publish(vector, state.speedPercent)
+                    yawFollowGeneration = null
+                    val decision = yawFollowGate.preempt(YawFollowReason.MANUAL_OVERRIDE)
+                    mutableState.value = state.copy(
                         authority = ControlAuthority.Manual,
                         manualVector = vector,
-                    hoverActive = if (vector.isZero()) state.hoverActive else false,
-                )
-                } else state
+                        hoverActive = false,
+                        yawFollowDecision = decision,
+                    )
+                } else if (state.yawFollowDecision.state != YawFollowState.ACTIVE) {
+                    rcLoop.publish(vector, state.speedPercent)
+                    mutableState.value = state.copy(manualVector = vector)
+                }
             }
+        }
+    }
+
+    fun setYawFollowArmed(armed: Boolean) {
+        var zeroGeneration: Long? = null
+        synchronized(yawFollowLock) {
+            val current = mutableState.value
+            val decision = if (armed) yawFollowGate.arm(current.toYawFollowInput()) else yawFollowGate.disarm()
+            val manualWins = decision.reason == YawFollowReason.MANUAL_OVERRIDE && !current.manualVector.isZero()
+            if (decision.state == YawFollowState.ACTIVE) {
+                val generation = rcLoop.beginAutonomousYaw()
+                yawFollowGeneration = generation
+                rcLoop.publishAutonomousYaw(decision.yawRc, generation)
+            } else if (!manualWins) {
+                yawFollowGeneration = null
+                zeroGeneration = rcLoop.preemptAutonomy()
+            }
+            mutableState.value = current.copy(
+                authority = if (decision.state == YawFollowState.ACTIVE) ControlAuthority.Autonomous else ControlAuthority.Manual,
+                yawFollowDecision = decision,
+                lastMessage = if (armed) "Yaw follow ${decision.state.name}: ${decision.reason.displayName()}" else
+                    "Yaw follow disarmed; zero movement selected",
+            )
+        }
+        if (!armed || zeroGeneration != null && mutableState.value.yawFollowDecision.requiresExplicitRearm) {
+            zeroGeneration?.let(::sendYawFollowZero)
         }
     }
 
@@ -292,6 +340,7 @@ class TelloFlightSession(
         val activeVideo = video
         when (mode) {
             TrackingMode.Off -> {
+                latchYawFollowAndSendZero(YawFollowReason.DETECTOR_UNAVAILABLE)
                 activeVideo?.setPersonDetectionEnabled(false)
                 activeVideo?.cancelDetectorBenchmark()
                 resetRealTracking()
@@ -454,6 +503,7 @@ class TelloFlightSession(
                 )
             }
         }
+        reconcileYawFollow()
     }
 
     fun setCurrentFollowDistance() = synchronized(trackingLock) {
@@ -471,6 +521,7 @@ class TelloFlightSession(
         if (lastTelemetryAtMillis != last) return
         if (age >= TELEMETRY_STALE_MILLIS && mutableState.value.telemetry.isFresh) {
             requireManualNeutral()
+            latchYawFollow(YawFollowReason.TELEMETRY_STALE)
             rcLoop.setHealthy(false)
             rcLoop.clearAndSendZero()
             mutableState.update { state ->
@@ -565,6 +616,7 @@ class TelloFlightSession(
                 }
                 if (becameGrounded) landingAcknowledged = false
                 if (!closed && mutableState.value.connection == DroneConnectionState.Connected) rcLoop.setHealthy(true)
+                reconcileYawFollow()
             }
         }
     }
@@ -589,40 +641,47 @@ class TelloFlightSession(
         }
     }
 
-    private fun applyVideoState(videoState: VideoState) = synchronized(trackingLock) {
-        val frame = videoState.detectorFrameIdentity()
-        val ready = videoState.availability == VideoAvailability.Streaming &&
-            videoState.personDetectionState == PersonDetectionState.Detecting
-        if (!ready) {
-            resetRealTrackingLocked()
-            mutableState.update { it.withPersonDetectionVideoState(videoState) }
-            return@synchronized
-        }
-        val newAcceptedFrame = frame?.takeIf { it.isNewerThan(latestAcceptedDetectorFrame) }
-        if (newAcceptedFrame != null) latestAcceptedDetectorFrame = newAcceptedFrame
-        mutableState.update { current ->
-            val baseline = current.withPersonDetectionVideoState(videoState)
-            when {
-                newAcceptedFrame != null && current.target != null ->
-                    applyAssociation(baseline, current.target, newAcceptedFrame)
-                current.target != null && current.video.personDetections.isNotEmpty() &&
-                    videoState.personDetections.isEmpty() && frame == current.video.detectorFrameIdentity() -> {
-                    val errors = trackingErrors.update(current.target, targetFresh = false)
-                    baseline.copy(
-                        tracking = TrackingMode.TargetLocked,
-                        authority = ControlAuthority.Manual,
-                        trackingErrors = errors,
-                        dryRunControlIntent = dryRunPlanner.plan(
-                            errors,
-                            current.targetAssociationState,
-                            Float.NaN,
-                        ),
-                        lastMessage = "Real detector result expired; no commands sent",
-                    )
+    private fun applyVideoState(videoState: VideoState) {
+        var publishActive = false
+        synchronized(trackingLock) {
+            val frame = videoState.detectorFrameIdentity()
+            val ready = videoState.availability == VideoAvailability.Streaming &&
+                videoState.personDetectionState == PersonDetectionState.Detecting
+            if (!ready) {
+                resetRealTrackingLocked()
+                mutableState.update { it.withPersonDetectionVideoState(videoState) }
+            } else {
+                val newAcceptedFrame = frame?.takeIf { it.isNewerThan(latestAcceptedDetectorFrame) }
+                if (newAcceptedFrame != null) {
+                    latestAcceptedDetectorFrame = newAcceptedFrame
+                    publishActive = true
                 }
-                else -> baseline
+                mutableState.update { current ->
+                    val baseline = current.withPersonDetectionVideoState(videoState)
+                    when {
+                        newAcceptedFrame != null && current.target != null ->
+                            applyAssociation(baseline, current.target, newAcceptedFrame)
+                        current.target != null && current.video.personDetections.isNotEmpty() &&
+                            videoState.personDetections.isEmpty() && frame == current.video.detectorFrameIdentity() -> {
+                            val errors = trackingErrors.update(current.target, targetFresh = false)
+                            baseline.copy(
+                                tracking = TrackingMode.TargetLocked,
+                                authority = ControlAuthority.Manual,
+                                trackingErrors = errors,
+                                dryRunControlIntent = dryRunPlanner.plan(
+                                    errors,
+                                    current.targetAssociationState,
+                                    Float.NaN,
+                                ),
+                                lastMessage = "Real detector result expired; no commands sent",
+                            )
+                        }
+                        else -> baseline
+                    }
+                }
             }
         }
+        reconcileYawFollow(publishActive)
     }
 
     private fun applyAssociation(
@@ -655,7 +714,7 @@ class TelloFlightSession(
                     followDistanceReference = calibration.reference,
                     followDistanceCalibrationState = calibration.state,
                     followDistanceCalibrationSamples = calibration.samples,
-                    lastMessage = "Real target matched; dry run only, no commands sent",
+                    lastMessage = "Real target matched; yaw-follow safety gate evaluated",
                 )
             }
             is TargetAssociationResult.TemporarilyMissing -> {
@@ -674,7 +733,7 @@ class TelloFlightSession(
                     followDistanceReference = reference,
                     followDistanceCalibrationState = state,
                     followDistanceCalibrationSamples = if (preserveSet) baseline.followDistanceCalibrationSamples else 0,
-                    lastMessage = "Real target temporarily missing; no commands sent",
+                    lastMessage = "Real target temporarily missing; yaw zero selected",
                 )
             }
             is TargetAssociationResult.Ambiguous -> {
@@ -716,6 +775,82 @@ class TelloFlightSession(
     }
 
     private fun resetRealTracking() = synchronized(trackingLock) { resetRealTrackingLocked() }
+
+    private fun resetYawFollowForNewSession(): YawFollowDecision = synchronized(yawFollowLock) {
+        yawFollowGeneration = null
+        yawFollowGate.disarm()
+    }
+
+    private fun reconcileYawFollow(publishActive: Boolean = false) {
+        var zeroGeneration: Long? = null
+        synchronized(yawFollowLock) {
+            val current = mutableState.value
+            val previous = current.yawFollowDecision
+            val decision = yawFollowGate.evaluate(current.toYawFollowInput())
+            if (decision.state == YawFollowState.ACTIVE) {
+                val generation = yawFollowGeneration
+                    ?.takeIf { previous.state == YawFollowState.ACTIVE }
+                    ?: rcLoop.beginAutonomousYaw().also { yawFollowGeneration = it }
+                if (publishActive || previous.state != YawFollowState.ACTIVE) {
+                    rcLoop.publishAutonomousYaw(decision.yawRc, generation)
+                }
+            } else {
+                val newlyStopped = previous.state == YawFollowState.ACTIVE
+                val newlyLatched = decision.state == YawFollowState.REQUIRES_REARM &&
+                    previous.state != YawFollowState.REQUIRES_REARM
+                if ((newlyStopped || newlyLatched) && decision.reason != YawFollowReason.MANUAL_OVERRIDE) {
+                    zeroGeneration = rcLoop.preemptAutonomy()
+                }
+                yawFollowGeneration = null
+            }
+            mutableState.value = current.copy(
+                authority = if (decision.state == YawFollowState.ACTIVE) ControlAuthority.Autonomous else ControlAuthority.Manual,
+                yawFollowDecision = decision,
+            )
+        }
+        zeroGeneration?.let(::sendYawFollowZero)
+    }
+
+    /** Latches a named intervention; the owning safety path performs its own serialized zero. */
+    private fun latchYawFollow(reason: YawFollowReason): Long? = synchronized(yawFollowLock) {
+        val current = mutableState.value
+        val previous = current.yawFollowDecision
+        val decision = yawFollowGate.preempt(reason)
+        yawFollowGeneration = null
+        val generation = if (previous.state in setOf(YawFollowState.ARMED_WAITING, YawFollowState.ACTIVE)) {
+            rcLoop.preemptAutonomy()
+        } else {
+            null
+        }
+        mutableState.value = current.copy(
+            authority = ControlAuthority.Manual,
+            yawFollowDecision = decision,
+        )
+        generation
+    }
+
+    private fun latchYawFollowAndSendZero(reason: YawFollowReason) {
+        latchYawFollow(reason)?.let(::sendYawFollowZero)
+    }
+
+    private fun sendYawFollowZero(generation: Long) {
+        scope.launch { rcLoop.sendZeroIfCurrent(generation) }
+    }
+
+    private fun DroneSessionState.toYawFollowInput() = YawFollowInput(
+        connection = connection,
+        flight = flight,
+        telemetryFresh = telemetry.isFresh,
+        video = video.availability,
+        detector = video.personDetectionState,
+        targetPresent = target != null,
+        association = targetAssociationState,
+        errors = trackingErrors,
+        manualInputNeutral = manualVector.isZero(),
+        hoverActive = hoverActive,
+    )
+
+    private fun YawFollowReason.displayName() = name.replace('_', ' ')
 
     private fun resetRealTrackingLocked() {
         trackingErrors.reset()
@@ -760,6 +895,7 @@ class TelloFlightSession(
         takeoffAcknowledged = false
         landingAcknowledged = false
         requireManualNeutral()
+        latchYawFollow(YawFollowReason.CONNECTION_LOST)
         resetRealTracking()
         mutableState.update { state ->
             if (state.connection == DroneConnectionState.Error || closed) state else {

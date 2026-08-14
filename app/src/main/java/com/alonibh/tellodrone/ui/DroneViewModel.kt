@@ -40,6 +40,7 @@ class DroneViewModel(private val controller: DroneController) : ViewModel() {
     fun selectTarget(detection: PersonDetection) = controller.selectTarget(detection)
     fun setCurrentFollowDistance() = controller.setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = controller.setShadowAutonomyArmed(armed)
+    fun setYawFollowArmed(armed: Boolean) = controller.setYawFollowArmed(armed)
     fun setManualVector(vector: ManualControlVector) = controller.setManualControlVector(vector)
     fun setSpeed(percent: Int) = controller.setSpeed(percent)
     fun attachVideoSurface(surface: Surface) = controller.attachVideoSurface(surface)

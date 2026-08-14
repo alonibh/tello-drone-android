@@ -14,6 +14,7 @@ import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
+import com.alonibh.tellodrone.domain.YawFollowState
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -504,6 +506,173 @@ class TelloFlightSessionTest {
         assertTrue(fixture.transport.rc.isEmpty())
     }
 
+    @Test fun `matched target sends capped sign preserving yaw and exactly zero other axes`() = runTest {
+        val (fixture, _) = yawReadyFixture(NormalizedBoundingBox(.55f, .20f, .85f, .80f))
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        val command = fixture.transport.rc.last()
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+        assertTrue(command.yaw > 0)
+        assertTrue(kotlin.math.abs(command.yaw) <= 12)
+        assertEquals(0, command.lateral)
+        assertEquals(0, command.forward)
+        assertEquals(0, command.vertical)
+
+        val (leftFixture, _) = yawReadyFixture(NormalizedBoundingBox(.15f, .20f, .45f, .80f))
+        leftFixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+        assertTrue(leftFixture.transport.rc.last().yaw < 0)
+    }
+
+    @Test fun `centered matched target sends zero`() = runTest {
+        val (fixture, _) = yawReadyFixture(NormalizedBoundingBox(.40f, .20f, .60f, .80f))
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals(RcVector.Zero, fixture.transport.rc.last())
+    }
+
+    @Test fun `temporary missing zeros then same target resumes without another arm`() = runTest {
+        val box = NormalizedBoundingBox(.55f, .20f, .85f, .80f)
+        val (fixture, video) = yawReadyFixture(box)
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+        assertTrue(fixture.transport.rc.last().yaw > 0)
+
+        fixture.detectorNowNanos.set(1_200_000_000L)
+        video.publishDetections(3L, 1_200_000_000L, emptyList())
+        runCurrent()
+        assertEquals(YawFollowState.ARMED_WAITING, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals(RcVector.Zero, fixture.transport.rc.last())
+
+        val sameTarget = detection(box = box, frame = 4L, timestamp = 1_300_000_000L)
+        fixture.detectorNowNanos.set(1_300_000_000L)
+        video.publishDetections(4L, 1_300_000_000L, listOf(sameTarget))
+        runCurrent()
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+        assertTrue(fixture.transport.rc.last().yaw > 0)
+    }
+
+    @Test fun `ambiguous and lost association zero and require explicit rearm`() = runTest {
+        val box = NormalizedBoundingBox(.55f, .20f, .85f, .80f)
+        val (ambiguousFixture, ambiguousVideo) = yawReadyFixture(box)
+        ambiguousFixture.session.setYawFollowArmed(true)
+        ambiguousFixture.detectorNowNanos.set(1_200_000_000L)
+        ambiguousVideo.publishDetections(
+            3L,
+            1_200_000_000L,
+            listOf(
+                detection(box = box, frame = 3L, timestamp = 1_200_000_000L),
+                detection(box = box, frame = 3L, timestamp = 1_200_000_000L),
+            ),
+        )
+        runCurrent()
+        assertEquals(YawFollowState.REQUIRES_REARM, ambiguousFixture.session.state.value.yawFollowDecision.state)
+        assertEquals(RcVector.Zero, ambiguousFixture.transport.rc.last())
+
+        val (lostFixture, lostVideo) = yawReadyFixture(box)
+        lostFixture.session.setYawFollowArmed(true)
+        lostFixture.detectorNowNanos.set(2_100_000_001L)
+        lostVideo.publishDetections(3L, 2_100_000_001L, emptyList())
+        runCurrent()
+        assertEquals(YawFollowState.REQUIRES_REARM, lostFixture.session.state.value.yawFollowDecision.state)
+        assertEquals(RcVector.Zero, lostFixture.transport.rc.last())
+    }
+
+    @Test fun `manual nonzero preempts and later tracking cannot overwrite it`() = runTest {
+        val box = NormalizedBoundingBox(.55f, .20f, .85f, .80f)
+        val (fixture, video) = yawReadyFixture(box)
+        fixture.session.publishManualControl(ManualControlVector())
+        fixture.session.setYawFollowArmed(true)
+        fixture.session.publishManualControl(ManualControlVector(forward = .5f))
+
+        fixture.detectorNowNanos.set(1_200_000_000L)
+        video.publishDetections(
+            3L,
+            1_200_000_000L,
+            listOf(detection(box = box, frame = 3L, timestamp = 1_200_000_000L)),
+        )
+        runCurrent()
+        advanceTimeBy(50L)
+        runCurrent()
+
+        assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
+
+        fixture.session.setTrackingMode(TrackingMode.Off)
+        runCurrent()
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
+    }
+
+    @Test fun `hover land emergency stale telemetry and video loss zero and latch`() = runTest {
+        val (hoverFixture, _) = yawReadyFixture()
+        hoverFixture.session.setYawFollowArmed(true)
+        hoverFixture.session.stopAndHover()
+        assertYawFollowLatchedAtZero(hoverFixture)
+
+        val (landFixture, _) = yawReadyFixture()
+        landFixture.session.setYawFollowArmed(true)
+        landFixture.session.land()
+        assertYawFollowLatchedAtZero(landFixture)
+
+        val (emergencyFixture, _) = yawReadyFixture()
+        emergencyFixture.session.setYawFollowArmed(true)
+        emergencyFixture.session.emergencyMotorKill()
+        assertYawFollowLatchedAtZero(emergencyFixture)
+
+        val (staleFixture, _) = yawReadyFixture()
+        staleFixture.session.setYawFollowArmed(true)
+        staleFixture.clock.value += TelloFlightSession.TELEMETRY_STALE_MILLIS
+        staleFixture.session.refreshConnectionHealth()
+        assertYawFollowLatchedAtZero(staleFixture)
+
+        val (videoFixture, video) = yawReadyFixture()
+        videoFixture.session.setYawFollowArmed(true)
+        video.publishUnavailable()
+        runCurrent()
+        assertYawFollowLatchedAtZero(videoFixture)
+    }
+
+    private fun assertYawFollowLatchedAtZero(fixture: Fixture) {
+        assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals(RcVector.Zero, fixture.transport.rc.last())
+    }
+
+    private suspend fun TestScope.yawReadyFixture(
+        box: NormalizedBoundingBox = NormalizedBoundingBox(.55f, .20f, .85f, .80f),
+    ): Pair<Fixture, FakeVideoController> {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+        takeOffAndVerify(fixture)
+        fixture.session.setTrackingMode(TrackingMode.DetectOnly)
+
+        val selected = detection(box = box, frame = 1L, timestamp = 1_000_000_000L)
+        fixture.detectorNowNanos.set(1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(selected))
+        runCurrent()
+        fixture.session.selectTarget(selected)
+
+        val matched = detection(box = box, frame = 2L, timestamp = 1_100_000_000L)
+        fixture.detectorNowNanos.set(1_100_000_000L)
+        video.publishDetections(2L, 1_100_000_000L, listOf(matched))
+        runCurrent()
+        assertEquals(TargetAssociationState.Matched, fixture.session.state.value.targetAssociationState)
+        return fixture to video
+    }
+
     private suspend fun TestScope.connectedFixture(): Fixture = fixture().also {
         it.transport.emitTelemetry(it.clock.value)
         assertTrue(it.session.connect())
@@ -636,6 +805,14 @@ class TelloFlightSessionTest {
                 processedDetectorFrameSequence = frame,
                 processedDetectorSourceTimestampNanos = timestamp,
                 personDetections = detections,
+            )
+        }
+
+        fun publishUnavailable() {
+            mutableState.value = mutableState.value.copy(
+                availability = VideoAvailability.Error,
+                personDetectionState = PersonDetectionState.Off,
+                personDetections = emptyList(),
             )
         }
 

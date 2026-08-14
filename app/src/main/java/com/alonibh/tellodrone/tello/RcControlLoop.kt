@@ -29,6 +29,8 @@ class RcControlLoop(
     private var enabled = false
     private var healthy = false
     private var lockedOut = false
+    private var autonomyGeneration = 0L
+    private var activeAutonomyGeneration: Long? = null
     private var loopJob: Job? = null
 
     fun start() {
@@ -45,20 +47,42 @@ class RcControlLoop(
 
     fun setEnabled(value: Boolean) = synchronized(lock) {
         enabled = value && !lockedOut
-        if (!enabled) desired = Desired(RcVector.Zero, clock.nowMillis())
+        if (!enabled) preemptAutonomyLocked()
     }
 
     fun setHealthy(value: Boolean) = synchronized(lock) {
         healthy = value && !lockedOut
-        if (!healthy) desired = Desired(RcVector.Zero, clock.nowMillis())
+        if (!healthy) preemptAutonomyLocked()
     }
 
+    /** Manual publication invalidates every previously issued autonomous generation first. */
     fun publish(vector: ManualControlVector, speedPercent: Int) = synchronized(lock) {
         if (enabled && healthy && !lockedOut) {
+            preemptAutonomyLocked()
             val magnitude = speedPercent.coerceIn(MINIMUM_RC_MAGNITUDE, maximumRcMagnitude)
             desired = Desired(vector.toRcVector(magnitude, maximumRcMagnitude), clock.nowMillis())
         }
     }
+
+    fun beginAutonomousYaw(): Long = synchronized(lock) {
+        autonomyGeneration += 1L
+        activeAutonomyGeneration = autonomyGeneration
+        desired = Desired(RcVector.Zero, clock.nowMillis())
+        autonomyGeneration
+    }
+
+    /** The yaw-only API cannot express lateral, forward/back, or vertical output. */
+    fun publishAutonomousYaw(yawRc: Int, generation: Long) = synchronized(lock) {
+        if (enabled && healthy && !lockedOut && activeAutonomyGeneration == generation) {
+            desired = Desired(
+                RcVector(yaw = yawRc.coerceIn(-AUTONOMOUS_YAW_RC_CAP, AUTONOMOUS_YAW_RC_CAP)),
+                clock.nowMillis(),
+            )
+        }
+    }
+
+    /** Synchronously makes all outstanding autonomous publishers stale and selects zero. */
+    fun preemptAutonomy(): Long = synchronized(lock) { preemptAutonomyLocked() }
 
     fun currentVector(nowMillis: Long = clock.nowMillis()): RcVector = synchronized(lock) {
         if (!enabled || !healthy || lockedOut || nowMillis - desired.publishedAtMillis >= inputTtlMillis) {
@@ -84,8 +108,20 @@ class RcControlLoop(
     }
 
     suspend fun clearAndSendZero() {
-        synchronized(lock) { desired = Desired(RcVector.Zero, clock.nowMillis()) }
+        val generation = preemptAutonomy()
+        sendZeroIfCurrent(generation)
+    }
+
+    /**
+     * Sends the preemption zero only if no newer manual, safety, or re-arm action has won. This
+     * preserves send serialization without allowing a delayed zero to overwrite a newer command.
+     */
+    suspend fun sendZeroIfCurrent(generation: Long) {
         sendMutex.withLock {
+            val stillCurrent = synchronized(lock) {
+                autonomyGeneration == generation && desired.vector == RcVector.Zero
+            }
+            if (!stillCurrent) return@withLock
             try {
                 sender(RcVector.Zero)
             } catch (cancelled: CancellationException) {
@@ -125,5 +161,15 @@ class RcControlLoop(
     private fun axisToRc(value: Float, magnitude: Int, maximum: Int): Int =
         (value.coerceIn(-1f, 1f) * magnitude).roundToInt().coerceIn(-maximum, maximum)
 
-    companion object { const val MINIMUM_RC_MAGNITUDE = 10 }
+    private fun preemptAutonomyLocked(): Long {
+        autonomyGeneration += 1L
+        activeAutonomyGeneration = null
+        desired = Desired(RcVector.Zero, clock.nowMillis())
+        return autonomyGeneration
+    }
+
+    companion object {
+        const val MINIMUM_RC_MAGNITUDE = 10
+        const val AUTONOMOUS_YAW_RC_CAP = 12
+    }
 }
