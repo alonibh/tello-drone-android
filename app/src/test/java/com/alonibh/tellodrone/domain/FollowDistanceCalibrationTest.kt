@@ -43,6 +43,80 @@ class FollowDistanceCalibrationTest {
         assertTrue(!uncalibrated.distanceCalibrated)
     }
 
+    @Test fun `fresh stable target with edge-clipped box can start calibration`() {
+        val clippedBox = NormalizedBoundingBox(0.01f, .2f, .4f, .8f)
+        val state = DroneSessionState(
+            connection = DroneConnectionState.Connected,
+            video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Detecting),
+            target = target(clippedBox),
+            targetAssociationState = TargetAssociationState.Matched,
+            trackingErrors = TrackingErrors(0f, 0f, 0f, targetFresh = true, distanceCalibrated = false),
+        )
+        assertEquals(FollowDistanceEligibilityReason.READY, FollowDistanceEligibility.evaluate(state))
+    }
+
+    @Test fun `clipped frames still do not count as calibration samples`() {
+        val calibrator = FollowDistanceCalibrator()
+        calibrator.start(0L)
+        val clippedBox = NormalizedBoundingBox(0.01f, .2f, .4f, .8f)
+        assertNull(calibrator.add(1L, 1L, clippedBox))
+        assertEquals(0, calibrator.sampleCount)
+
+        val validBox = NormalizedBoundingBox(.2f, .2f, .6f, .6f)
+        assertNull(calibrator.add(2L, 2L, validBox))
+        assertEquals(1, calibrator.sampleCount)
+
+        assertNull(calibrator.add(3L, 3L, clippedBox))
+        assertEquals(1, calibrator.sampleCount)
+    }
+
+    @Test fun `unstable or missing target still cannot start calibration`() {
+        val baseReady = DroneSessionState(
+            connection = DroneConnectionState.Connected,
+            video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Detecting),
+            target = target(boxForScale(.3f)),
+            targetAssociationState = TargetAssociationState.Matched,
+            trackingErrors = TrackingErrors(0f, 0f, 0f, targetFresh = true, distanceCalibrated = false),
+        )
+
+        assertEquals(
+            FollowDistanceEligibilityReason.SELECT_A_PERSON,
+            FollowDistanceEligibility.evaluate(baseReady.copy(target = null)),
+        )
+        assertEquals(
+            FollowDistanceEligibilityReason.TARGET_NOT_STABLE,
+            FollowDistanceEligibility.evaluate(baseReady.copy(targetAssociationState = TargetAssociationState.TemporarilyMissing)),
+        )
+        assertEquals(
+            FollowDistanceEligibilityReason.TARGET_NOT_STABLE,
+            FollowDistanceEligibility.evaluate(baseReady.copy(targetAssociationState = TargetAssociationState.Lost)),
+        )
+        assertEquals(
+            FollowDistanceEligibilityReason.TARGET_NOT_STABLE,
+            FollowDistanceEligibility.evaluate(baseReady.copy(targetAssociationState = TargetAssociationState.Ambiguous)),
+        )
+        assertEquals(
+            FollowDistanceEligibilityReason.TARGET_NOT_STABLE,
+            FollowDistanceEligibility.evaluate(baseReady.copy(trackingErrors = TrackingErrors(0f, 0f, 0f, targetFresh = false, distanceCalibrated = false))),
+        )
+        assertEquals(
+            FollowDistanceEligibilityReason.SELECT_A_PERSON,
+            FollowDistanceEligibility.evaluate(baseReady.copy(connection = DroneConnectionState.Disconnected)),
+        )
+        assertEquals(
+            FollowDistanceEligibilityReason.SELECT_A_PERSON,
+            FollowDistanceEligibility.evaluate(baseReady.copy(video = VideoState(availability = VideoAvailability.Unavailable, personDetectionState = PersonDetectionState.Detecting))),
+        )
+        assertEquals(
+            FollowDistanceEligibilityReason.SELECT_A_PERSON,
+            FollowDistanceEligibility.evaluate(baseReady.copy(video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Off))),
+        )
+        assertEquals(
+            FollowDistanceEligibilityReason.CALIBRATING,
+            FollowDistanceEligibility.evaluate(baseReady.copy(followDistanceCalibrationState = FollowDistanceCalibrationState.Calibrating)),
+        )
+    }
+
     private fun boxForScale(scale: Float) = NormalizedBoundingBox(.5f - scale / 2, .5f - scale / 2, .5f + scale / 2, .5f + scale / 2)
     private fun target(box: NormalizedBoundingBox) = TrackedTarget(box, .9f, 1L, 1L)
 }

@@ -45,7 +45,7 @@ class FollowDistanceCalibrator(
     }
 }
 
-enum class FollowDistanceEligibilityReason { READY, SELECT_A_PERSON, KEEP_PERSON_FULLY_IN_FRAME, TARGET_NOT_STABLE, CALIBRATING }
+enum class FollowDistanceEligibilityReason { READY, SELECT_A_PERSON, TARGET_NOT_STABLE, CALIBRATING }
 
 object FollowDistanceEligibility {
     fun evaluate(state: DroneSessionState): FollowDistanceEligibilityReason = when {
@@ -53,7 +53,6 @@ object FollowDistanceEligibility {
         state.connection != DroneConnectionState.Connected || state.video.availability != VideoAvailability.Streaming ||
             state.video.personDetectionState != PersonDetectionState.Detecting || state.target == null -> FollowDistanceEligibilityReason.SELECT_A_PERSON
         state.targetAssociationState !in setOf(TargetAssociationState.Selected, TargetAssociationState.Matched) || state.trackingErrors?.targetFresh != true -> FollowDistanceEligibilityReason.TARGET_NOT_STABLE
-        !FollowDistanceCalibrator.isValidUnclipped(state.target.boundingBox) -> FollowDistanceEligibilityReason.KEEP_PERSON_FULLY_IN_FRAME
         else -> FollowDistanceEligibilityReason.READY
     }
 }

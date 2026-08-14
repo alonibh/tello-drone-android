@@ -319,6 +319,59 @@ class TelloFlightSessionTest {
         assertTrue(fixture.transport.rc.isEmpty())
     }
 
+    @Test fun `edge clipped matched target can start calibration and only unclipped frames accumulate`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        fixture.session.setCurrentFollowDistance()
+        assertEquals(com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.NotSet, fixture.session.state.value.followDistanceCalibrationState)
+
+        val clippedBox = NormalizedBoundingBox(0.01f, .20f, .30f, .80f)
+        val selected = detection(box = clippedBox, frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(selected))
+        runCurrent()
+        fixture.session.selectTarget(selected)
+
+        fixture.detectorNowNanos.set(1_100_000_000L)
+        val edgeTarget = detection(box = clippedBox, frame = 2L, timestamp = 1_100_000_000L)
+        video.publishDetections(2L, 1_100_000_000L, listOf(edgeTarget))
+        runCurrent()
+
+        assertEquals(TargetAssociationState.Matched, fixture.session.state.value.targetAssociationState)
+        assertTrue(fixture.session.state.value.trackingErrors!!.targetFresh)
+
+        fixture.session.setCurrentFollowDistance()
+        assertEquals(com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Calibrating, fixture.session.state.value.followDistanceCalibrationState)
+        assertEquals(0, fixture.session.state.value.followDistanceCalibrationSamples)
+
+        fixture.detectorNowNanos.set(1_200_000_000L)
+        video.publishDetections(3L, 1_200_000_000L, listOf(detection(box = clippedBox, frame = 3L, timestamp = 1_200_000_000L)))
+        runCurrent()
+        assertEquals(com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Calibrating, fixture.session.state.value.followDistanceCalibrationState)
+        assertEquals(0, fixture.session.state.value.followDistanceCalibrationSamples)
+
+        val validBox = NormalizedBoundingBox(.03f, .20f, .30f, .80f)
+        repeat(7) { offset ->
+            val frame = 4L + offset
+            val timestamp = 1_300_000_000L + offset * 100_000_000L
+            fixture.detectorNowNanos.set(timestamp)
+            video.publishDetections(frame, timestamp, listOf(detection(box = validBox, frame = frame, timestamp = timestamp)))
+            runCurrent()
+        }
+
+        assertEquals(com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Set, fixture.session.state.value.followDistanceCalibrationState)
+        assertEquals(7, fixture.session.state.value.followDistanceCalibrationSamples)
+
+        val finalTimestamp = 2_000_000_000L
+        fixture.detectorNowNanos.set(finalTimestamp)
+        video.publishDetections(11L, finalTimestamp, listOf(detection(box = validBox, frame = 11L, timestamp = finalTimestamp)))
+        runCurrent()
+        assertTrue(fixture.session.state.value.dryRunControlIntent!!.actionable)
+    }
+
     @Test fun `real selection rejects stale fabricated and previous frame detections`() = runTest {
         val video = FakeVideoController()
         val fixture = fixture(video)
