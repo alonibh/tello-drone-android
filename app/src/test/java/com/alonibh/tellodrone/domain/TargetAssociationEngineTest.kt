@@ -66,6 +66,79 @@ class TargetAssociationEngineTest {
         assertEquals(selected, result.target)
     }
 
+    @Test fun `bounded prediction matches consistent motion after one missed detector frame`() {
+        val moving = movingTargetWithTwoMatches()
+        val missing = engine.associate(moving, 4L, 400_000_000L, emptyList())
+            as TargetAssociationResult.TemporarilyMissing
+        val continued = detection(
+            box = box(.61f, .20f, .81f, .80f),
+            frame = 5L,
+            timestamp = 500_000_000L,
+        )
+
+        val result = engine.associate(missing.target, 5L, 500_000_000L, listOf(continued))
+            as TargetAssociationResult.Matched
+
+        assertEquals(continued.boundingBox, result.target.boundingBox)
+    }
+
+    @Test fun `bounded prediction rejects implausible jump then still becomes lost`() {
+        val moving = movingTargetWithTwoMatches()
+        val implausible = detection(
+            box = box(.90f, .20f, 1.00f, .80f),
+            frame = 5L,
+            timestamp = 800_000_000L,
+        )
+
+        val missing = engine.associate(moving, 5L, 800_000_000L, listOf(implausible))
+        assertTrue(missing is TargetAssociationResult.TemporarilyMissing)
+
+        val lostTimestamp = moving.lastSeenSourceTimestampNanos + TargetAssociationEngine.MISSING_TIMEOUT_NANOS + 1L
+        val lost = engine.associate(missing.target, 6L, lostTimestamp, listOf(implausible.copy(frameSequence = 6L, sourceTimestampNanos = lostTimestamp)))
+        assertTrue(lost is TargetAssociationResult.Lost)
+        assertNull(lost.target)
+    }
+
+    @Test fun `prediction ignores match history older than five hundred milliseconds`() {
+        val selected = TargetSelection.select(
+            detection(box = box(.10f, .20f, .50f, .80f), frame = 1L, timestamp = 1L),
+        )
+        val first = engine.associate(
+            selected,
+            2L,
+            100_000_000L,
+            listOf(detection(box = box(.20f, .20f, .60f, .80f), frame = 2L, timestamp = 100_000_000L)),
+        ) as TargetAssociationResult.Matched
+        val second = engine.associate(
+            first.target,
+            3L,
+            700_000_000L,
+            listOf(detection(box = box(.30f, .20f, .70f, .80f), frame = 3L, timestamp = 700_000_000L)),
+        ) as TargetAssociationResult.Matched
+        val beyondStrictGate = detection(
+            box = box(.51f, .20f, .91f, .80f),
+            frame = 4L,
+            timestamp = 800_000_000L,
+        )
+
+        val result = engine.associate(second.target, 4L, 800_000_000L, listOf(beyondStrictGate))
+
+        assertTrue(result is TargetAssociationResult.TemporarilyMissing)
+        assertEquals(second.target, result.target)
+    }
+
+    @Test fun `two prediction-plausible people remain ambiguous`() {
+        val moving = movingTargetWithTwoMatches()
+        val first = detection(box = box(.59f, .20f, .79f, .80f), frame = 5L, timestamp = 500_000_000L)
+        val second = detection(box = box(.61f, .20f, .81f, .80f), frame = 5L, timestamp = 500_000_000L)
+
+        val result = engine.associate(moving, 5L, 500_000_000L, listOf(first, second))
+
+        assertTrue(result is TargetAssociationResult.Ambiguous)
+        assertEquals(2, (result as TargetAssociationResult.Ambiguous).candidateCount)
+        assertEquals(moving, result.target)
+    }
+
     @Test fun `absence beyond timeout is lost`() {
         val selected = TargetSelection.select(detection(timestamp = 1_000L))
 
@@ -76,9 +149,12 @@ class TargetAssociationEngineTest {
     }
 
     @Test fun `lost target never auto reacquires`() {
-        val candidate = detection(frame = 3L, timestamp = 3_000L)
+        val selected = TargetSelection.select(detection(timestamp = 1_000L))
+        val lostTimestamp = selected.lastSeenSourceTimestampNanos + TargetAssociationEngine.MISSING_TIMEOUT_NANOS + 1L
+        val lost = engine.associate(selected, 2L, lostTimestamp, emptyList())
+        val candidate = detection(frame = 3L, timestamp = lostTimestamp + 1L)
 
-        val result = engine.associate(null, 3L, 3_000L, listOf(candidate))
+        val result = engine.associate(lost.target, 3L, lostTimestamp + 1L, listOf(candidate))
 
         assertTrue(result is TargetAssociationResult.Lost)
         assertNull(result.target)
@@ -150,6 +226,24 @@ class TargetAssociationEngineTest {
         errors.reset()
         val afterSelection = errors.update(TargetSelection.select(detection(box = box(.55f, .40f, .65f, .60f))), targetFresh = true)
         assertEquals(.10f, afterSelection.yawError, .0001f)
+    }
+
+    private fun movingTargetWithTwoMatches(): TrackedTarget {
+        val selected = TargetSelection.select(
+            detection(box = box(.20f, .20f, .40f, .80f), frame = 1L, timestamp = 100_000_000L),
+        )
+        val first = engine.associate(
+            selected,
+            2L,
+            200_000_000L,
+            listOf(detection(box = box(.30f, .20f, .50f, .80f), frame = 2L, timestamp = 200_000_000L)),
+        ) as TargetAssociationResult.Matched
+        return (engine.associate(
+            first.target,
+            3L,
+            300_000_000L,
+            listOf(detection(box = box(.40f, .20f, .60f, .80f), frame = 3L, timestamp = 300_000_000L)),
+        ) as TargetAssociationResult.Matched).target
     }
 
     private fun detection(

@@ -108,6 +108,11 @@ data class TrackedTarget(
     val selectedSourceTimestampNanos: Long,
     val lastSeenFrameSequence: Long = selectedFrameSequence,
     val lastSeenSourceTimestampNanos: Long = selectedSourceTimestampNanos,
+    /** Previous association match used only for bounded short-term motion prediction. */
+    val previousMatchedBoundingBox: NormalizedBoundingBox? = null,
+    val previousMatchedSourceTimestampNanos: Long? = null,
+    /** Saturates at two; explicit selection starts with no association matches. */
+    val associationMatchCount: Int = 0,
 )
 
 /** User-selected visual standoff scale; it is not a physical distance or meter estimate. */

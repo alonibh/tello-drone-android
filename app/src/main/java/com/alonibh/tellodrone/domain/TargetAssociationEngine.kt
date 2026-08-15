@@ -38,10 +38,17 @@ class TargetAssociationEngine {
             sourceTimestampNanos <= target.lastSeenSourceTimestampNanos
         ) return TargetAssociationResult.Ignored(target)
 
+        val predictedBoundingBox = predictedBoundingBox(target, sourceTimestampNanos)
         val candidates = detections
             .asSequence()
             .filter { it.frameSequence == frameSequence && it.sourceTimestampNanos == sourceTimestampNanos }
-            .map { detection -> Candidate(detection, metrics(target.boundingBox, detection.boundingBox)) }
+            .map { detection ->
+                Candidate(
+                    detection = detection,
+                    strictMetrics = metrics(target.boundingBox, detection.boundingBox),
+                    predictedMetrics = predictedBoundingBox?.let { metrics(it, detection.boundingBox) },
+                )
+            }
             .filter { it.isEligible }
             .sortedBy { it.score }
             .toList()
@@ -57,6 +64,13 @@ class TargetAssociationEngine {
                 confidence = best.detection.confidence,
                 lastSeenFrameSequence = frameSequence,
                 lastSeenSourceTimestampNanos = sourceTimestampNanos,
+                previousMatchedBoundingBox = if (target.associationMatchCount > 0) target.boundingBox else null,
+                previousMatchedSourceTimestampNanos = if (target.associationMatchCount > 0) {
+                    target.lastSeenSourceTimestampNanos
+                } else {
+                    null
+                },
+                associationMatchCount = (target.associationMatchCount + 1).coerceAtMost(2),
             ),
         )
     }
@@ -68,17 +82,64 @@ class TargetAssociationEngine {
             TargetAssociationResult.TemporarilyMissing(target)
         }
 
-    private data class Candidate(val detection: PersonDetection, val metrics: Metrics) {
-        val isEligible: Boolean = metrics.centerDisplacement <= MAX_CENTER_DISPLACEMENT &&
-            metrics.iou >= MIN_IOU &&
-            metrics.areaRatio in MIN_AREA_RATIO..MAX_AREA_RATIO
-        val score: Float =
-            CENTER_WEIGHT * (metrics.centerDisplacement / MAX_CENTER_DISPLACEMENT) +
-                IOU_WEIGHT * (1f - metrics.iou) +
-                SIZE_WEIGHT * abs(1f - metrics.areaRatio)
+    private data class Candidate(
+        val detection: PersonDetection,
+        val strictMetrics: Metrics,
+        val predictedMetrics: Metrics?,
+    ) {
+        /** Strict matches retain their existing score; prediction is fallback eligibility only. */
+        private val matchingMetrics = when {
+            strictMetrics.isEligible -> strictMetrics
+            predictedMetrics?.isEligible == true -> predictedMetrics
+            else -> null
+        }
+        val isEligible: Boolean = matchingMetrics != null
+        val score: Float = matchingMetrics?.score ?: Float.POSITIVE_INFINITY
     }
 
-    private data class Metrics(val centerDisplacement: Float, val iou: Float, val areaRatio: Float)
+    private data class Metrics(val centerDisplacement: Float, val iou: Float, val areaRatio: Float) {
+        val isEligible: Boolean = centerDisplacement <= MAX_CENTER_DISPLACEMENT &&
+            iou >= MIN_IOU &&
+            areaRatio in MIN_AREA_RATIO..MAX_AREA_RATIO
+        val score: Float =
+            CENTER_WEIGHT * (centerDisplacement / MAX_CENTER_DISPLACEMENT) +
+                IOU_WEIGHT * (1f - iou) +
+                SIZE_WEIGHT * abs(1f - areaRatio)
+    }
+
+    private fun predictedBoundingBox(target: TrackedTarget, sourceTimestampNanos: Long): NormalizedBoundingBox? {
+        if (target.associationMatchCount < 2) return null
+        val previousBox = target.previousMatchedBoundingBox ?: return null
+        val previousTimestamp = target.previousMatchedSourceTimestampNanos ?: return null
+        val historyInterval = target.lastSeenSourceTimestampNanos - previousTimestamp
+        if (historyInterval !in 1..MAX_PREDICTION_HISTORY_INTERVAL_NANOS) return null
+        val requestedHorizon = sourceTimestampNanos - target.lastSeenSourceTimestampNanos
+        if (requestedHorizon <= 0L) return null
+        val horizon = requestedHorizon.coerceAtMost(MAX_PREDICTION_HORIZON_NANOS)
+        val horizonScale = (horizon.toDouble() / historyInterval.toDouble()).toFloat()
+        val rawTranslationX = (centerX(target.boundingBox) - centerX(previousBox)) * horizonScale
+        val rawTranslationY = (centerY(target.boundingBox) - centerY(previousBox)) * horizonScale
+        val rawTranslation = hypot(rawTranslationX, rawTranslationY)
+        val translationScale = if (rawTranslation > MAX_PREDICTED_CENTER_TRANSLATION) {
+            MAX_PREDICTED_CENTER_TRANSLATION / rawTranslation
+        } else {
+            1f
+        }
+        val width = target.boundingBox.right - target.boundingBox.left
+        val height = target.boundingBox.bottom - target.boundingBox.top
+        val halfWidth = width / 2f
+        val halfHeight = height / 2f
+        val predictedCenterX = (centerX(target.boundingBox) + rawTranslationX * translationScale)
+            .coerceIn(halfWidth, 1f - halfWidth)
+        val predictedCenterY = (centerY(target.boundingBox) + rawTranslationY * translationScale)
+            .coerceIn(halfHeight, 1f - halfHeight)
+        return NormalizedBoundingBox(
+            left = predictedCenterX - halfWidth,
+            top = predictedCenterY - halfHeight,
+            right = predictedCenterX + halfWidth,
+            bottom = predictedCenterY + halfHeight,
+        )
+    }
 
     private fun metrics(previous: NormalizedBoundingBox, next: NormalizedBoundingBox): Metrics {
         val previousArea = area(previous)
@@ -101,6 +162,10 @@ class TargetAssociationEngine {
     companion object {
         /** Source-monotonic grace period before a missing selected person becomes Lost. */
         const val MISSING_TIMEOUT_NANOS = 1_000_000_000L
+        /** Velocity history and extrapolation are deliberately limited to brief detector gaps. */
+        const val MAX_PREDICTION_HISTORY_INTERVAL_NANOS = 500_000_000L
+        const val MAX_PREDICTION_HORIZON_NANOS = 500_000_000L
+        const val MAX_PREDICTED_CENTER_TRANSLATION = 0.20f
         /** Maximum normalized center movement allowed in one association step. */
         const val MAX_CENTER_DISPLACEMENT = 0.20f
         /** Minimum box overlap; all three geometry checks must pass. */

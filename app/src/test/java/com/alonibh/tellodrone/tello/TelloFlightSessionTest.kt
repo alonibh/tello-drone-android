@@ -622,7 +622,7 @@ class TelloFlightSessionTest {
         assertEquals(RcVector.Zero, fixture.transport.rc.last())
     }
 
-    @Test fun `temporary missing zeros then same target resumes without another arm`() = runTest {
+    @Test fun `temporary missing zeros then predicted same target resumes without another arm`() = runTest {
         val box = NormalizedBoundingBox(.55f, .20f, .85f, .80f)
         val (fixture, video) = yawReadyFixture(box)
         fixture.session.setYawFollowArmed(true)
@@ -631,19 +631,34 @@ class TelloFlightSessionTest {
         assertTrue(fixture.transport.rc.last().yaw > 0)
 
         fixture.detectorNowNanos.set(1_200_000_000L)
-        video.publishDetections(3L, 1_200_000_000L, emptyList())
+        val movingTarget = detection(
+            box = NormalizedBoundingBox(.45f, .20f, .75f, .80f),
+            frame = 3L,
+            timestamp = 1_200_000_000L,
+        )
+        video.publishDetections(3L, 1_200_000_000L, listOf(movingTarget))
+        runCurrent()
+        assertEquals(TargetAssociationState.Matched, fixture.session.state.value.targetAssociationState)
+
+        fixture.detectorNowNanos.set(1_300_000_000L)
+        video.publishDetections(4L, 1_300_000_000L, emptyList())
         runCurrent()
         assertEquals(YawFollowState.ARMED_WAITING, fixture.session.state.value.yawFollowDecision.state)
         assertEquals(RcVector.Zero, fixture.transport.rc.last())
 
-        val sameTarget = detection(box = box, frame = 4L, timestamp = 1_300_000_000L)
-        fixture.detectorNowNanos.set(1_300_000_000L)
-        video.publishDetections(4L, 1_300_000_000L, listOf(sameTarget))
+        val sameTarget = detection(
+            box = NormalizedBoundingBox(.24f, .20f, .54f, .80f),
+            frame = 5L,
+            timestamp = 1_400_000_000L,
+        )
+        fixture.detectorNowNanos.set(1_400_000_000L)
+        video.publishDetections(5L, 1_400_000_000L, listOf(sameTarget))
         runCurrent()
         advanceTimeBy(50L)
         runCurrent()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
-        assertTrue(fixture.transport.rc.last().yaw > 0)
+        assertEquals(TargetAssociationState.Matched, fixture.session.state.value.targetAssociationState)
+        assertEquals(sameTarget.boundingBox, fixture.session.state.value.target?.boundingBox)
     }
 
     @Test fun `ambiguous and lost association zero and require explicit rearm`() = runTest {
