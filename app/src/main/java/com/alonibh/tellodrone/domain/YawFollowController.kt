@@ -72,7 +72,8 @@ class ProductionYawController(
             return YawOnlyRcCommand()
         }
         if (abs(error) <= horizontalDeadband) return YawOnlyRcCommand()
-        val yaw = (error * proportionalGain)
+        // Tracking geometry is camera-centric; physical Tello yaw RC uses the opposite sign.
+        val yaw = (-error * proportionalGain)
             .roundToInt()
             .coerceIn(-absoluteYawRcCap, absoluteYawRcCap)
         return YawOnlyRcCommand(yaw = yaw)

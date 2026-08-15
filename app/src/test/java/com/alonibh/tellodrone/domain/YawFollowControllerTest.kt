@@ -21,13 +21,13 @@ class YawFollowControllerTest {
         )
     }
 
-    @Test fun `matched fresh target produces capped sign preserving yaw only`() {
+    @Test fun `matched fresh target produces capped physically verified Tello yaw only`() {
         val controller = ProductionYawController()
         val right = controller.command(errors(yaw = .5f))
         val left = controller.command(errors(yaw = -.5f))
 
-        assertEquals(YawOnlyRcCommand(yaw = 12), right)
-        assertEquals(YawOnlyRcCommand(yaw = -12), left)
+        assertEquals(YawOnlyRcCommand(yaw = -12), right)
+        assertEquals(YawOnlyRcCommand(yaw = 12), left)
         listOf(right, left).forEach { command ->
             assertEquals(0, command.lateral)
             assertEquals(0, command.forward)
@@ -53,7 +53,7 @@ class YawFollowControllerTest {
 
         val resumed = gate.evaluate(healthy())
         assertEquals(YawFollowState.ACTIVE, resumed.state)
-        assertTrue(resumed.yawRc > 0)
+        assertTrue(resumed.yawRc < 0)
     }
 
     @Test fun `ambiguous and lost targets require explicit rearm`() {
