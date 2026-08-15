@@ -145,6 +145,48 @@ sealed interface H264DecodeInput {
     data class AccessUnit(val value: H264AccessUnit) : H264DecodeInput
 }
 
+enum class DecoderInputRetryDecision { Retry, Recover }
+
+/** Tracks one dequeued access unit across temporary MediaCodec input-buffer backpressure. */
+class DecoderInputRetryState(
+    private val maxStallNanos: Long,
+) {
+    init {
+        require(maxStallNanos > 0L)
+    }
+
+    var pendingAccessUnit: H264AccessUnit? = null
+        private set
+    private var stallStartedAtNanos = 0L
+
+    fun begin(unit: H264AccessUnit, nowNanos: Long) {
+        check(pendingAccessUnit == null)
+        pendingAccessUnit = unit
+        stallStartedAtNanos = nowNanos
+    }
+
+    fun onTemporaryMiss(nowNanos: Long): DecoderInputRetryDecision {
+        check(pendingAccessUnit != null)
+        val stalledNanos = (nowNanos - stallStartedAtNanos).coerceAtLeast(0L)
+        return if (stalledNanos < maxStallNanos) {
+            DecoderInputRetryDecision.Retry
+        } else {
+            DecoderInputRetryDecision.Recover
+        }
+    }
+
+    fun complete(): H264AccessUnit {
+        val completed = checkNotNull(pendingAccessUnit)
+        clear()
+        return completed
+    }
+
+    fun clear() {
+        pendingAccessUnit = null
+        stallStartedAtNanos = 0L
+    }
+}
+
 /**
  * Non-blocking, bounded receiver-to-decoder handoff. Complete access units are delivered FIFO so
  * inter-frame references are never silently skipped. If capacity is exhausted, queued pictures are
@@ -194,6 +236,15 @@ class BoundedAccessUnitBuffer(
             H264DecodeInput.Discontinuity
         } else {
             queued.removeFirstOrNull()?.let(H264DecodeInput::AccessUnit)
+        }
+    }
+
+    fun takeDiscontinuity(): Boolean = synchronized(lock) {
+        if (!discontinuityPending) {
+            false
+        } else {
+            discontinuityPending = false
+            true
         }
     }
 

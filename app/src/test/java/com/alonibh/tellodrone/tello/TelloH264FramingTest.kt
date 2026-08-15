@@ -5,6 +5,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -66,6 +67,39 @@ class TelloH264FramingTest {
         pictures.forEach { expected -> assertArrayEquals(expected.bytes, buffer.pollUnit()!!.bytes) }
         assertNull(buffer.poll())
         assertEquals(0, buffer.droppedAccessUnits)
+    }
+
+    @Test fun `temporary codec input misses preserve and eventually submit the same access unit`() {
+        val idr = H264AccessUnit(bytes(0, 0, 0, 1, 0x65, 9), setOf(H264NalUnitType.IDR))
+        val retry = DecoderInputRetryState(maxStallNanos = 500_000_000L)
+        retry.begin(idr, nowNanos = 1_000_000_000L)
+
+        listOf(1_005_000_000L, 1_010_000_000L, 1_100_000_000L, 1_499_999_999L).forEach { now ->
+            assertEquals(DecoderInputRetryDecision.Retry, retry.onTemporaryMiss(now))
+            assertSame(idr, retry.pendingAccessUnit)
+        }
+
+        assertSame(idr, retry.complete())
+        assertNull(retry.pendingAccessUnit)
+    }
+
+    @Test fun `sustained codec input stall eventually requires decoder recovery`() {
+        val unit = picture(7)
+        val retry = DecoderInputRetryState(maxStallNanos = 500_000_000L)
+        retry.begin(unit, nowNanos = 2_000_000_000L)
+
+        assertEquals(
+            DecoderInputRetryDecision.Retry,
+            retry.onTemporaryMiss(nowNanos = 2_499_999_999L),
+        )
+        assertEquals(
+            DecoderInputRetryDecision.Recover,
+            retry.onTemporaryMiss(nowNanos = 2_500_000_000L),
+        )
+        assertSame(unit, retry.pendingAccessUnit)
+
+        retry.clear()
+        assertNull(retry.pendingAccessUnit)
     }
 
     @Test fun `overflow declares discontinuity and never sends later P frames to old decoder`() {
