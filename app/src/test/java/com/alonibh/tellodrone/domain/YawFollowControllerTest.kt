@@ -25,14 +25,16 @@ class YawFollowControllerTest {
         val controller = ProductionYawController()
         val right = controller.command(errors(yaw = .5f))
         val left = controller.command(errors(yaw = -.5f))
+        val moderateRight = controller.command(errors(yaw = .10f))
 
-        assertEquals(YawOnlyRcCommand(yaw = -12), right)
-        assertEquals(YawOnlyRcCommand(yaw = 12), left)
-        listOf(right, left).forEach { command ->
+        assertEquals(YawOnlyRcCommand(yaw = -20), right)
+        assertEquals(YawOnlyRcCommand(yaw = 20), left)
+        assertEquals(YawOnlyRcCommand(yaw = -8), moderateRight)
+        listOf(right, left, moderateRight).forEach { command ->
             assertEquals(0, command.lateral)
             assertEquals(0, command.forward)
             assertEquals(0, command.vertical)
-            assertTrue(kotlin.math.abs(command.yaw) <= 12)
+            assertTrue(kotlin.math.abs(command.yaw) <= 20)
         }
     }
 

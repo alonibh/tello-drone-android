@@ -75,7 +75,7 @@ class AndroidTelloVideoController(
     override val state: StateFlow<VideoState> = mutableState.asStateFlow()
     private val decodedFrameSource: DecodedFrameSource = PixelCopyDecodedFrameSource(::updateAnalysisDiagnostics)
     private val detectorModel = AtomicReference(DetectorModel.Default)
-    private val detectorPreference = AtomicReference(DetectorBackendPreference.Accelerated)
+    private val detectorPreference = AtomicReference(DetectorBackendPreference.Cpu)
     private val detectorConfidenceThreshold = AtomicReference(DEFAULT_PERSON_CONFIDENCE_THRESHOLD)
     private val detectorFactory = FallbackPersonDetectorFactory { model, backend ->
         TfliteTaskPersonDetector(context.applicationContext, model, backend)

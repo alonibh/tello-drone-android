@@ -93,13 +93,26 @@ class RcControlLoopTest {
         loop.setEnabled(true)
         loop.setHealthy(true)
         val generation = loop.beginAutonomousYaw()
-        loop.publishAutonomousYaw(12, generation)
-        assertEquals(RcVector(yaw = 12), loop.currentVector())
+        loop.publishAutonomousYaw(20, generation)
+        assertEquals(RcVector(yaw = 20), loop.currentVector())
 
         loop.publish(ManualControlVector(forward = .5f), 20)
-        loop.publishAutonomousYaw(-12, generation)
+        loop.publishAutonomousYaw(-20, generation)
 
         assertEquals(RcVector(forward = 10), loop.currentVector())
+    }
+
+    @Test fun `autonomous yaw is capped at twenty with all other axes zero`() = runTest {
+        val loop = RcControlLoop(backgroundScope, {}, FakeClock(1_000))
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+        val generation = loop.beginAutonomousYaw()
+
+        loop.publishAutonomousYaw(99, generation)
+        assertEquals(RcVector(yaw = 20), loop.currentVector())
+
+        loop.publishAutonomousYaw(-99, generation)
+        assertEquals(RcVector(yaw = -20), loop.currentVector())
     }
 
     @Test fun `delayed safety zero cannot overwrite newer manual command`() = runTest {

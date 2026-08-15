@@ -33,6 +33,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TelloFlightSessionTest {
+    @Test fun `real detector defaults match tested Xiaomi configuration`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+
+        assertEquals(DetectorModel.MobileNetV1, fixture.session.state.value.video.detectorModel)
+        assertEquals(DetectorBackendPreference.Cpu, fixture.session.state.value.video.detectorBackendPreference)
+        assertEquals(.55f, fixture.session.state.value.video.detectorConfidenceThreshold, 0f)
+        assertEquals(DetectorBackendPreference.Cpu, video.backendPreference)
+    }
+
     @Test fun `first telemetry connection update cannot be reverted by yaw state commit`() = runTest {
         val clock = RcControlLoopTest.FakeClock(1_000)
         val transport = FakeTransport()
@@ -285,10 +295,11 @@ class TelloFlightSessionTest {
         val fixture = fixture(video)
         val before = fixture.session.state.value
 
-        fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Cpu)
+        fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Accelerated)
 
         val after = fixture.session.state.value
-        assertEquals(DetectorBackendPreference.Cpu, video.backendPreference)
+        assertEquals(DetectorBackendPreference.Accelerated, video.backendPreference)
+        assertEquals(DetectorBackendPreference.Accelerated, after.video.detectorBackendPreference)
         assertEquals(before.authority, after.authority)
         assertEquals(before.target, after.target)
     }
@@ -339,10 +350,10 @@ class TelloFlightSessionTest {
         assertEquals(TrackingMode.DetectOnly, fixture.session.state.value.tracking)
         val before = fixture.session.state.value
 
-        fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Cpu)
+        fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Accelerated)
 
         val after = fixture.session.state.value
-        assertEquals(DetectorBackendPreference.Accelerated, video.backendPreference)
+        assertEquals(DetectorBackendPreference.Cpu, video.backendPreference)
         assertEquals(TrackingMode.DetectOnly, after.tracking)
         assertEquals(before.authority, after.authority)
         assertEquals(before.target, after.target)
@@ -588,7 +599,8 @@ class TelloFlightSessionTest {
         val command = fixture.transport.rc.last()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
         assertTrue(command.yaw < 0)
-        assertTrue(kotlin.math.abs(command.yaw) <= 12)
+        assertEquals(-16, command.yaw)
+        assertTrue(kotlin.math.abs(command.yaw) <= 20)
         assertEquals(0, command.lateral)
         assertEquals(0, command.forward)
         assertEquals(0, command.vertical)
@@ -597,7 +609,7 @@ class TelloFlightSessionTest {
         leftFixture.session.setYawFollowArmed(true)
         advanceTimeBy(50L)
         runCurrent()
-        assertTrue(leftFixture.transport.rc.last().yaw > 0)
+        assertEquals(16, leftFixture.transport.rc.last().yaw)
     }
 
     @Test fun `centered matched target sends zero`() = runTest {
@@ -901,7 +913,7 @@ class TelloFlightSessionTest {
         override val state: StateFlow<VideoState> = mutableState
         var prepared = false
         var closed = false
-        var backendPreference = DetectorBackendPreference.Accelerated
+        var backendPreference = DetectorBackendPreference.Cpu
         var confidenceThreshold = 0.55f
         var model = DetectorModel.Default
 

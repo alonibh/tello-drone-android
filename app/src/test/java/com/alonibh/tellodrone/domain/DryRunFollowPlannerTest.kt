@@ -14,9 +14,9 @@ class DryRunFollowPlannerTest {
         val first = engine.update(target(.70f), true)
         val second = engine.update(target(.60f, frame = 2L, timestamp = 2L), true)
         assertEquals(.20f, first.yawError, .0001f)
-        assertEquals(.16f, second.yawError, .0001f)
+        assertEquals(.135f, second.yawError, .0001f)
         engine.update(target(.60f, frame = 3L, timestamp = 3L), false)
-        assertEquals(.136f, engine.update(target(.60f, frame = 4L, timestamp = 4L), true).yawError, .0001f)
+        assertEquals(.11225f, engine.update(target(.60f, frame = 4L, timestamp = 4L), true).yawError, .0001f)
     }
 
     @Test fun `pid bounds output integral and rejects invalid timing`() {

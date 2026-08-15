@@ -113,13 +113,18 @@ class TargetAssociationEngineTest {
         assertTrue(opposite.forwardBackError < 0f)
     }
 
-    @Test fun `ema smoothing uses alpha point four`() {
+    @Test fun `yaw smoothing uses point 65 while vertical and distance remain point four`() {
         val errors = TrackingErrorEngine()
-        val target = TargetSelection.select(detection(box = box(.60f, .40f, .80f, .60f))) // raw yaw = .20
+        val reference = FollowDistanceReference(.2f, 1L, 1L, 7)
+        val centered = TargetSelection.select(detection(box = box(.40f, .40f, .60f, .60f)))
+        val moved = TargetSelection.select(detection(box = box(.65f, .25f, .75f, .35f)))
 
-        val result = errors.update(target, targetFresh = true)
+        errors.update(centered, targetFresh = true, distanceReference = reference)
+        val result = errors.update(moved, targetFresh = true, distanceReference = reference)
 
-        assertEquals(.20f, result.yawError, .0001f)
+        assertEquals(.13f, result.yawError, .0001f)
+        assertEquals(.08f, result.verticalError, .0001f)
+        assertEquals(.20f, result.forwardBackError, .0001f)
     }
 
     @Test fun `normalized deadzones zero small center and area errors`() {

@@ -38,9 +38,13 @@ class TrackingErrorEngine {
             deadzone(((reference.visualScale - scale) / reference.visualScale).coerceIn(-1f, 1f), DISTANCE_DEADZONE)
         } ?: 0f
         previous = TrackingErrors(
-            yawError = if (seeded) ema(previous.yawError, rawYaw) else rawYaw,
-            verticalError = if (seeded) ema(previous.verticalError, rawVertical) else rawVertical,
-            forwardBackError = if (seeded && distanceReference != null) ema(previous.forwardBackError, rawDistance) else rawDistance,
+            yawError = if (seeded) ema(previous.yawError, rawYaw, YAW_EMA_ALPHA) else rawYaw,
+            verticalError = if (seeded) ema(previous.verticalError, rawVertical, VERTICAL_DISTANCE_EMA_ALPHA) else rawVertical,
+            forwardBackError = if (seeded && distanceReference != null) {
+                ema(previous.forwardBackError, rawDistance, VERTICAL_DISTANCE_EMA_ALPHA)
+            } else {
+                rawDistance
+            },
             targetPresent = true,
             targetFresh = true,
             distanceCalibrated = distanceReference != null,
@@ -52,7 +56,7 @@ class TrackingErrorEngine {
     fun reset() { previous = TrackingErrors(); seeded = false }
     fun resetDistance() { previous = previous.copy(forwardBackError = 0f, distanceCalibrated = false) }
 
-    private fun ema(previous: Float, raw: Float) = EMA_ALPHA * raw + (1f - EMA_ALPHA) * previous
+    private fun ema(previous: Float, raw: Float, alpha: Float) = alpha * raw + (1f - alpha) * previous
     private fun deadzone(value: Float, deadzone: Float) = if (abs(value) <= deadzone) 0f else value
     private fun area(box: NormalizedBoundingBox) = max(0f, box.right - box.left) * max(0f, box.bottom - box.top)
 
@@ -62,6 +66,7 @@ class TrackingErrorEngine {
         const val Y_DEADZONE = 15f / 720f
         /** Relative visual-scale jitter tolerance (7%); no pixel or meter calibration is implied. */
         const val DISTANCE_DEADZONE = .07f
-        const val EMA_ALPHA = .4f
+        const val YAW_EMA_ALPHA = .65f
+        const val VERTICAL_DISTANCE_EMA_ALPHA = .4f
     }
 }

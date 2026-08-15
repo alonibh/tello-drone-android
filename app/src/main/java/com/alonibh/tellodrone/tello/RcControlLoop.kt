@@ -1,6 +1,7 @@
 package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.ProductionYawController
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -170,6 +171,6 @@ class RcControlLoop(
 
     companion object {
         const val MINIMUM_RC_MAGNITUDE = 10
-        const val AUTONOMOUS_YAW_RC_CAP = 12
+        const val AUTONOMOUS_YAW_RC_CAP = ProductionYawController.ABSOLUTE_YAW_RC_CAP
     }
 }

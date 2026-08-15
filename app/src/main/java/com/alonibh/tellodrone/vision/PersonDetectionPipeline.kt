@@ -138,7 +138,7 @@ class PersonDetectionPipeline(
     private val frameRate = DetectionFrameRate()
     @Volatile private var enabled = false
     @Volatile private var model = defaultModel
-    @Volatile private var preference = DetectorBackendPreference.Accelerated
+    @Volatile private var preference = DetectorBackendPreference.Cpu
     @Volatile private var confidenceThreshold = DEFAULT_PERSON_CONFIDENCE_THRESHOLD
     private var detector: PersonDetector? = null
     private var detectorModel: DetectorModel? = null

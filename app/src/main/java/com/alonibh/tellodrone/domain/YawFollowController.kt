@@ -81,8 +81,8 @@ class ProductionYawController(
 
     companion object {
         const val DEFAULT_HORIZONTAL_DEADBAND = 0.05f
-        const val DEFAULT_PROPORTIONAL_GAIN = 24f
-        const val ABSOLUTE_YAW_RC_CAP = 12
+        const val DEFAULT_PROPORTIONAL_GAIN = 80f
+        const val ABSOLUTE_YAW_RC_CAP = 20
     }
 }
 

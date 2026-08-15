@@ -80,7 +80,7 @@ data class VideoState(
     val detectorMeasuredFps: Float? = null,
     val detectorInferenceMillis: Long? = null,
     val detectorModel: DetectorModel = DetectorModel.Default,
-    val detectorBackendPreference: DetectorBackendPreference = DetectorBackendPreference.Accelerated,
+    val detectorBackendPreference: DetectorBackendPreference = DetectorBackendPreference.Cpu,
     val detectorBackend: DetectorBackend? = null,
     val detectorConfidenceThreshold: Float = com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD,
     val detectorModelName: String? = null,
