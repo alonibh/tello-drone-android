@@ -598,8 +598,8 @@ class TelloFlightSessionTest {
 
         val command = fixture.transport.rc.last()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
-        assertTrue(command.yaw < 0)
-        assertEquals(-16, command.yaw)
+        assertTrue(command.yaw > 0)
+        assertEquals(16, command.yaw)
         assertTrue(kotlin.math.abs(command.yaw) <= 20)
         assertEquals(0, command.lateral)
         assertEquals(0, command.forward)
@@ -609,7 +609,7 @@ class TelloFlightSessionTest {
         leftFixture.session.setYawFollowArmed(true)
         advanceTimeBy(50L)
         runCurrent()
-        assertEquals(16, leftFixture.transport.rc.last().yaw)
+        assertEquals(-16, leftFixture.transport.rc.last().yaw)
     }
 
     @Test fun `centered matched target sends zero`() = runTest {
@@ -628,7 +628,7 @@ class TelloFlightSessionTest {
         fixture.session.setYawFollowArmed(true)
         advanceTimeBy(50L)
         runCurrent()
-        assertTrue(fixture.transport.rc.last().yaw < 0)
+        assertTrue(fixture.transport.rc.last().yaw > 0)
 
         fixture.detectorNowNanos.set(1_200_000_000L)
         video.publishDetections(3L, 1_200_000_000L, emptyList())
@@ -643,7 +643,7 @@ class TelloFlightSessionTest {
         advanceTimeBy(50L)
         runCurrent()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
-        assertTrue(fixture.transport.rc.last().yaw < 0)
+        assertTrue(fixture.transport.rc.last().yaw > 0)
     }
 
     @Test fun `ambiguous and lost association zero and require explicit rearm`() = runTest {
@@ -707,7 +707,7 @@ class TelloFlightSessionTest {
         advanceTimeBy(50L)
         runCurrent()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
-        assertTrue(fixture.transport.rc.last().yaw < 0)
+        assertTrue(fixture.transport.rc.last().yaw > 0)
 
         fixture.session.publishManualControl(ManualControlVector(forward = .5f))
         runCurrent()
@@ -785,7 +785,7 @@ class TelloFlightSessionTest {
 
         assertFalse(fixture.session.state.value.hoverActive)
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
-        assertTrue(fixture.transport.rc.last().yaw < 0)
+        assertTrue(fixture.transport.rc.last().yaw > 0)
         assertEquals(0, fixture.transport.rc.last().lateral)
         assertEquals(0, fixture.transport.rc.last().forward)
         assertEquals(0, fixture.transport.rc.last().vertical)

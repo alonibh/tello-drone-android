@@ -27,9 +27,9 @@ class YawFollowControllerTest {
         val left = controller.command(errors(yaw = -.5f))
         val moderateRight = controller.command(errors(yaw = .10f))
 
-        assertEquals(YawOnlyRcCommand(yaw = -20), right)
-        assertEquals(YawOnlyRcCommand(yaw = 20), left)
-        assertEquals(YawOnlyRcCommand(yaw = -8), moderateRight)
+        assertEquals(YawOnlyRcCommand(yaw = 20), right)
+        assertEquals(YawOnlyRcCommand(yaw = -20), left)
+        assertEquals(YawOnlyRcCommand(yaw = 8), moderateRight)
         listOf(right, left, moderateRight).forEach { command ->
             assertEquals(0, command.lateral)
             assertEquals(0, command.forward)
@@ -55,7 +55,7 @@ class YawFollowControllerTest {
 
         val resumed = gate.evaluate(healthy())
         assertEquals(YawFollowState.ACTIVE, resumed.state)
-        assertTrue(resumed.yawRc < 0)
+        assertTrue(resumed.yawRc > 0)
     }
 
     @Test fun `ambiguous and lost targets require explicit rearm`() {
