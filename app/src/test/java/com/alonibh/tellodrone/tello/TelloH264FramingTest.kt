@@ -57,59 +57,115 @@ class TelloH264FramingTest {
         assertTrue(recovered!!.hasIdr)
     }
 
-    @Test fun `latest buffer drops old access units and reset clears state`() {
-        val buffer = LatestAccessUnitBuffer()
-        val first = H264AccessUnit(bytes(1), setOf(1))
-        val newest = H264AccessUnit(bytes(2), setOf(2))
+    @Test fun `bounded buffer delivers ordinary access units in decode order without skips`() {
+        val buffer = BoundedAccessUnitBuffer(capacity = 4)
+        val pictures = (1..4).map { picture(it) }
 
-        buffer.offer(first)
-        buffer.offer(newest)
-        assertEquals(1, buffer.droppedAccessUnits)
-        assertArrayEquals(newest.bytes, buffer.pollLatest()!!.bytes)
-        assertNull(buffer.pollLatest())
+        pictures.forEach(buffer::offer)
 
-        buffer.offer(first)
-        buffer.reset()
-        assertNull(buffer.pollLatest())
+        pictures.forEach { expected -> assertArrayEquals(expected.bytes, buffer.pollUnit()!!.bytes) }
+        assertNull(buffer.poll())
         assertEquals(0, buffer.droppedAccessUnits)
     }
 
-    @Test fun `latest buffer retains bounded SPS PPS and IDR recovery ahead of newest picture`() {
-        val buffer = LatestAccessUnitBuffer()
-        val sps = H264AccessUnit(bytes(7), setOf(H264NalUnitType.SPS))
-        val pps = H264AccessUnit(bytes(8), setOf(H264NalUnitType.PPS))
-        val idr = H264AccessUnit(bytes(5), setOf(H264NalUnitType.IDR))
-        val newestPicture = H264AccessUnit(bytes(1), setOf(1))
+    @Test fun `overflow declares discontinuity and never sends later P frames to old decoder`() {
+        val buffer = BoundedAccessUnitBuffer(capacity = 3)
+        (1..3).forEach { buffer.offer(picture(it)) }
 
-        buffer.offer(sps)
-        buffer.offer(pps)
-        buffer.offer(idr)
-        buffer.offer(newestPicture)
+        buffer.offer(picture(4))
+        buffer.offer(picture(5))
 
-        assertEquals(H264NalUnitType.SPS, buffer.pollLatest()!!.nalUnitTypes.single())
-        assertEquals(H264NalUnitType.PPS, buffer.pollLatest()!!.nalUnitTypes.single())
-        assertEquals(H264NalUnitType.IDR, buffer.pollLatest()!!.nalUnitTypes.single())
-        assertArrayEquals(newestPicture.bytes, buffer.pollLatest()!!.bytes)
-        assertNull(buffer.pollLatest())
+        assertTrue(buffer.poll() is H264DecodeInput.Discontinuity)
+        assertNull(buffer.poll())
+        assertTrue(buffer.isWaitingForIdr())
+        assertEquals(1, buffer.discontinuities)
+        assertEquals(5, buffer.droppedAccessUnits)
     }
 
-    @Test fun `newer IDR replaces stale recovery picture without losing parameter sets`() {
-        val buffer = LatestAccessUnitBuffer()
-        val sps = H264AccessUnit(bytes(7), setOf(H264NalUnitType.SPS))
-        val pps = H264AccessUnit(bytes(8), setOf(H264NalUnitType.PPS))
-        val oldIdr = H264AccessUnit(bytes(5, 1), setOf(H264NalUnitType.IDR))
-        val newIdr = H264AccessUnit(bytes(5, 2), setOf(H264NalUnitType.IDR))
+    @Test fun `decoder handoff waits for IDR after discontinuity and then recovers`() {
+        val buffer = BoundedAccessUnitBuffer(capacity = 3)
+        buffer.declareDiscontinuity()
+        buffer.offer(picture(1))
+        buffer.offer(picture(2))
 
+        assertTrue(buffer.poll() is H264DecodeInput.Discontinuity)
+        assertNull(buffer.poll())
+
+        val idr = H264AccessUnit(bytes(0, 0, 0, 1, 0x65, 9), setOf(H264NalUnitType.IDR))
+        buffer.offer(idr)
+
+        assertArrayEquals(idr.bytes, buffer.pollUnit()!!.bytes)
+        assertFalse(buffer.isWaitingForIdr())
+        assertNull(buffer.poll())
+    }
+
+    @Test fun `SPS and PPS remain available to bootstrap recovery IDR`() {
+        val buffer = BoundedAccessUnitBuffer(capacity = 3)
+        val sps = H264AccessUnit(bytes(0, 0, 0, 1, 0x67, 7), setOf(H264NalUnitType.SPS))
+        val pps = H264AccessUnit(bytes(0, 0, 0, 1, 0x68, 8), setOf(H264NalUnitType.PPS))
+        val idr = H264AccessUnit(bytes(0, 0, 0, 1, 0x65, 5), setOf(H264NalUnitType.IDR))
         buffer.offer(sps)
         buffer.offer(pps)
-        buffer.offer(oldIdr)
-        buffer.offer(newIdr)
+        buffer.offer(picture(1))
 
-        assertEquals(H264NalUnitType.SPS, buffer.pollLatest()!!.nalUnitTypes.single())
-        assertEquals(H264NalUnitType.PPS, buffer.pollLatest()!!.nalUnitTypes.single())
-        assertArrayEquals(newIdr.bytes, buffer.pollLatest()!!.bytes)
-        assertNull(buffer.pollLatest())
-        assertEquals(1, buffer.droppedAccessUnits)
+        buffer.offer(picture(2))
+        assertTrue(buffer.poll() is H264DecodeInput.Discontinuity)
+        buffer.offer(idr)
+
+        assertArrayEquals(sps.bytes, buffer.pollUnit()!!.bytes)
+        assertArrayEquals(pps.bytes, buffer.pollUnit()!!.bytes)
+        assertArrayEquals(idr.bytes, buffer.pollUnit()!!.bytes)
+        assertNull(buffer.poll())
+    }
+
+    @Test fun `recovery retains only parameter sets from a combined bootstrap access unit`() {
+        val buffer = BoundedAccessUnitBuffer(capacity = 3)
+        val combined = H264AccessUnit(
+            bytes(
+                0, 0, 0, 1, 0x67, 7,
+                0, 0, 0, 1, 0x68, 8,
+                0, 0, 0, 1, 0x65, 1,
+            ),
+            setOf(H264NalUnitType.SPS, H264NalUnitType.PPS, H264NalUnitType.IDR),
+        )
+        val recoveryIdr = H264AccessUnit(bytes(0, 0, 0, 1, 0x65, 2), setOf(H264NalUnitType.IDR))
+        buffer.offer(combined)
+        buffer.offer(picture(1))
+        buffer.offer(picture(2))
+
+        buffer.offer(picture(3))
+        assertTrue(buffer.poll() is H264DecodeInput.Discontinuity)
+        buffer.offer(recoveryIdr)
+
+        assertEquals(setOf(H264NalUnitType.SPS), buffer.pollUnit()!!.nalUnitTypes)
+        assertEquals(setOf(H264NalUnitType.PPS), buffer.pollUnit()!!.nalUnitTypes)
+        assertArrayEquals(recoveryIdr.bytes, buffer.pollUnit()!!.bytes)
+        assertNull(buffer.poll())
+    }
+
+    @Test fun `access unit buffering remains bounded under sustained decoder backpressure`() {
+        val capacity = 4
+        val buffer = BoundedAccessUnitBuffer(capacity)
+        var maximumPending = 0
+
+        repeat(1_000) { index ->
+            val unit = if (index % 30 == 0) {
+                H264AccessUnit(bytes(index), setOf(H264NalUnitType.IDR))
+            } else {
+                picture(index)
+            }
+            buffer.offer(unit)
+            maximumPending = maxOf(maximumPending, buffer.pendingAccessUnits())
+        }
+
+        assertTrue(maximumPending <= capacity)
+        assertTrue(buffer.pendingAccessUnits() <= capacity)
+        assertTrue(buffer.discontinuities > 0)
+
+        buffer.reset()
+        assertNull(buffer.poll())
+        assertEquals(0, buffer.droppedAccessUnits)
+        assertEquals(0, buffer.discontinuities)
     }
 
     @Test fun `assembler reset discards a partial unit before restart`() {
@@ -123,4 +179,9 @@ class TelloH264FramingTest {
     }
 
     private fun bytes(vararg values: Int) = ByteArray(values.size) { values[it].toByte() }
+
+    private fun picture(id: Int) = H264AccessUnit(bytes(id), setOf(1))
+
+    private fun BoundedAccessUnitBuffer.pollUnit(): H264AccessUnit? =
+        (poll() as? H264DecodeInput.AccessUnit)?.value
 }

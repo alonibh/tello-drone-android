@@ -54,8 +54,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Physical, service-owned Tello video receiver and decoder. Receive and codec work have dedicated
- * threads and a bounded recovery-plus-latest handoff, so they never execute on or backlog the RC
- * path.
+ * threads and a bounded FIFO handoff, so they never execute on or backlog the RC path.
  */
 class AndroidTelloVideoController(
     private val network: Network,
@@ -97,7 +96,7 @@ class AndroidTelloVideoController(
     private val streamIsAcknowledged = AtomicBoolean()
     private val failed = AtomicBoolean()
     private val closed = AtomicBoolean()
-    private val latestUnit = LatestAccessUnitBuffer()
+    private val accessUnits = BoundedAccessUnitBuffer()
     private val unitSignal = Channel<Unit>(Channel.CONFLATED)
     private var receiverJob: Job? = null
     private var decoderJob: Job? = null
@@ -149,7 +148,7 @@ class AndroidTelloVideoController(
         decoderJob?.cancel()
         receiveExecutor.shutdown()
         codecExecutor.shutdown()
-        latestUnit.reset()
+        accessUnits.reset()
         stopDetectionAndScheduleRelease()
         val benchmarkCancelled = cancelBenchmark("Video lost: $reason")
         detectionStaleJob?.cancel()
@@ -274,7 +273,7 @@ class AndroidTelloVideoController(
         decodedFrameSource.executeOnConsumerThread(detectionPipeline::releaseIfStopped)
         decodedFrameSource.setConsumer(null)
         decodedFrameSource.close()
-        latestUnit.reset()
+        accessUnits.reset()
         supervisor.cancel()
         receiveDispatcher.close()
         codecDispatcher.close()
@@ -283,13 +282,20 @@ class AndroidTelloVideoController(
     private suspend fun receiveLoop(receiver: DatagramSocket) {
         val assembler = TelloH264AccessUnitAssembler()
         val bytes = ByteArray(MAX_VIDEO_DATAGRAM_BYTES)
+        var observedAssemblerDrops = 0L
         try {
             while (scope.isActive && !closed.get() && !failed.get()) {
                 val packet = DatagramPacket(bytes, bytes.size)
                 try {
                     receiver.receive(packet)
-                    assembler.offerDatagram(packet.data, packet.length)?.let { unit ->
-                        latestUnit.offer(unit)
+                    val unit = assembler.offerDatagram(packet.data, packet.length)
+                    if (assembler.droppedAccessUnits != observedAssemblerDrops) {
+                        observedAssemblerDrops = assembler.droppedAccessUnits
+                        accessUnits.declareDiscontinuity()
+                        unitSignal.trySend(Unit)
+                    }
+                    unit?.let {
+                        accessUnits.offer(it)
                         unitSignal.trySend(Unit)
                     }
                 } catch (_: SocketTimeoutException) {
@@ -328,16 +334,35 @@ class AndroidTelloVideoController(
                     frameRate.reset()
                 }
 
-                var unit = latestUnit.pollLatest() ?: continue
                 if (!streamIsAcknowledged.get()) continue
+                var input = accessUnits.poll() ?: continue
                 do {
-                    processAccessUnit(unit, codecSurface, codec, sequenceParameterSet, pictureParameterSet, needsIdr, frameRate).let { result ->
-                        codec = result.codec
-                        sequenceParameterSet = result.sps
-                        pictureParameterSet = result.pps
-                        needsIdr = result.needsIdr
+                    when (input) {
+                        H264DecodeInput.Discontinuity -> {
+                            codec.releaseSafely()
+                            codec = null
+                            needsIdr = true
+                            frameRate.reset()
+                        }
+                        is H264DecodeInput.AccessUnit -> {
+                            processAccessUnit(
+                                input.value,
+                                codecSurface,
+                                codec,
+                                sequenceParameterSet,
+                                pictureParameterSet,
+                                needsIdr,
+                                frameRate,
+                            ).let { result ->
+                                codec = result.codec
+                                sequenceParameterSet = result.sps
+                                pictureParameterSet = result.pps
+                                needsIdr = result.needsIdr
+                                if (result.continuityLost) accessUnits.declareDiscontinuity()
+                            }
+                        }
                     }
-                    unit = latestUnit.pollLatest() ?: break
+                    input = accessUnits.poll() ?: break
                 } while (scope.isActive && !closed.get() && !failed.get())
             }
         } catch (cancelled: CancellationException) {
@@ -387,16 +412,22 @@ class AndroidTelloVideoController(
 
         val activeCodec = codec
         drainOutput(activeCodec, display, frameRate)
-        val inputIndex = activeCodec.dequeueInputBuffer(0)
-        if (inputIndex < 0) return DecoderState(codec, sequenceParameterSet, pictureParameterSet, needsIdr)
+        val inputIndex = activeCodec.dequeueInputBuffer(CODEC_INPUT_TIMEOUT_MICROS)
+        if (inputIndex < 0) {
+            codec.releaseSafely()
+            return DecoderState(null, sequenceParameterSet, pictureParameterSet, needsIdr = true, continuityLost = true)
+        }
         val input = activeCodec.getInputBuffer(inputIndex)
-            ?: return DecoderState(codec, sequenceParameterSet, pictureParameterSet, needsIdr)
+            ?: run {
+                codec.releaseSafely()
+                return DecoderState(null, sequenceParameterSet, pictureParameterSet, needsIdr = true, continuityLost = true)
+            }
         if (unit.bytes.size > input.capacity()) {
             activeCodec.queueInputBuffer(inputIndex, 0, 0, presentationTimeUs(), 0)
             codec.releaseSafely()
             codec = null
             needsIdr = true
-            return DecoderState(codec, sequenceParameterSet, pictureParameterSet, needsIdr)
+            return DecoderState(codec, sequenceParameterSet, pictureParameterSet, needsIdr, continuityLost = true)
         }
         input.clear()
         input.put(unit.bytes)
@@ -551,6 +582,7 @@ class AndroidTelloVideoController(
         val sps: ByteArray?,
         val pps: ByteArray?,
         val needsIdr: Boolean,
+        val continuityLost: Boolean = false,
     )
 
     private class RenderedFrameRate {
@@ -584,5 +616,6 @@ class AndroidTelloVideoController(
         private const val MAX_ERROR_REASON_CHARS = 120
         private const val BENCHMARK_STARTUP_TIMEOUT_MILLIS = 15_000L
         private const val FPS_WINDOW_NANOS = 1_000_000_000L
+        private const val CODEC_INPUT_TIMEOUT_MICROS = 5_000L
     }
 }
