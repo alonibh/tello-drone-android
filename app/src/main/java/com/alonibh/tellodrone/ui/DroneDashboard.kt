@@ -130,6 +130,7 @@ import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.SimulatorScenarioAction
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
@@ -391,7 +392,7 @@ private fun needsCompactWifiAction(state: DroneSessionState) = Build.VERSION.SDK
     val transition = state.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.AwaitingPermission)
     val unsafeDisconnect = active && state.flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
     OutlinedButton(onClick = if (active) vm::disconnect else vm::connect, enabled = !transition && !unsafeDisconnect) {
-        Text(when { transition -> "CONNECTING..."; active -> "DISCONNECT"; state.controllerMode == ControllerMode.Mock -> "CONNECT MOCK"; else -> "CONNECT TELLO" }, fontSize = 11.sp, maxLines = 1)
+        Text(when { transition -> "CONNECTING..."; active -> STOP_SIMULATOR_LABEL.takeIf { state.controllerMode == ControllerMode.Mock } ?: "DISCONNECT"; state.controllerMode == ControllerMode.Mock -> START_SIMULATOR_LABEL; else -> "CONNECT TELLO" }, fontSize = 11.sp, maxLines = 1)
     }
 }
 
@@ -413,8 +414,8 @@ private fun needsCompactWifiAction(state: DroneSessionState) = Build.VERSION.SDK
         Text(
             when {
                 transition -> "CONNECTING…"
-                active -> "DISCONNECT"
-                state.controllerMode == ControllerMode.Mock -> "CONNECT MOCK"
+                active -> if (state.controllerMode == ControllerMode.Mock) STOP_SIMULATOR_LABEL else "DISCONNECT"
+                state.controllerMode == ControllerMode.Mock -> START_SIMULATOR_LABEL
                 else -> "CONNECT TELLO"
             },
             fontSize = 11.sp,
@@ -437,13 +438,20 @@ private fun needsCompactWifiAction(state: DroneSessionState) = Build.VERSION.SDK
 @Composable private fun ControllerModeSelector(state: DroneSessionState, vm: DroneViewModel) {
     val enabled = state.connection in setOf(DroneConnectionState.Disconnected, DroneConnectionState.Error)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        OutlineAction("REAL", Icons.Default.MyLocation, enabled, { vm.setControllerMode(ControllerMode.Real) }, active = state.controllerMode == ControllerMode.Real)
-        OutlineAction("MOCK", Icons.Default.Settings, enabled, { vm.setControllerMode(ControllerMode.Mock) }, active = state.controllerMode == ControllerMode.Mock)
+        OutlineAction(controllerModeLabel(ControllerMode.Real), Icons.Default.MyLocation, enabled, { vm.setControllerMode(ControllerMode.Real) }, active = state.controllerMode == ControllerMode.Real)
+        OutlineAction(controllerModeLabel(ControllerMode.Mock), Icons.Default.Settings, enabled, { vm.setControllerMode(ControllerMode.Mock) }, active = state.controllerMode == ControllerMode.Mock)
     }
 }
 
 @Composable private fun Brand(state: DroneSessionState, modifier: Modifier = Modifier) = Column(modifier) {
     Text("TELLO DRONE", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+    if (state.controllerMode == ControllerMode.Mock) Text(
+        SIMULATOR_BANNER_TEXT,
+        color = Color(0xFFFFC857),
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.testTag("simulator_banner"),
+    )
     Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(9.dp).clip(CircleShape).background(connectionColor(state.connection))); Spacer(Modifier.width(7.dp)); Text(connectionLabel(state.connection).uppercase(), color = connectionColor(state.connection), fontSize = 13.sp, fontWeight = FontWeight.SemiBold) }
 }
 @Composable private fun HeaderMetric(label: String, value: String) = Column(Modifier.padding(horizontal = 10.dp)) { Text(label, fontSize = 11.sp, color = TelloTextMuted); Text(value, fontSize = 19.sp, fontWeight = FontWeight.Medium) }
@@ -469,10 +477,11 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
                 modifier = Modifier.fillMaxSize(),
                 onRelease = { it.dispose() },
             )
-        } else {
-            Canvas(Modifier.fillMaxSize()) { for (x in 0..size.width.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(x.toFloat(), 0f), Offset(x.toFloat(), size.height)); for (y in 0..size.height.toInt() step 36) drawLine(Color.White.copy(alpha = .025f), Offset(0f, y.toFloat()), Offset(size.width, y.toFloat())) }
+        } else SimulatorVirtualScene(state)
+        Row(Modifier.align(Alignment.TopStart).padding(14.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .64f)).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(if (state.controllerMode == ControllerMode.Mock) "SIMULATOR" else "VIDEO", color = Color.White, fontWeight = FontWeight.Bold)
+            Text(if (state.controllerMode == ControllerMode.Mock) "  VIRTUAL CAMERA" else "  LIVE PREVIEW", color = TelloTextMuted, fontSize = 12.sp)
         }
-        Row(Modifier.align(Alignment.TopStart).padding(14.dp).clip(RoundedCornerShape(9.dp)).background(Color.Black.copy(alpha = .64f)).padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) { Text(if (state.video.availability == VideoAvailability.Mock) "DEMO" else "VIDEO", color = Color.White, fontWeight = FontWeight.Bold); Text(if (state.video.availability == VideoAvailability.Mock) "  MOCK PREVIEW" else "  LIVE PREVIEW", color = TelloTextMuted, fontSize = 12.sp) }
         Text(
             previewFpsBadgeText(state.video.measuredFps),
             modifier = Modifier.align(Alignment.TopEnd).padding(14.dp).clip(RoundedCornerShape(8.dp))
@@ -516,12 +525,11 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
                 maxWidth.value,
                 maxHeight.value,
             ) ?: return@forEach
-            val selectable = state.controllerMode == ControllerMode.Mock ||
-                (state.connection == DroneConnectionState.Connected &&
+            val selectable = state.connection == DroneConnectionState.Connected &&
                     state.video.availability == VideoAvailability.Streaming &&
                     state.video.personDetectionState == PersonDetectionState.Detecting &&
                     state.video.processedDetectorFrameSequence == detection.frameSequence &&
-                    state.video.processedDetectorSourceTimestampNanos == detection.sourceTimestampNanos)
+                    state.video.processedDetectorSourceTimestampNanos == detection.sourceTimestampNanos
             val boxWidth = (mapped.right - mapped.left).dp
             val boxHeight = (mapped.bottom - mapped.top).dp
             Box(
@@ -548,7 +556,7 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
         }
         Row(Modifier.align(Alignment.BottomEnd).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) { Text("H: ${telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }}", Modifier.clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = .82f)).padding(horizontal = 12.dp, vertical = 9.dp), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         val centerMessage = when {
-            state.video.availability == VideoAvailability.Mock -> "Mock preview • no physical video"
+            state.controllerMode == ControllerMode.Mock && state.connection == DroneConnectionState.Disconnected -> START_SIMULATOR_LABEL
             state.video.availability == VideoAvailability.Error -> "VIDEO UNAVAILABLE\n${state.video.errorReason ?: "Video pipeline error"}"
             state.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.Connected) &&
                 state.video.availability == VideoAvailability.Unavailable -> "STARTING VIDEO…"
@@ -556,6 +564,43 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneViewModel, modifier: M
             else -> "NO VIDEO / WAITING"
         }
         centerMessage?.let { Text(it, Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = .52f)).padding(10.dp), color = if (state.video.availability == VideoAvailability.Error) TelloRed else TelloTextMuted, fontSize = 12.sp, textAlign = TextAlign.Center) }
+    }
+}
+
+@Composable
+private fun SimulatorVirtualScene(state: DroneSessionState) {
+    val box = state.personDetections.firstOrNull()?.boundingBox
+    Canvas(Modifier.fillMaxSize().testTag("simulator_virtual_scene")) {
+        drawRect(Color(0xFF18242A))
+        for (x in 0..size.width.toInt() step 36) {
+            drawLine(Color.White.copy(alpha = .035f), Offset(x.toFloat(), 0f), Offset(x.toFloat(), size.height))
+        }
+        for (y in 0..size.height.toInt() step 36) {
+            drawLine(Color.White.copy(alpha = .035f), Offset(0f, y.toFloat()), Offset(size.width, y.toFloat()))
+        }
+        drawLine(
+            TelloGreen.copy(alpha = .65f),
+            Offset(size.width / 2f, 0f),
+            Offset(size.width / 2f, size.height),
+            strokeWidth = 1.dp.toPx(),
+        )
+        box?.let {
+            val centerX = (it.left + it.right) * size.width / 2f
+            val top = it.top * size.height
+            val bottom = it.bottom * size.height
+            val height = bottom - top
+            val headRadius = height * .105f
+            val headCenter = Offset(centerX, top + headRadius * 1.25f)
+            val bodyTop = headCenter.y + headRadius * 1.15f
+            val bodyBottom = bottom - height * .25f
+            val personColor = Color(0xFF74D3FF)
+            drawCircle(personColor, headRadius, headCenter)
+            drawLine(personColor, Offset(centerX, bodyTop), Offset(centerX, bodyBottom), strokeWidth = height * .12f, cap = StrokeCap.Round)
+            drawLine(personColor, Offset(centerX, bodyTop + height * .12f), Offset(centerX - height * .16f, bodyTop + height * .29f), strokeWidth = height * .055f, cap = StrokeCap.Round)
+            drawLine(personColor, Offset(centerX, bodyTop + height * .12f), Offset(centerX + height * .16f, bodyTop + height * .29f), strokeWidth = height * .055f, cap = StrokeCap.Round)
+            drawLine(personColor, Offset(centerX, bodyBottom), Offset(centerX - height * .12f, bottom), strokeWidth = height * .065f, cap = StrokeCap.Round)
+            drawLine(personColor, Offset(centerX, bodyBottom), Offset(centerX + height * .12f, bottom), strokeWidth = height * .065f, cap = StrokeCap.Round)
+        }
     }
 }
 
@@ -682,34 +727,23 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     else OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, enabled, vm::stopAndHover, modifier, compact = compact)
 }
 
-@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard("PERSON TRACKING / YAW FOLLOW • PHASE 4H1") {
-    val canStart = (state.controllerMode == ControllerMode.Mock && state.connection == DroneConnectionState.Connected) ||
-        (state.controllerMode == ControllerMode.Real &&
-            state.connection == DroneConnectionState.Connected &&
-            state.video.availability == VideoAvailability.Streaming &&
-            state.video.analysisLatestSequence != null)
+@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneViewModel) = ControlCard(
+    if (state.controllerMode == ControllerMode.Mock) "SIMULATOR TRACKING" else "PERSON TRACKING / YAW FOLLOW • PHASE 4H1",
+) {
+    val canStart = state.connection == DroneConnectionState.Connected &&
+        state.video.availability == VideoAvailability.Streaming &&
+        state.video.analysisLatestSequence != null
     if (state.controllerMode == ControllerMode.Real) {
         RealPersonDetectionAction(state, vm, canStart)
         AdvancedDetectorControls(state, vm)
     } else {
         AdaptiveActionPair(
-            { OutlineAction("OFF", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Off) },
-            { ActionButton("DETECT PEOPLE", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.tracking == TrackingMode.DetectOnly) },
+            { OutlineAction("STOP $SYNTHETIC_DETECTION_LABEL", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Off) },
+            { ActionButton("START $SYNTHETIC_DETECTION_LABEL", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth(), active = state.video.personDetectionState == PersonDetectionState.Detecting) },
         )
-        MockDetectorControls(state, vm)
     }
     if (state.controllerMode == ControllerMode.Mock && state.personDetections.isNotEmpty()) {
-        Text("Tap a mock person box to select the dry-run target.", color = TelloTextMuted, fontSize = 11.sp)
-        state.personDetections.forEachIndexed { index, detection ->
-            OutlineAction(
-                "SELECT PERSON ${index + 1}",
-                Icons.Default.PersonSearch,
-                true,
-                { vm.selectTarget(detection) },
-                Modifier.fillMaxWidth(),
-                active = state.target?.boundingBox == detection.boundingBox,
-            )
-        }
+        Text("Tap the synthetic person box to select it.", color = TelloTextMuted, fontSize = 11.sp)
     }
     val targetStatus = when (state.targetAssociationState) {
         TargetAssociationState.None -> null
@@ -722,15 +756,17 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
     if (state.controllerMode == ControllerMode.Real && state.target == null) {
         Text("Tap a person to select.", color = TelloTextMuted, fontSize = 11.sp)
     }
-    if (state.controllerMode == ControllerMode.Mock) {
-        MockFollowDiagnostics(state, vm)
-    }
-    if (state.controllerMode == ControllerMode.Real) {
+    if (state.controllerMode == ControllerMode.Real || state.controllerMode == ControllerMode.Mock) {
         HorizontalDivider(color = TelloLine)
-        Text("REAL YAW FOLLOW", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Text(
+            if (state.controllerMode == ControllerMode.Mock) SIMULATED_YAW_FOLLOW_LABEL else "REAL YAW FOLLOW",
+            color = TelloTextMuted,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+        )
         StatusLine("State", state.yawFollowDecision.state.name, if (state.yawFollowDecision.state == YawFollowState.ACTIVE) TelloGreen else TelloTextMuted)
         StatusLine("Reason", state.yawFollowDecision.reason.name.replace('_', ' '))
-        if (state.yawFollowDecision.state == YawFollowState.ACTIVE) {
+        if (state.controllerMode == ControllerMode.Mock || state.yawFollowDecision.state == YawFollowState.ACTIVE) {
             StatusLine("Yaw RC", state.yawFollowDecision.yawRc.toString())
         }
         if (state.yawFollowDecision.requiresExplicitRearm) {
@@ -764,7 +800,8 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
                 .testTag("yaw_only_warning"),
         ) {
             Text(
-                "YAW ONLY • NO ALTITUDE / FORWARD / LATERAL",
+                if (state.controllerMode == ControllerMode.Mock) "PRODUCTION YAW PATH • VIRTUAL PLANT" else
+                    "YAW ONLY • NO ALTITUDE / FORWARD / LATERAL",
                 color = TelloRed,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
@@ -774,20 +811,30 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneViewModel, modifier
         }
     }
     if (state.controllerMode == ControllerMode.Mock) {
-        state.shadowAutonomyDecision?.let { decision ->
-            StatusLine("SHADOW AUTONOMY", decision.state.name)
-            StatusLine("Eligibility", if (decision.eligible) "YES" else "NO")
-            StatusLine("Reason", decision.reason.name.replace('_', ' '))
-            if (decision.requiresExplicitRearm) Text("RE-ARM REQUIRED", color = TelloRed, fontSize = 11.sp)
-        }
+        HorizontalDivider(color = TelloLine)
+        Text("SCENARIO", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         AdaptiveActionPair(
-            { OutlineAction("ARM DRY RUN", Icons.Default.CheckCircle, true, { vm.setShadowAutonomyArmed(true) }, Modifier.fillMaxWidth()) },
-            { OutlineAction("DISARM", Icons.Default.Close, true, { vm.setShadowAutonomyArmed(false) }, Modifier.fillMaxWidth()) },
+            { OutlineAction(simulatorScenarioLabels.getValue(SimulatorScenarioAction.MovePersonLeft), Icons.AutoMirrored.Filled.KeyboardArrowLeft, state.connection == DroneConnectionState.Connected, { vm.applySimulatorScenario(SimulatorScenarioAction.MovePersonLeft) }, Modifier.fillMaxWidth()) },
+            { OutlineAction(simulatorScenarioLabels.getValue(SimulatorScenarioAction.MovePersonRight), Icons.AutoMirrored.Filled.KeyboardArrowRight, state.connection == DroneConnectionState.Connected, { vm.applySimulatorScenario(SimulatorScenarioAction.MovePersonRight) }, Modifier.fillMaxWidth()) },
         )
-        Text("SHADOW ONLY • NO AUTONOMOUS COMMANDS", color = TelloTextMuted, fontSize = 11.sp)
-    }
-    if (state.controllerMode == ControllerMode.Mock) {
-        Text("Frame-local boxes only • Explicit target selection", color = TelloTextMuted, fontSize = 11.sp)
+        AdaptiveActionPair(
+            { OutlineAction(simulatorScenarioLabels.getValue(SimulatorScenarioAction.CenterPerson), Icons.Default.MyLocation, state.connection == DroneConnectionState.Connected, { vm.applySimulatorScenario(SimulatorScenarioAction.CenterPerson) }, Modifier.fillMaxWidth()) },
+            { OutlineAction(if (state.simulatorDiagnostics?.personVisible == false) "SHOW PERSON" else "HIDE PERSON", Icons.Default.PersonSearch, state.connection == DroneConnectionState.Connected, { vm.applySimulatorScenario(SimulatorScenarioAction.TogglePersonVisibility) }, Modifier.fillMaxWidth()) },
+        )
+        OutlineAction(simulatorScenarioLabels.getValue(SimulatorScenarioAction.Reset), Icons.Default.Settings, true, { vm.applySimulatorScenario(SimulatorScenarioAction.Reset) }, Modifier.fillMaxWidth())
+        state.simulatorDiagnostics?.let { diagnostics ->
+            Text("LATEST FINAL RC", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            Text(
+                "lateral=${diagnostics.lateralRc}  forward=${diagnostics.forwardRc}  vertical=${diagnostics.verticalRc}  yaw=${diagnostics.yawRc}",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.testTag("simulator_rc_diagnostics"),
+            )
+            StatusLine("Person horizontal", "%.3f".format(diagnostics.personHorizontalPosition))
+            StatusLine("Horizontal error", "%+.3f".format(diagnostics.personHorizontalError))
+        }
+        Text("SYNTHETIC DETECTION • NO ML / CAMERA / NETWORK", color = TelloTextMuted, fontSize = 11.sp)
     }
 }
 
@@ -856,96 +903,6 @@ private fun AdvancedDetectorControls(state: DroneSessionState, vm: DroneViewMode
         },
     )
     DetectorBenchmarkControls(state, vm)
-}
-
-@Composable
-private fun MockDetectorControls(state: DroneSessionState, vm: DroneViewModel) {
-    val canSelectConfig = state.tracking == TrackingMode.Off &&
-        state.video.personDetectionState !in setOf(PersonDetectionState.Starting, PersonDetectionState.Detecting)
-    AdaptiveActionPair(
-        {
-            OutlineAction("MOBILENET V1", Icons.Default.Settings, canSelectConfig, { vm.setDetectorModel(DetectorModel.MobileNetV1) }, Modifier.fillMaxWidth(), active = state.video.detectorModel == DetectorModel.MobileNetV1)
-        },
-        {
-            OutlineAction("EFFICIENTDET LITE0", Icons.Default.Settings, canSelectConfig, { vm.setDetectorModel(DetectorModel.EfficientDetLite0) }, Modifier.fillMaxWidth(), active = state.video.detectorModel == DetectorModel.EfficientDetLite0)
-        },
-    )
-    AdaptiveActionPair(
-        {
-            OutlineAction("GPU PREFERRED", Icons.Default.Settings, canSelectConfig, { vm.setDetectorBackendPreference(DetectorBackendPreference.Accelerated) }, Modifier.fillMaxWidth(), active = state.video.detectorBackendPreference == DetectorBackendPreference.Accelerated)
-        },
-        {
-            OutlineAction("CPU COMPARE", Icons.Default.Settings, canSelectConfig, { vm.setDetectorBackendPreference(DetectorBackendPreference.Cpu) }, Modifier.fillMaxWidth(), active = state.video.detectorBackendPreference == DetectorBackendPreference.Cpu)
-        },
-    )
-    AdaptiveActionPair(
-        {
-            OutlineAction(
-                "- 5% THRESHOLD",
-                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                canSelectConfig && state.video.detectorConfidenceThreshold > MIN_PERSON_CONFIDENCE_THRESHOLD + 0.001f,
-                { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold - PERSON_CONFIDENCE_THRESHOLD_STEP) },
-                Modifier.fillMaxWidth(),
-            )
-        },
-        {
-            OutlineAction(
-                "+ 5% THRESHOLD",
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                canSelectConfig && state.video.detectorConfidenceThreshold < MAX_PERSON_CONFIDENCE_THRESHOLD - 0.001f,
-                { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold + PERSON_CONFIDENCE_THRESHOLD_STEP) },
-                Modifier.fillMaxWidth(),
-            )
-        },
-    )
-    val status = when (state.video.personDetectionState) {
-        PersonDetectionState.Off -> "OFF"
-        PersonDetectionState.Starting -> "STARTING"
-        PersonDetectionState.Detecting -> "DETECTING"
-        PersonDetectionState.Error -> "ERROR"
-    }
-    StatusLine("State", status, if (state.video.personDetectionState == PersonDetectionState.Error) TelloRed else TelloGreen)
-    StatusLine("Model", state.video.detectorModelName ?: state.video.detectorModel.displayName)
-    StatusLine(
-        "Threshold",
-        "${(state.video.detectorConfidenceThreshold * 100f).roundToInt()}%",
-        if (state.video.detectorConfidenceThreshold > DEFAULT_PERSON_CONFIDENCE_THRESHOLD) TelloGreen else TelloTextMuted,
-    )
-    state.video.detectorBackend?.let { backend ->
-        StatusLine("Backend", if (backend == DetectorBackend.Gpu) "GPU" else "CPU (4 threads)")
-    }
-    if (state.video.detectorFellBackFromGpu) StatusLine("Fallback", "GPU failed -> CPU")
-    state.video.detectorInferenceMillis?.let { StatusLine("Inference", "$it ms") }
-    state.video.detectorMeasuredFps?.let { StatusLine("Detector rate", "%.1f FPS".format(it)) }
-    state.video.detectorErrorReason?.let { Text(it, color = TelloRed, fontSize = 11.sp) }
-    DetectorBenchmarkControls(state, vm)
-}
-
-@Composable
-private fun MockFollowDiagnostics(state: DroneSessionState, vm: DroneViewModel) {
-    val distanceEligibility = com.alonibh.tellodrone.domain.FollowDistanceEligibility.evaluate(state)
-    val distanceLabel = when (state.followDistanceCalibrationState) {
-        com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.NotSet -> "NOT SET"
-        com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Calibrating -> "CALIBRATING"
-        com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Set -> "SET"
-    }
-    val distanceStatus = if (state.followDistanceCalibrationState == com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Calibrating) "CALIBRATING ${state.followDistanceCalibrationSamples}/7" else distanceLabel
-    StatusLine("Follow distance", distanceStatus, if (distanceLabel == "SET") TelloGreen else TelloTextMuted)
-    if (state.followDistanceCalibrationState != com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.Set) StatusLine("Distance", distanceEligibility.name.replace('_', ' '), TelloTextMuted)
-    state.followDistanceReference?.let { StatusLine("Visual scale", "%.3f".format(it.visualScale)) }
-    state.trackingErrors?.let { errors ->
-        StatusLine("Dry-run yaw", "%.3f".format(errors.yawError))
-        StatusLine("Dry-run vertical", "%.3f".format(errors.verticalError))
-        StatusLine("Dry-run distance", "%.3f".format(errors.forwardBackError))
-    }
-    state.dryRunControlIntent?.let { intent ->
-        StatusLine("DRY RUN", if (intent.actionable) "ACTIONABLE" else "NO COMMANDS SENT")
-        StatusLine("Yaw intent", "%.3f".format(intent.yaw))
-        StatusLine("Vertical intent", "%.3f".format(intent.vertical))
-        StatusLine("Forward/back", "%.3f".format(intent.forwardBack))
-        StatusLine("Reason", intent.reason.name.replace('_', ' '))
-        Text("NO COMMANDS SENT", color = TelloTextMuted, fontSize = 11.sp)
-    }
 }
 
 internal fun DroneSessionState.isCurrentTargetDetection(detection: com.alonibh.tellodrone.domain.PersonDetection): Boolean = target?.let {

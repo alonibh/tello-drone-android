@@ -9,6 +9,7 @@ import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.PersonDetection
+import com.alonibh.tellodrone.domain.SimulatorScenarioAction
 import com.alonibh.tellodrone.domain.TrackingMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,10 @@ class AppDroneController(
         mutableState.value = selected().state.value.copy(controllerMode = mode)
     }
 
+    override fun applySimulatorScenario(action: SimulatorScenarioAction) {
+        if (mode == ControllerMode.Mock) mock.applySimulatorScenario(action)
+    }
+
     override fun connect() = selected().connect()
     override fun disconnect() = selected().disconnect()
     override fun takeOff() = selected().takeOff()
@@ -63,8 +68,8 @@ class AppDroneController(
     override fun setYawFollowArmed(armed: Boolean) = selected().setYawFollowArmed(armed)
     override fun setManualControlVector(vector: ManualControlVector) = selected().setManualControlVector(vector)
     override fun setSpeed(percent: Int) = selected().setSpeed(percent)
-    // The real adapter retains the display hand-off even when Mock mode is selected. Mock mode
-    // never creates a physical video resource, and the surface is ready for a later Real connect.
+    // The real adapter retains the display hand-off even when simulator mode is selected. The
+    // simulator never consumes it, and the surface is ready for a later Real connection.
     override fun attachVideoSurface(surface: Surface) = real.attachVideoSurface(surface)
     override fun detachVideoSurface(surface: Surface) = real.detachVideoSurface(surface)
     override fun onNetworkPermissionsResult(granted: Boolean) = selected().onNetworkPermissionsResult(granted)

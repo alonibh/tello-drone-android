@@ -11,6 +11,7 @@ import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.PersonDetection
+import com.alonibh.tellodrone.domain.SimulatorScenarioAction
 import com.alonibh.tellodrone.domain.TrackingMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -46,6 +47,7 @@ class DroneViewModel(private val controller: DroneController) : ViewModel() {
     fun attachVideoSurface(surface: Surface) = controller.attachVideoSurface(surface)
     fun detachVideoSurface(surface: Surface) = controller.detachVideoSurface(surface)
     fun setControllerMode(mode: ControllerMode) = controller.setControllerMode(mode)
+    fun applySimulatorScenario(action: SimulatorScenarioAction) = controller.applySimulatorScenario(action)
     fun onNetworkPermissionsResult(granted: Boolean) = controller.onNetworkPermissionsResult(granted)
 
     class Factory(private val controller: DroneController) : ViewModelProvider.Factory {

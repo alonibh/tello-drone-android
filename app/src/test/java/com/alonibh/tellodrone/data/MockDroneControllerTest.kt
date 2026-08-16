@@ -1,125 +1,135 @@
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+
 package com.alonibh.tellodrone.data
 
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.DroneConnectionState
-import com.alonibh.tellodrone.domain.DetectorModel
-import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.SimulatorScenarioAction
 import com.alonibh.tellodrone.domain.TrackingMode
+import com.alonibh.tellodrone.domain.YawFollowState
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MockDroneControllerTest {
-    @Test fun `cannot take off while disconnected`() {
-        val controller = MockDroneController()
-        controller.takeOff()
+    @Test fun `start creates connected grounded simulator and stop cleans it up`() = runTest {
+        val controller = controller()
+        controller.connect()
+        runCurrent()
+        assertEquals(DroneConnectionState.Connected, controller.state.value.connection)
         assertEquals(FlightState.Grounded, controller.state.value.flight)
-    }
+        assertTrue(controller.state.value.telemetry.isFresh)
 
-    @Test fun `takeoff moves mock state to flying and land returns grounded`() {
-        val controller = connectedController()
-        controller.takeOff(); assertEquals(FlightState.Flying, controller.state.value.flight)
-        controller.land(); assertEquals(FlightState.Grounded, controller.state.value.flight)
-    }
-
-    @Test fun `stop hover preserves observational detection and manual authority`() {
-        val controller = detectingFlyingController()
-        controller.stopAndHover()
-        assertEquals(FlightState.Flying, controller.state.value.flight)
-        assertEquals(ControlAuthority.Manual, controller.state.value.authority)
-        assertEquals(TrackingMode.DetectOnly, controller.state.value.tracking)
-        assertEquals(0f, controller.state.value.telemetry.speedMetersPerSecond)
-    }
-
-    @Test fun `emergency motor kill clears autonomous authority`() {
-        val controller = detectingFlyingController()
-        controller.emergencyMotorKill()
-        assertEquals(FlightState.Emergency, controller.state.value.flight)
-        assertEquals(ControlAuthority.Manual, controller.state.value.authority)
-        assertEquals(TrackingMode.Off, controller.state.value.tracking)
-    }
-
-    @Test fun `explicit mock target selection remains dry run and follow remains unavailable`() {
-        val controller = connectedController()
-        controller.setTrackingMode(TrackingMode.DetectOnly)
-        controller.selectTarget(controller.state.value.personDetections.first())
-        controller.setTrackingMode(TrackingMode.Follow)
-        assertEquals(ControlAuthority.Manual, controller.state.value.authority)
-        assertEquals(TrackingMode.TargetLocked, controller.state.value.tracking)
-        org.junit.Assert.assertNotNull(controller.state.value.target)
-    }
-
-    @Test fun `manual input remains authoritative without disabling detection`() {
-        val controller = detectingFlyingController()
-        controller.setManualControlVector(ManualControlVector(forward = 1f))
-        assertEquals(TrackingMode.DetectOnly, controller.state.value.tracking)
-        assertEquals(ControlAuthority.Manual, controller.state.value.authority)
-    }
-
-    @Test fun `target selection does not issue movement or autonomous authority`() {
-        val controller = detectingFlyingController()
-        val manual = ManualControlVector(forward = .5f, yaw = -.2f)
-        controller.setManualControlVector(manual)
-        controller.selectTarget(controller.state.value.personDetections.last())
-
-        assertEquals(ControlAuthority.Manual, controller.state.value.authority)
-        assertEquals(manual, controller.state.value.manualVector)
-        assertEquals(TrackingMode.TargetLocked, controller.state.value.tracking)
-    }
-
-    @Test fun `yaw follow arm remains a no-op in mock mode`() {
-        val controller = detectingFlyingController()
-        val before = controller.state.value
-
-        controller.setYawFollowArmed(true)
-
-        assertEquals(before, controller.state.value)
-    }
-
-    @Test fun `disconnect clears unsafe states`() {
-        val controller = detectingFlyingController()
         controller.disconnect()
+        runCurrent()
         assertEquals(DroneConnectionState.Disconnected, controller.state.value.connection)
         assertEquals(FlightState.Grounded, controller.state.value.flight)
         assertEquals(TrackingMode.Off, controller.state.value.tracking)
     }
 
-    @Test fun `confidence threshold update is applied when tracking is off`() {
+    @Test fun `takeoff and landing use acknowledgement then simulated telemetry`() = runTest {
         val controller = connectedController()
-        controller.setDetectorConfidenceThreshold(0.70f)
-        assertEquals(0.70f, controller.state.value.video.detectorConfidenceThreshold)
+        controller.takeOff()
+        runCurrent()
+        assertEquals(FlightState.TakingOff, controller.state.value.flight)
+        advanceTimeBy(200L)
+        runCurrent()
+        assertEquals(FlightState.Flying, controller.state.value.flight)
+
+        controller.land()
+        runCurrent()
+        assertEquals(FlightState.Landing, controller.state.value.flight)
+        advanceTimeBy(200L)
+        runCurrent()
+        assertEquals(FlightState.Grounded, controller.state.value.flight)
     }
 
-    @Test fun `confidence threshold update is rejected when tracking is active`() {
-        val controller = detectingFlyingController()
-        controller.setDetectorConfidenceThreshold(0.70f)
-        assertEquals(0.55f, controller.state.value.video.detectorConfidenceThreshold)
-        assertEquals("Turn person detection off before changing confidence threshold", controller.state.value.lastMessage)
-    }
-
-    @Test fun `detector model update is applied when tracking is off`() {
-        val controller = connectedController()
-        controller.setDetectorModel(DetectorModel.EfficientDetLite0)
-        assertEquals(DetectorModel.EfficientDetLite0, controller.state.value.video.detectorModel)
-    }
-
-    @Test fun `detector model update is rejected when tracking is active`() {
-        val controller = detectingFlyingController()
-        controller.setDetectorModel(DetectorModel.EfficientDetLite0)
-        assertEquals(DetectorModel.MobileNetV1, controller.state.value.video.detectorModel)
-        assertEquals("Turn person detection off before changing model", controller.state.value.lastMessage)
-    }
-
-    @Test fun `mock person detections are filtered by configured confidence threshold`() {
-        val controller = connectedController()
-        controller.setDetectorConfidenceThreshold(0.90f)
+    @Test fun `synthetic selection and production yaw follow use final transport diagnostics`() = runTest {
+        val controller = flyingController()
         controller.setTrackingMode(TrackingMode.DetectOnly)
-        assertEquals(1, controller.state.value.personDetections.size)
-        assertEquals(0.92f, controller.state.value.personDetections.single().confidence)
+        advanceTimeBy(100L)
+        runCurrent()
+        val detection = controller.state.value.personDetections.single()
+        controller.selectTarget(detection)
+        advanceTimeBy(100L)
+        runCurrent()
+        controller.setYawFollowArmed(true)
+        controller.applySimulatorScenario(SimulatorScenarioAction.MovePersonRight)
+        advanceTimeBy(700L)
+        runCurrent()
+
+        assertEquals(YawFollowState.ACTIVE, controller.state.value.yawFollowDecision.state)
+        assertTrue(requireNotNull(controller.state.value.simulatorDiagnostics).yawRc > 0)
+        assertEquals(ControlAuthority.Autonomous, controller.state.value.authority)
     }
 
-    private fun connectedController() = MockDroneController(DroneSessionState(connection = DroneConnectionState.Connected))
-    private fun detectingFlyingController() = connectedController().also { it.takeOff(); it.setTrackingMode(TrackingMode.DetectOnly) }
+    @Test fun `stop hover selects exact zero and requires rearm`() = runTest {
+        val controller = flyingController()
+        controller.setManualControlVector(ManualControlVector())
+        controller.setManualControlVector(ManualControlVector(forward = 1f))
+        advanceTimeBy(50L)
+        runCurrent()
+        assertTrue(requireNotNull(controller.state.value.simulatorDiagnostics).forwardRc > 0)
+
+        controller.stopAndHover()
+        runCurrent()
+        val diagnostics = requireNotNull(controller.state.value.simulatorDiagnostics)
+        assertEquals(0, diagnostics.lateralRc)
+        assertEquals(0, diagnostics.forwardRc)
+        assertEquals(0, diagnostics.verticalRc)
+        assertEquals(0, diagnostics.yawRc)
+        assertTrue(controller.state.value.hoverActive)
+    }
+
+    @Test fun `reset replaces runtime with grounded centred visible zero state and old state cannot return`() = runTest {
+        val controller = flyingController()
+        controller.applySimulatorScenario(SimulatorScenarioAction.MovePersonRight)
+        advanceTimeBy(300L)
+        runCurrent()
+        controller.applySimulatorScenario(SimulatorScenarioAction.Reset)
+        runCurrent()
+
+        assertEquals(DroneConnectionState.Connected, controller.state.value.connection)
+        assertEquals(FlightState.Grounded, controller.state.value.flight)
+        val reset = requireNotNull(controller.state.value.simulatorDiagnostics)
+        assertEquals(.5f, reset.personHorizontalPosition, .001f)
+        assertTrue(reset.personVisible)
+        assertEquals(0, reset.yawRc)
+        advanceTimeBy(1_000L)
+        runCurrent()
+        assertEquals(FlightState.Grounded, controller.state.value.flight)
+        assertEquals(.5f, requireNotNull(controller.state.value.simulatorDiagnostics).personHorizontalPosition, .001f)
+    }
+
+    @Test fun `hide clears current synthetic result`() = runTest {
+        val controller = connectedController()
+        controller.setTrackingMode(TrackingMode.DetectOnly)
+        advanceTimeBy(100L)
+        runCurrent()
+        assertNotNull(controller.state.value.personDetections.singleOrNull())
+        controller.applySimulatorScenario(SimulatorScenarioAction.TogglePersonVisibility)
+        advanceTimeBy(100L)
+        runCurrent()
+        assertTrue(controller.state.value.personDetections.isEmpty())
+    }
+
+    private fun kotlinx.coroutines.test.TestScope.controller() =
+        MockDroneController(parentScope = backgroundScope)
+
+    private fun kotlinx.coroutines.test.TestScope.connectedController() = controller().also {
+        it.connect()
+        runCurrent()
+    }
+
+    private fun kotlinx.coroutines.test.TestScope.flyingController() = connectedController().also {
+        it.takeOff()
+        advanceTimeBy(200L)
+        runCurrent()
+    }
 }

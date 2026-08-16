@@ -59,4 +59,15 @@ class DroneDashboardTest {
         compose.onNodeWithTag("layout_compact_height").assertExists()
         assertEquals(dashboardState, controller.state.value)
     }
+
+    @Test fun simulator_mode_presents_no_physical_drone_labels() {
+        val controller = MockDroneController()
+        val viewModel = DroneViewModel(controller)
+        val simulatorState = controller.state.value
+        compose.setContent { MaterialTheme { DroneDashboard(simulatorState, viewModel) } }
+
+        compose.onNodeWithText("SIMULATOR").assertExists()
+        compose.onNodeWithText("SIMULATOR • NO PHYSICAL DRONE").assertExists()
+        compose.onNodeWithText("START SIMULATOR").assertExists()
+    }
 }

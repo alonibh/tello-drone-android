@@ -8,6 +8,7 @@ import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.PersonDetection
+import com.alonibh.tellodrone.domain.SimulatorScenarioAction
 import com.alonibh.tellodrone.domain.TrackingMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,6 +104,33 @@ class AppDroneControllerTest {
         assertEquals(listOf(false), mock.yawFollowArmRequests)
     }
 
+    @Test
+    fun `simulator scenario actions forward only to selected simulator controller`() {
+        val real = RecordingDroneController(DroneSessionState(controllerMode = ControllerMode.Real))
+        val simulator = RecordingDroneController(DroneSessionState(controllerMode = ControllerMode.Mock))
+        val appController = AppDroneController(real, simulator)
+
+        appController.applySimulatorScenario(SimulatorScenarioAction.MovePersonLeft)
+        assertEquals(emptyList<SimulatorScenarioAction>(), real.scenarioRequests)
+        assertEquals(emptyList<SimulatorScenarioAction>(), simulator.scenarioRequests)
+        appController.setControllerMode(ControllerMode.Mock)
+        appController.applySimulatorScenario(SimulatorScenarioAction.Reset)
+        assertEquals(listOf(SimulatorScenarioAction.Reset), simulator.scenarioRequests)
+    }
+
+    @Test
+    fun `starting simulator never invokes real connection boundary`() {
+        val real = RecordingDroneController(DroneSessionState(controllerMode = ControllerMode.Real))
+        val simulator = RecordingDroneController(DroneSessionState(controllerMode = ControllerMode.Mock))
+        val appController = AppDroneController(real, simulator)
+
+        appController.setControllerMode(ControllerMode.Mock)
+        appController.connect()
+
+        assertEquals(0, real.connectCalls)
+        assertEquals(1, simulator.connectCalls)
+    }
+
     private class RecordingDroneController(
         initialState: DroneSessionState,
     ) : DroneController {
@@ -112,8 +140,10 @@ class AppDroneControllerTest {
         var lastConfidenceThreshold: Float? = null
         var lastModel: DetectorModel? = null
         val yawFollowArmRequests = mutableListOf<Boolean>()
+        val scenarioRequests = mutableListOf<SimulatorScenarioAction>()
+        var connectCalls = 0
 
-        override fun connect() = Unit
+        override fun connect() { connectCalls++ }
         override fun disconnect() = Unit
         override fun takeOff() = Unit
         override fun land() = Unit
@@ -129,6 +159,9 @@ class AppDroneControllerTest {
         }
         override fun setYawFollowArmed(armed: Boolean) {
             yawFollowArmRequests += armed
+        }
+        override fun applySimulatorScenario(action: SimulatorScenarioAction) {
+            scenarioRequests += action
         }
         override fun setDetectorConfidenceThreshold(threshold: Float) {
             lastConfidenceThreshold = threshold

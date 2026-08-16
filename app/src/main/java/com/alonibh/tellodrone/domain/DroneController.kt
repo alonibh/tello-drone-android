@@ -32,5 +32,6 @@ interface DroneController {
     fun attachVideoSurface(surface: Surface) = Unit
     fun detachVideoSurface(surface: Surface) = Unit
     fun setControllerMode(mode: ControllerMode) = Unit
+    fun applySimulatorScenario(action: SimulatorScenarioAction) = Unit
     fun onNetworkPermissionsResult(granted: Boolean) = Unit
 }

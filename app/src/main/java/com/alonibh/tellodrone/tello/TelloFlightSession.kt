@@ -65,6 +65,7 @@ class TelloFlightSession(
     /** Test-only interleaving point immediately before a yaw-owned state commit. */
     private val beforeYawFollowStateCommit: ((MutableStateFlow<DroneSessionState>) -> Unit)? = null,
 ) {
+    private val simulatorMode = initialState.controllerMode == ControllerMode.Mock
     private val mutableState = MutableStateFlow(initialState)
     val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
 
@@ -122,7 +123,8 @@ class TelloFlightSession(
                 yawFollowDecision = yawDecision,
                 followDistanceReference = null,
                 followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
-                lastMessage = "Tello Wi-Fi selected; entering SDK mode",
+                lastMessage = if (simulatorMode) "Simulator entering SDK-compatible mode" else
+                    "Tello Wi-Fi selected; entering SDK mode",
             )
         }
         startTelemetryCollection()
@@ -146,8 +148,12 @@ class TelloFlightSession(
                 connection = DroneConnectionState.Connected,
                 flight = if (grounded) FlightState.Grounded else FlightState.Unknown,
                 telemetry = first.asSnapshot(isFresh = true),
-                lastMessage = if (grounded) "Tello connected and telemetry verified" else
-                    "Tello connected, but airborne state is uncertain; land before normal commands",
+                lastMessage = when {
+                    simulatorMode && grounded -> "Simulator started, centred, visible, and grounded"
+                    simulatorMode -> "Simulator started, but flight state is uncertain; reset the scenario"
+                    grounded -> "Tello connected and telemetry verified"
+                    else -> "Tello connected, but airborne state is uncertain; land before normal commands"
+                },
             )
         }
         rcLoop.setHealthy(true)
@@ -378,7 +384,8 @@ class TelloFlightSession(
                 if (current.connection != DroneConnectionState.Connected ||
                     current.video.availability != VideoAvailability.Streaming
                 ) {
-                    invalid("Person detection requires a connected live preview")
+                    invalid(if (simulatorMode) "Synthetic detection requires the virtual camera" else
+                        "Person detection requires a connected live preview")
                     return
                 }
                 val started = activeVideo?.setPersonDetectionEnabled(true)
@@ -391,7 +398,8 @@ class TelloFlightSession(
                             authority = ControlAuthority.Manual,
                             personDetections = emptyList(),
                             target = null,
-                            lastMessage = "Starting on-device person detection",
+                            lastMessage = if (simulatorMode) "Starting synthetic person detection" else
+                                "Starting on-device person detection",
                         )
                     }
                 } else {
@@ -518,7 +526,8 @@ class TelloFlightSession(
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Selected, Float.NaN),
                     followDistanceReference = null,
                     followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
-                    lastMessage = "Real target selected; dry run only, no commands sent",
+                    lastMessage = if (simulatorMode) "Simulator target selected; production yaw gate is ready" else
+                        "Real target selected; dry run only, no commands sent",
                 )
             }
         }
@@ -692,7 +701,8 @@ class TelloFlightSession(
                                     current.targetAssociationState,
                                     Float.NaN,
                                 ),
-                                lastMessage = "Real detector result expired; no commands sent",
+                                lastMessage = if (simulatorMode) "Synthetic detector result expired; yaw zero selected" else
+                                    "Real detector result expired; no commands sent",
                             )
                         }
                         else -> baseline
@@ -733,7 +743,8 @@ class TelloFlightSession(
                     followDistanceReference = calibration.reference,
                     followDistanceCalibrationState = calibration.state,
                     followDistanceCalibrationSamples = calibration.samples,
-                    lastMessage = "Real target matched; yaw-follow safety gate evaluated",
+                    lastMessage = if (simulatorMode) "Simulator target matched; yaw-follow safety gate evaluated" else
+                        "Real target matched; yaw-follow safety gate evaluated",
                 )
             }
             is TargetAssociationResult.TemporarilyMissing -> {
@@ -752,7 +763,8 @@ class TelloFlightSession(
                     followDistanceReference = reference,
                     followDistanceCalibrationState = state,
                     followDistanceCalibrationSamples = if (preserveSet) baseline.followDistanceCalibrationSamples else 0,
-                    lastMessage = "Real target temporarily missing; yaw zero selected",
+                    lastMessage = if (simulatorMode) "Simulator target temporarily missing; yaw zero selected" else
+                        "Real target temporarily missing; yaw zero selected",
                 )
             }
             is TargetAssociationResult.Ambiguous -> {
@@ -771,7 +783,8 @@ class TelloFlightSession(
                     followDistanceReference = reference,
                     followDistanceCalibrationState = state,
                     followDistanceCalibrationSamples = if (preserveSet) baseline.followDistanceCalibrationSamples else 0,
-                    lastMessage = "Real target ambiguous; tap a person to select again",
+                    lastMessage = if (simulatorMode) "Simulator target ambiguous; tap the person to select again" else
+                        "Real target ambiguous; tap a person to select again",
                 )
             }
             is TargetAssociationResult.Lost -> {
@@ -786,7 +799,8 @@ class TelloFlightSession(
                     trackingErrors = null,
                     targetAssociationState = TargetAssociationState.Lost,
                     dryRunControlIntent = dryRunPlanner.plan(null, TargetAssociationState.Lost, dtSeconds),
-                    lastMessage = "Real target lost; explicit reselection required",
+                    lastMessage = if (simulatorMode) "Simulator target lost; explicit reselection required" else
+                        "Real target lost; explicit reselection required",
                 )
             }
             is TargetAssociationResult.Ignored -> baseline

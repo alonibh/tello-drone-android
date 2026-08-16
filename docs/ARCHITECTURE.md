@@ -12,6 +12,20 @@ command sequencing, telemetry receiver, health monitor, and RC loop are owned by
 user starts real connection selection until a safe disconnect or terminal connection failure.
 Compose and `DroneViewModel` never own these resources.
 
+## In-app closed-loop simulator
+
+The selectable **SIMULATOR** is application-owned and never crosses the physical service or Android
+network boundary. Its internal `ControllerMode.Mock` value is retained only as an implementation
+detail. `MockDroneController` creates a fresh `TelloFlightSession`, `SimulatorTelloTransport`,
+`SimulatorVideoController`, pure Kotlin `SimulatorPlant`, and supervised scope for each start. A
+disconnect or reset closes every job and adapter, and a closed session is never reused.
+
+Synthetic boxes enter the same session-owned selection, `TargetAssociationEngine`,
+`TrackingErrorEngine`, `YawFollowGate` / `ProductionYawController`, and `RcControlLoop` path as real
+tracking. The exact final `RcVector` enters the simulator transport and independent plant before the
+next synthetic observation. The plant does not reuse production sign or mapping helpers. See
+[SIMULATOR.md](SIMULATOR.md) for the axis contract, user flow, and validation limits.
+
 Phase 3A adds the physical video socket, bounded H.264 pipeline, and `MediaCodec` decoder to the
 same service/session ownership boundary. Compose owns only the current `SurfaceView` display
 surface and hands it through `DroneController`; a service gateway retains that display hand-off
@@ -286,10 +300,10 @@ It never changes control authority or emits a command. Manual input, STOP/HOVER,
 telemetry/video/detector/connection failure, landing, and emergency fail closed; safety-significant
 interruptions latch `RequiresRearm`, so healthy input alone can never re-engage shadow eligibility.
 
-Mock mode exposes two selectable person boxes, selected/missing/lost state, and debug error values
-in Tracking only. Real-mode target selection remains disabled pending the future Teclast detector
-benchmark. There is no PID, autonomous RC, Follow mode, or non-manual control authority in Phase
-4B; manual RC, its TTL/stale-input zeroing, STOP/HOVER, and Emergency retain their existing roles.
+The former UI-development mock presentation has been replaced by the closed-loop in-app simulator.
+Historical Phase 4B dry-run behavior remains documented here as the precursor to later production
+yaw-follow; manual RC, its TTL/stale-input zeroing, STOP/HOVER, and Emergency retain their existing
+roles.
 
 ## Phase boundaries
 

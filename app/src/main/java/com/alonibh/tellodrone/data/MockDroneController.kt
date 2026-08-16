@@ -2,274 +2,240 @@ package com.alonibh.tellodrone.data
 
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.ControllerMode
-import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DetectorModel
+import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
-import com.alonibh.tellodrone.domain.DryRunFollowPlanner
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
-import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
-import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.SimulatorDiagnostics
+import com.alonibh.tellodrone.domain.SimulatorScenarioAction
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
-import com.alonibh.tellodrone.domain.TargetAssociationState
-import com.alonibh.tellodrone.domain.TargetSelection
-import com.alonibh.tellodrone.domain.ShadowAutonomyGate
-import com.alonibh.tellodrone.domain.ShadowAutonomyInput
-import com.alonibh.tellodrone.domain.TrackingErrorEngine
 import com.alonibh.tellodrone.domain.TrackingMode
-import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
-import com.alonibh.tellodrone.domain.isZero
+import com.alonibh.tellodrone.simulator.SimulatorPlant
+import com.alonibh.tellodrone.simulator.SimulatorTelloTransport
+import com.alonibh.tellodrone.simulator.SimulatorTransportSnapshot
+import com.alonibh.tellodrone.simulator.SimulatorVideoController
+import com.alonibh.tellodrone.tello.MonotonicClock
+import com.alonibh.tellodrone.tello.TelloFlightSession
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-/** Interactive development simulation. It contains no hardware, network, video, or ML code. */
-class MockDroneController(initialState: DroneSessionState = mockInitialState()) : DroneController {
-    private val mutableState = MutableStateFlow(initialState)
-    override val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
-    private val trackingErrorEngine = TrackingErrorEngine()
-    private val followPlanner = DryRunFollowPlanner(com.alonibh.tellodrone.domain.FollowPlannerConfig.LEGACY_SIMULATION)
-    private val shadowGate = ShadowAutonomyGate()
-
-    override fun connect() = update {
-        it.copy(
+/** Application-owned in-app simulator adapter. It never calls the physical service or network. */
+class MockDroneController(
+    initialState: DroneSessionState = simulatorInitialState(),
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    parentScope: CoroutineScope? = null,
+) : DroneController {
+    private val applicationScope = parentScope ?: CoroutineScope(SupervisorJob() + dispatcher)
+    private val lifecycleMutex = Mutex()
+    private val mutableState = MutableStateFlow(
+        initialState.copy(
             controllerMode = ControllerMode.Mock,
-            connection = DroneConnectionState.Connected,
+            simulatorDiagnostics = initialState.simulatorDiagnostics ?: SimulatorDiagnostics(),
+        ),
+    )
+    override val state: StateFlow<DroneSessionState> = mutableState.asStateFlow()
+    @Volatile private var runtime: Runtime? = null
+
+    override fun connect() {
+        if (mutableState.value.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.Connected)) return
+        mutableState.value = simulatorInitialState().copy(
+            connection = DroneConnectionState.Connecting,
             networkSelection = NetworkSelectionState.Available,
-            telemetry = it.telemetry.copy(isFresh = true),
-            lastMessage = "Mock drone connected",
+            flight = FlightState.Unknown,
+            lastMessage = "Starting in-app simulator",
+        )
+        applicationScope.launch {
+            lifecycleMutex.withLock {
+                stopRuntime(force = true)
+                startFreshRuntime()
+            }
+        }
+    }
+
+    override fun disconnect() {
+        applicationScope.launch {
+            lifecycleMutex.withLock {
+                val active = runtime
+                if (active == null) {
+                    mutableState.value = simulatorInitialState(lastMessage = "Simulator stopped")
+                    return@withLock
+                }
+                if (active.session.disconnect()) {
+                    mutableState.value = active.session.state.value.copy(
+                        controllerMode = ControllerMode.Mock,
+                        simulatorDiagnostics = diagnostics(active.transport.snapshot.value),
+                        lastMessage = "Simulator stopped",
+                    )
+                    active.scope.cancel()
+                    if (runtime === active) runtime = null
+                }
+            }
+        }
+    }
+
+    override fun takeOff() = launchSession { it.takeOff() }
+    override fun land() = launchSession { it.land() }
+    override fun stopAndHover() = launchSession { it.stopAndHover() }
+    override fun emergencyMotorKill() = launchSession { it.emergencyMotorKill() }
+    override fun setTrackingMode(mode: TrackingMode) { runtime?.session?.setTrackingMode(mode) }
+    override fun selectTarget(detection: PersonDetection) { runtime?.session?.selectTarget(detection) }
+    override fun setCurrentFollowDistance() { runtime?.session?.setCurrentFollowDistance() }
+    override fun setYawFollowArmed(armed: Boolean) { runtime?.session?.setYawFollowArmed(armed) }
+    override fun setManualControlVector(vector: ManualControlVector) { runtime?.session?.publishManualControl(vector) }
+    override fun setSpeed(percent: Int) { runtime?.session?.setSpeed(percent) }
+
+    override fun setDetectorModel(model: DetectorModel) = simulatorOnlyConfigurationMessage()
+    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) = simulatorOnlyConfigurationMessage()
+    override fun setDetectorConfidenceThreshold(threshold: Float) = simulatorOnlyConfigurationMessage()
+
+    override fun applySimulatorScenario(action: SimulatorScenarioAction) {
+        if (action == SimulatorScenarioAction.Reset) {
+            applicationScope.launch {
+                lifecycleMutex.withLock {
+                    val reconnect = runtime != null || mutableState.value.connection == DroneConnectionState.Connected
+                    stopRuntime(force = true)
+                    mutableState.value = simulatorInitialState(lastMessage = "Simulator scenario reset")
+                    if (reconnect) startFreshRuntime()
+                }
+            }
+            return
+        }
+        val plant = runtime?.plant ?: return
+        when (action) {
+            SimulatorScenarioAction.MovePersonLeft -> plant.movePersonLeft()
+            SimulatorScenarioAction.MovePersonRight -> plant.movePersonRight()
+            SimulatorScenarioAction.CenterPerson -> plant.centerPerson()
+            SimulatorScenarioAction.TogglePersonVisibility -> plant.togglePersonVisibility()
+            SimulatorScenarioAction.Reset -> Unit
+        }
+    }
+
+    private suspend fun startFreshRuntime() {
+        val runtimeScope = CoroutineScope(
+            applicationScope.coroutineContext + SupervisorJob(applicationScope.coroutineContext[Job]),
+        )
+        val plant = SimulatorPlant()
+        val monotonicClock = MonotonicClock { System.nanoTime() / 1_000_000L }
+        val transport = SimulatorTelloTransport(runtimeScope, plant, monotonicClock)
+        val video = SimulatorVideoController(runtimeScope, plant)
+        val session = TelloFlightSession(
+            transport = transport,
+            scope = runtimeScope,
+            clock = monotonicClock,
+            video = video,
+            initialState = simulatorInitialState().copy(
+                connection = DroneConnectionState.Connecting,
+                networkSelection = NetworkSelectionState.Available,
+                flight = FlightState.Unknown,
+            ),
+        )
+        val next = Runtime(runtimeScope, plant, transport, session)
+        runtime = next
+        runtimeScope.launch {
+            session.state.collect { sessionState ->
+                if (runtime === next) {
+                    mutableState.value = sessionState.copy(
+                        controllerMode = ControllerMode.Mock,
+                        simulatorDiagnostics = diagnostics(transport.snapshot.value),
+                    )
+                }
+            }
+        }
+        runtimeScope.launch {
+            transport.snapshot.collect { transportState ->
+                if (runtime === next) {
+                    mutableState.value = mutableState.value.copy(
+                        simulatorDiagnostics = diagnostics(transportState),
+                    )
+                }
+            }
+        }
+        if (!session.connect() && runtime === next) {
+            mutableState.value = session.state.value.copy(
+                controllerMode = ControllerMode.Mock,
+                simulatorDiagnostics = diagnostics(transport.snapshot.value),
+            )
+        }
+    }
+
+    private suspend fun stopRuntime(force: Boolean) {
+        val active = runtime ?: return
+        if (force && !active.transport.isClosed()) {
+            active.session.networkLost("Simulator runtime replaced")
+        }
+        active.scope.cancel()
+        if (runtime === active) runtime = null
+    }
+
+    private fun launchSession(block: suspend (TelloFlightSession) -> Unit) {
+        val active = runtime ?: return
+        active.scope.launch { block(active.session) }
+    }
+
+    private fun simulatorOnlyConfigurationMessage() {
+        mutableState.value = mutableState.value.copy(
+            lastMessage = "Detector model, backend, threshold, and benchmark controls do not apply to synthetic detection",
         )
     }
 
-    override fun disconnect() = update {
-        it.copy(
+    private fun diagnostics(snapshot: SimulatorTransportSnapshot) = SimulatorDiagnostics(
+        lateralRc = snapshot.latestRc.lateral,
+        forwardRc = snapshot.latestRc.forward,
+        verticalRc = snapshot.latestRc.vertical,
+        yawRc = snapshot.latestRc.yaw,
+        personHorizontalPosition = snapshot.plant.horizontalPosition,
+        personHorizontalError = snapshot.plant.horizontalError,
+        personVisible = snapshot.plant.personVisible,
+    )
+
+    private data class Runtime(
+        val scope: CoroutineScope,
+        val plant: SimulatorPlant,
+        val transport: SimulatorTelloTransport,
+        val session: TelloFlightSession,
+    )
+
+    companion object {
+        fun simulatorInitialState(lastMessage: String? = null) = DroneSessionState(
+            controllerMode = ControllerMode.Mock,
             connection = DroneConnectionState.Disconnected,
             networkSelection = NetworkSelectionState.Idle,
             flight = FlightState.Grounded,
-            tracking = TrackingMode.Off,
             authority = ControlAuthority.Manual,
-            video = it.video.copy(
-                personDetectionState = PersonDetectionState.Off,
-                personDetections = emptyList(),
-            ),
-            personDetections = emptyList(),
-            target = null,
-            trackingErrors = null,
-            targetAssociationState = TargetAssociationState.None,
-            dryRunControlIntent = null,
-            manualVector = ManualControlVector(),
-            hoverActive = false,
-            telemetry = it.telemetry.copy(
-                heightMeters = 0f,
-                speedMetersPerSecond = 0f,
-                flightTimeSeconds = 0,
-                isFresh = false,
-            ),
-            lastMessage = "Mock session disconnected",
-        )
-    }
-
-    override fun takeOff() = update { state ->
-        if (state.connection == DroneConnectionState.Connected && state.flight == FlightState.Grounded) {
-            state.copy(
-                flight = FlightState.Flying,
-                hoverActive = false,
-                telemetry = state.telemetry.copy(heightMeters = 1.2f),
-                lastMessage = "Mock takeoff complete",
-            )
-        } else state.invalid("Takeoff requires a connected, grounded drone")
-    }
-
-    override fun land() = update { state ->
-        if (state.flight == FlightState.Flying) {
-            state.copy(
-                flight = FlightState.Grounded,
-                authority = ControlAuthority.Manual,
-                manualVector = ManualControlVector(),
-                hoverActive = false,
-                telemetry = state.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f),
-                lastMessage = "Mock landing complete",
-            )
-        } else state.invalid("Landing requires a flying drone")
-    }
-
-    override fun stopAndHover() = update { state ->
-        if (state.flight == FlightState.Flying) {
-            state.copy(
-                authority = ControlAuthority.Manual,
-                manualVector = ManualControlVector(),
-                hoverActive = true,
-                telemetry = state.telemetry.copy(speedMetersPerSecond = 0f),
-                lastMessage = "Mock STOP / HOVER: movement cancelled",
-            )
-        } else state.invalid("STOP / HOVER is available only in flight")
-    }
-
-    override fun emergencyMotorKill() = update { state ->
-        state.copy(
-            flight = FlightState.Emergency,
-            tracking = TrackingMode.Off,
-            authority = ControlAuthority.Manual,
-            video = state.video.copy(
-                personDetectionState = PersonDetectionState.Off,
-                personDetections = emptyList(),
-            ),
-            personDetections = emptyList(),
-            target = null,
-            trackingErrors = null,
-            targetAssociationState = TargetAssociationState.None,
-            dryRunControlIntent = null,
-            manualVector = ManualControlVector(),
-            hoverActive = false,
-            telemetry = state.telemetry.copy(heightMeters = 0f, speedMetersPerSecond = 0f),
-            lastMessage = "Mock EMERGENCY MOTOR KILL activated",
-        )
-    }
-
-    override fun setTrackingMode(mode: TrackingMode) = update { state ->
-        when (mode) {
-            TrackingMode.Off -> state.copy(
-                tracking = TrackingMode.Off,
-                authority = ControlAuthority.Manual,
-                video = state.video.copy(personDetectionState = PersonDetectionState.Off),
-                personDetections = emptyList(),
-                target = null,
-                trackingErrors = null,
-                targetAssociationState = TargetAssociationState.None,
-                dryRunControlIntent = null,
-            )
-            TrackingMode.DetectOnly -> if (state.connection == DroneConnectionState.Connected) {
-                val detections = mockPersonDetections(state.video.detectorConfidenceThreshold)
-                state.copy(
-                    tracking = TrackingMode.DetectOnly,
-                    authority = ControlAuthority.Manual,
-                    video = state.video.copy(
-                        personDetectionState = PersonDetectionState.Detecting,
-                        personDetections = detections,
-                    ),
-                    personDetections = detections,
-                    target = null,
-                    trackingErrors = null,
-                    targetAssociationState = TargetAssociationState.None,
-                    dryRunControlIntent = null,
-                )
-            } else state.invalid("Detection requires a connected mock drone")
-            TrackingMode.TargetLocked, TrackingMode.Follow ->
-                state.invalid("Target lock and Follow are not available in Phase 4A")
-        }
-    }
-
-    override fun setDetectorModel(model: DetectorModel) = update { state ->
-        if (state.tracking != TrackingMode.Off || state.video.personDetectionState != PersonDetectionState.Off) {
-            state.invalid("Turn person detection off before changing model")
-        } else {
-            state.copy(video = state.video.copy(detectorModel = model))
-        }
-    }
-
-    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) = update { state ->
-        if (state.tracking != TrackingMode.Off) state.invalid("Turn person detection off before changing backend")
-        else state.copy(video = state.video.copy(detectorBackendPreference = preference))
-    }
-
-    override fun setDetectorConfidenceThreshold(threshold: Float) = update { state ->
-        if (state.tracking != TrackingMode.Off || state.video.personDetectionState != PersonDetectionState.Off) {
-            state.invalid("Turn person detection off before changing confidence threshold")
-        } else {
-            val normalized = com.alonibh.tellodrone.vision.normalizeConfidenceThreshold(threshold)
-            state.copy(video = state.video.copy(detectorConfidenceThreshold = normalized))
-        }
-    }
-
-    override fun selectTarget(detection: PersonDetection) = update { state ->
-        val currentDetection = state.personDetections.firstOrNull { it == detection }
-        if (state.video.personDetectionState != PersonDetectionState.Detecting || currentDetection == null) {
-            state.invalid("Select a currently visible mock person detection")
-        } else {
-            val target = TargetSelection.select(currentDetection)
-            trackingErrorEngine.reset()
-            val errors = trackingErrorEngine.update(target, targetFresh = true)
-            state.copy(
-                tracking = TrackingMode.TargetLocked,
-                authority = ControlAuthority.Manual,
-                target = target,
-                trackingErrors = errors,
-                targetAssociationState = TargetAssociationState.Selected,
-                dryRunControlIntent = followPlanner.plan(errors, TargetAssociationState.Selected, 1f / 30f),
-                lastMessage = "Mock target selected (dry run only)",
-            )
-        }
-    }
-
-    override fun setCurrentFollowDistance() = Unit
-
-    /** Mock mode remains observational; it never grants real yaw-follow authority. */
-    override fun setYawFollowArmed(armed: Boolean) = Unit
-
-    override fun setShadowAutonomyArmed(armed: Boolean) = update { state ->
-        state.copy(shadowAutonomyDecision = shadowGate.evaluate(
-            ShadowAutonomyInput(state.connection, state.flight, state.telemetry.isFresh, state.video.availability,
-                state.video.personDetectionState, state.target != null, state.targetAssociationState,
-                state.trackingErrors, state.dryRunControlIntent, state.manualVector.isZero(), state.hoverActive,
-                armRequested = armed, disarmRequested = !armed),
-        ))
-    }
-
-    override fun setManualControlVector(vector: ManualControlVector) = update { state ->
-        if (state.flight != FlightState.Flying) state.invalid("Manual control requires a flying drone") else {
-            state.copy(
-                authority = ControlAuthority.Manual,
-                manualVector = vector,
-                hoverActive = if (vector.isZero()) state.hoverActive else false,
-                telemetry = state.telemetry.copy(speedMetersPerSecond = if (vector.isZero()) 0f else 0.3f),
-            )
-        }
-    }
-
-    override fun setSpeed(percent: Int) = update { it.copy(speedPercent = percent.coerceIn(10, 40)) }
-
-    private fun update(transform: (DroneSessionState) -> DroneSessionState) { mutableState.value = transform(mutableState.value) }
-    private fun DroneSessionState.invalid(message: String) = copy(lastMessage = message)
-    private fun mockPersonDetections(
-        threshold: Float = com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD,
-    ): List<PersonDetection> {
-        val timestamp = System.nanoTime()
-        return listOf(
-            PersonDetection(
-                boundingBox = NormalizedBoundingBox(left = .24f, top = .20f, right = .46f, bottom = .78f),
-                confidence = .92f,
-                frameSequence = 1L,
-                sourceTimestampNanos = timestamp,
-            ),
-            PersonDetection(
-                boundingBox = NormalizedBoundingBox(left = .60f, top = .30f, right = .82f, bottom = .84f),
-                confidence = .84f,
-                frameSequence = 1L,
-                sourceTimestampNanos = timestamp,
-            ),
-        ).filter { it.confidence >= threshold }
-    }
-
-    companion object {
-        fun mockInitialState() = DroneSessionState(
-            controllerMode = ControllerMode.Mock,
             telemetry = TelemetrySnapshot(
-                batteryPercent = 78,
+                batteryPercent = 100,
                 heightMeters = 0f,
                 speedMetersPerSecond = 0f,
                 velocityXCentimetersPerSecond = 0,
                 velocityYCentimetersPerSecond = 0,
                 velocityZCentimetersPerSecond = 0,
                 flightTimeSeconds = 0,
-                temperatureCelsius = 31f,
+                temperatureCelsius = 25f,
                 isFresh = false,
             ),
-            video = VideoState(VideoAvailability.Mock, measuredFps = 30f),
+            video = VideoState(),
+            simulatorDiagnostics = SimulatorDiagnostics(),
+            lastMessage = lastMessage,
         )
+
+        /** Retained source-level alias for previews and downstream callers. */
+        fun mockInitialState() = simulatorInitialState()
     }
 }
