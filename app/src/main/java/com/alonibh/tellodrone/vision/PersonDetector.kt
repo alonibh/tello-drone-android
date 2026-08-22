@@ -29,7 +29,14 @@ data class PersonDetectorDescriptor(
 interface PersonDetector : AutoCloseable {
     val descriptor: PersonDetectorDescriptor
     fun detect(frame: PersonDetectorFrame): List<PersonDetection>
+    fun detectDetailed(frame: PersonDetectorFrame): PersonDetectorOutput =
+        PersonDetectorOutput(detect(frame), duplicateDetectionCount = 0)
 }
+
+data class PersonDetectorOutput(
+    val candidates: List<PersonDetection>,
+    val duplicateDetectionCount: Int,
+)
 
 fun interface PersonDetectorCreator {
     fun create(model: DetectorModel, backend: DetectorBackend): PersonDetector
@@ -117,8 +124,14 @@ object PersonDetectionMapper {
         rawDetections: List<RawObjectDetection>,
         frame: AnalysisFrameMetadata,
         minConfidence: Float = MIN_CONFIDENCE,
-    ): List<PersonDetection> {
-        if (frame.width <= 0 || frame.height <= 0) return emptyList()
+    ): List<PersonDetection> = mapDetailed(rawDetections, frame, minConfidence).candidates
+
+    fun mapDetailed(
+        rawDetections: List<RawObjectDetection>,
+        frame: AnalysisFrameMetadata,
+        minConfidence: Float = MIN_CONFIDENCE,
+    ): PersonDetectorOutput {
+        if (frame.width <= 0 || frame.height <= 0) return PersonDetectorOutput(emptyList(), 0)
         val width = frame.width.toFloat()
         val height = frame.height.toFloat()
         val effectiveThreshold = normalizeConfidenceThreshold(minConfidence)
@@ -151,7 +164,11 @@ object PersonDetectionMapper {
                 )
             }
             .toList()
-        return PersonDetectionDeduplicator.suppressSameFrameDuplicates(normalized).take(MAX_RESULTS)
+        val deduplicated = PersonDetectionDeduplicator.suppressSameFrameDuplicates(normalized)
+        return PersonDetectorOutput(
+            candidates = deduplicated.take(MAX_RESULTS),
+            duplicateDetectionCount = (normalized.size - deduplicated.size).coerceAtLeast(0),
+        )
     }
 }
 

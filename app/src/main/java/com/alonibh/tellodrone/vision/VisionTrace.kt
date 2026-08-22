@@ -1,5 +1,6 @@
 package com.alonibh.tellodrone.vision
 
+import android.graphics.Bitmap
 import com.alonibh.tellodrone.domain.CompetitorDiagnostic
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
@@ -27,6 +28,8 @@ data class VisionTraceExport(val frameCount: Long, val droppedFrameCount: Long)
 
 interface VisionTraceRecorder {
     val capturesFrames: Boolean
+    /** Called while the decoded-frame lease is valid; debug implementations must detach it. */
+    fun captureAnalyzedFrame(frameSequence: Long, sourceTimestampNanos: Long, bitmap: Bitmap) = Unit
     fun record(frame: VisionTraceFrame)
     fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit)
 }
@@ -41,11 +44,16 @@ object NoOpVisionTraceRecorder : VisionTraceRecorder {
 
 /** Pure compact encoder; file I/O exists only in the debug source set. */
 internal object VisionTraceJson {
-    fun encode(frame: VisionTraceFrame, droppedBeforeFrame: Long): String = buildString(1_024) {
+    fun encode(
+        frame: VisionTraceFrame,
+        droppedBeforeFrame: Long,
+        capturedFrameFile: String? = null,
+    ): String = buildString(1_024) {
         append('{')
         field("schemaVersion", 1)
         comma(); field("frameSequence", frame.frameSequence)
         comma(); field("sourceTimestampNanos", frame.sourceTimestampNanos)
+        comma(); field("capturedFrameFile", capturedFrameFile)
         comma(); name("detector"); append('{')
         field("model", frame.detectorModel)
         comma(); field("backend", frame.detectorBackend)

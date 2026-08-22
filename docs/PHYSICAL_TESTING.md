@@ -129,18 +129,31 @@ phase is non-autonomous: no takeoff and no movement test are permitted.
 
 Do not take off. Do not interpret any displayed intent as a flight command; Phase 4E sends none.
 
-## Debug vision trace export
+## Debug vision session capture and replay
 
-Debug builds keep a bounded, asynchronous JSONL vision trace while person detection is running.
-Each completed detector frame records its sequence and capture timestamp, pre-threshold person
-candidates, accepted detections, selected target before/after association, association state and
-geometry/competitor diagnostics, and inference timing. Release builds do not record or expose this
-facility.
+Debug builds capture the actual leased bitmap passed to person detection together with its JSONL
+association trace. Capture is limited to 600 paired frames and 90 seconds. The lease is detached
+with one bounded bitmap copy; JPEG compression, cache writes, ZIP creation, model replay, and report
+I/O run off the detector/control thread. A bounded queue reports every dropped frame. Release builds
+contain no capture/replay implementation or controls.
 
-After a grounded test, open **Tracking**, tap **EXPORT VISION TRACE**, and choose a destination in
-the Android document picker. Export flushes the current trace and starts a fresh trace for later
-frames. The status message reports exported and dropped frame counts; any dropped count means the
-background trace writer could not keep up and the trace should be treated as incomplete.
+For one grounded capture, start person detection, select the intended target, and perform the test.
+Open **Tracking**, tap **EXPORT VISION SESSION**, and save `tello-vision-session.zip`. The bundle
+contains `manifest.json`, `trace.jsonl`, and numbered JPEG files under `frames/`. A successful export
+rotates capture so the next analyzed frame starts a fresh session.
+
+To replay without a drone, tap **IMPORT / SELECT SESSION**, choose the ZIP, then tap **RUN MODEL
+COMPARISON**. Replay validates frame/trace correspondence, sorts by source timestamp and sequence,
+and runs four-thread CPU inference at 0.55 through production EfficientDet-Lite0 and debug-only
+EfficientDet-Lite2 INT8. **COPY / EXPORT REPORT** copies the JSON report and opens the document picker.
+The report includes startup and inference percentiles, effective inference FPS, candidates and
+accepted detections per frame, duplicate suppression counts, deterministic association transitions,
+and identity-switch invariant violations. Frame paths in each result point back into the session ZIP.
+
+The Lite2 asset is Google's TF Hub `tensorflow/lite-model/efficientdet/lite2/detection/metadata/1`
+integer-quantized metadata model, 7,557,887 bytes, SHA-256
+`6FD32C84AB1EB0F7E7F3A7A20A20D7DF1530DAA8378728F7C79571096286BD52`. It is packaged only in the
+debug variant. Production remains EfficientDet-Lite0, four-thread CPU, threshold 0.55.
 
 ## Grounded validation status
 

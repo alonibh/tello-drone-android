@@ -313,6 +313,30 @@ class PersonDetectionPipelineTest {
         assertEquals(DetectorModel.EfficientDetLite0.displayName, snapshots.last().modelName)
     }
 
+    @Test fun `capture hook receives the exact frame object passed to detection`() {
+        var captured: PersonDetectorFrame? = null
+        var detected: PersonDetectorFrame? = null
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { _, _ -> object : PersonDetector {
+                override val descriptor = descriptor()
+                override fun detect(frame: PersonDetectorFrame): List<PersonDetection> {
+                    detected = frame
+                    return emptyList()
+                }
+                override fun close() = Unit
+            } },
+            onSnapshot = {},
+            onAnalyzedFrame = { captured = it },
+        )
+        val input = frame()
+
+        pipeline.start()
+        pipeline.process(input)
+
+        assertTrue(captured === input)
+        assertTrue(detected === input)
+    }
+
     private fun frame() = PersonDetectorFrame(
         AnalysisFrameMetadata(320, 240, 100L, AnalysisPixelRepresentation.ARGB_8888_BITMAP, 1L),
     ) { error("Fake detector must not request bitmap pixels") }

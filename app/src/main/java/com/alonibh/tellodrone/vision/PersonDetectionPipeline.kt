@@ -122,6 +122,7 @@ class PersonDetectionPipeline(
     private val clockNanos: () -> Long = System::nanoTime,
     private val onSnapshot: (PersonDetectionSnapshot) -> Unit,
     private val onInferenceMeasurement: (DetectorInferenceMeasurement) -> Unit = {},
+    private val onAnalyzedFrame: (PersonDetectorFrame) -> Unit = {},
 ) : DecodedFrameConsumer, AutoCloseable {
     constructor(
         detectorFactory: (DetectorBackendPreference) -> PersonDetector,
@@ -223,6 +224,7 @@ class PersonDetectionPipeline(
                     createdDetector
                 }
                 if (!isRequestCurrent(request)) return
+                onAnalyzedFrame(frame)
                 activeDetector.detect(frame) to activeDetector.descriptor
             }
             val filteredDetections = detections.filter { it.confidence >= request.confidenceThreshold }

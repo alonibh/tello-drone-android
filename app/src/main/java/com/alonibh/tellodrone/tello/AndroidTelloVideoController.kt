@@ -15,6 +15,7 @@ import com.alonibh.tellodrone.vision.PersonDetectionPipeline
 import com.alonibh.tellodrone.vision.PersonDetectionSnapshot
 import com.alonibh.tellodrone.vision.PersonDetectionStore
 import com.alonibh.tellodrone.vision.TfliteTaskPersonDetector
+import com.alonibh.tellodrone.vision.VisionTraceFeature
 import com.alonibh.tellodrone.vision.startProductionDetection
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -67,9 +68,19 @@ class AndroidTelloVideoController(
     private val detectorFactory = FallbackPersonDetectorFactory { model, backend ->
         TfliteTaskPersonDetector(context.applicationContext, model, backend)
     }
+    private val visionRecorder = VisionTraceFeature.recorder(context.applicationContext)
     private val detectionPipeline = PersonDetectionPipeline(
         detectorFactory = { model, preference -> detectorFactory.create(model, preference) },
         onSnapshot = ::publishDetectionSnapshot,
+        onAnalyzedFrame = { frame ->
+            if (visionRecorder.capturesFrames) {
+                visionRecorder.captureAnalyzedFrame(
+                    frame.metadata.sequence,
+                    frame.metadata.captureTimestampNanos,
+                    frame.bitmap,
+                )
+            }
+        },
     )
 
     private val socket = AtomicReference<DatagramSocket?>()

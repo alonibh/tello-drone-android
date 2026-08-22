@@ -8,8 +8,6 @@ import android.provider.Settings
 import android.content.Context
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -129,7 +127,7 @@ import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.domain.YawFollowState
-import com.alonibh.tellodrone.vision.VisionTraceFeature
+import com.alonibh.tellodrone.vision.VisionSessionControls
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -664,22 +662,11 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneDashboardActions, m
 }
 
 @Composable private fun TrackingControls(state: DroneSessionState, vm: DroneDashboardActions) = ControlCard("PERSON TRACKING / YAW FOLLOW • PHASE 4H1") {
-    val traceExportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json"),
-    ) { destination -> destination?.let { vm.exportVisionTrace(it.toString()) } }
     val canStart = state.connection == DroneConnectionState.Connected &&
         state.video.availability == VideoAvailability.Streaming &&
         state.video.analysisLatestSequence != null
     RealPersonDetectionAction(state, vm, canStart)
-    if (VisionTraceFeature.isAvailable) {
-        OutlineAction(
-            "EXPORT VISION TRACE",
-            Icons.Default.Share,
-            true,
-            { traceExportLauncher.launch("tello-vision-trace.jsonl") },
-            Modifier.fillMaxWidth().testTag("export_vision_trace"),
-        )
-    }
+    VisionSessionControls()
     val targetStatus = when (state.targetAssociationState) {
         TargetAssociationState.None -> null
         TargetAssociationState.Selected, TargetAssociationState.Matched -> "TARGET SELECTED"

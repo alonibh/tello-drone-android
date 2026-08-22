@@ -116,6 +116,20 @@ class PersonDetectionMapperTest {
         assertEquals(.88f, results.single().confidence, 0f)
     }
 
+    @Test fun `detailed mapping reports suppressed model duplicates`() {
+        val output = PersonDetectionMapper.mapDetailed(
+            listOf(
+                raw("person", .72f, 64f, 36f, 176f, 212f),
+                raw("person", .91f, 66f, 38f, 178f, 214f),
+                raw("person", .80f, 220f, 30f, 300f, 220f),
+            ),
+            metadata(),
+        )
+
+        assertEquals(2, output.candidates.size)
+        assertEquals(1, output.duplicateDetectionCount)
+    }
+
     @Test fun `tight and much larger nested boxes for one person are deduplicated`() {
         val results = PersonDetectionMapper.map(
             listOf(

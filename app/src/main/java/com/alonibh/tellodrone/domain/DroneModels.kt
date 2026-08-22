@@ -22,6 +22,11 @@ enum class DetectorModel(
     EfficientDetLite0(
         assetFileName = "efficientdet_lite0_v1.tflite",
         displayName = "EfficientDet-Lite0 COCO metadata v1",
+    ),
+    /** Debug replay comparison model; its asset is intentionally absent from release builds. */
+    EfficientDetLite2Int8(
+        assetFileName = "efficientdet_lite2_metadata_v1_int8.tflite",
+        displayName = "EfficientDet-Lite2 INT8 COCO metadata v1",
     );
 
     companion object {

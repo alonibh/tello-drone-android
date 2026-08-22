@@ -33,7 +33,9 @@ class TfliteTaskPersonDetector(
             .build(),
     )
 
-    override fun detect(frame: PersonDetectorFrame): List<PersonDetection> {
+    override fun detect(frame: PersonDetectorFrame): List<PersonDetection> = detectDetailed(frame).candidates
+
+    override fun detectDetailed(frame: PersonDetectorFrame): PersonDetectorOutput {
         val raw = detector.detect(TensorImage.fromBitmap(frame.bitmap)).mapNotNull { detection ->
             val category = detection.categories
                 .filter { it.label == PersonDetectionMapper.PERSON_CATEGORY }
@@ -49,7 +51,7 @@ class TfliteTaskPersonDetector(
                 bottomPixels = box.bottom,
             )
         }
-        return PersonDetectionMapper.map(raw, frame.metadata)
+        return PersonDetectionMapper.mapDetailed(raw, frame.metadata)
     }
 
     override fun close() = detector.close()

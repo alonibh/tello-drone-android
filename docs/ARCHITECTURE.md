@@ -345,6 +345,13 @@ comparison controls, threshold controls, benchmark/report UI, service commands, 
 were removed after the decision. This does not change PixelCopy, decoding, mapping, association,
 yaw-follow, video, or flight-safety behavior.
 
+Debug variants additionally detach the exact analyzed bitmap into a bounded vision-session capture.
+The later association trace is paired by `(frameSequence, sourceTimestampNanos)` before background
+JPEG compression, so exported session archives cannot silently mismatch results and images. Offline
+replay uses only imported ZIP frames and app-local detector instances; it does not create a drone
+session, socket, network request, decoder, surface, RC loop, or control command. EfficientDet-Lite2
+INT8 is a debug replay comparison asset and is never selected by the production detector entry point.
+
 Phase 4A ends at frame-local person boxes over the real preview. It adds no target selection, target
 lock, identity or face recognition, cross-frame tracking, PID, autonomous control, Follow mode,
 distance estimation, recording, screenshots, media gallery, MCP, LLM, Python, or cloud integration.
