@@ -255,13 +255,17 @@ geometry or a wall-clock timestamp.
 
 `TargetAssociationEngine` accepts a selected target, a newer source frame, and frame-local person
 detections. It permits a match only when conservative normalized center displacement, IoU, and
-area-ratio thresholds all pass. It retains non-target boxes from the last unambiguous frame as
-competing identities. Multiple target-plausible detections, or a candidate that is also plausible
-as a previously separate person, permanently latch `Ambiguous` and leave the prior target
-unchanged. The latch can only age into `Lost`; only explicit user selection creates a new identity.
-A larger, nearer, or more confident detection never steals the lock by itself. Older
-sequence/timestamp input is ignored. Missing input is temporary for one second of source-monotonic
-time, then becomes `Lost`; a lost target is never reacquired without a new explicit selection.
+area-ratio thresholds all pass. It retains brief geometry history for non-target people as
+competing identities. When multiple detections are eligible, target and competitor continuity
+(including bounded prediction when available) are scored as joint assignments. A clearly better
+assignment stays matched even while another person is nearby; close direct-versus-swapped scores,
+or a lone detection that fits target and competitor history equally well, permanently latch
+`Ambiguous` and leave the prior target unchanged. A detection that fits a known competitor better
+than the target is treated as the target being missing. The ambiguity latch can only age into
+`Lost`; only explicit user selection creates a new identity. A larger, nearer, or more confident
+detection never steals the lock by itself. Older sequence/timestamp input is ignored. Missing input
+is temporary for one second of source-monotonic time, then becomes `Lost`; a lost target is never
+reacquired without a new explicit selection.
 
 `TrackingErrorEngine` is also pure and dry-run-only. It emits EMA-smoothed normalized yaw,
 vertical, and target-area errors with alpha 0.4; its X/Y/area deadzones and desired area ratio are
