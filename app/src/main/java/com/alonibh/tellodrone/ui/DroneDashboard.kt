@@ -841,8 +841,12 @@ private fun DetectorBenchmarkControls(state: DroneSessionState, vm: DroneDashboa
 @Composable private fun TrackingDestination(state: DroneSessionState, vm: DroneDashboardActions, modifier: Modifier = Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         VideoPanel(state, vm, Modifier.weight(1.4f).fillMaxHeight())
-        Column(Modifier.weight(.8f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            TrackingControls(state, vm)
+        LazyColumn(
+            modifier = Modifier.weight(.8f).fillMaxHeight().testTag("expanded_tracking_scroll"),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(bottom = 8.dp),
+        ) {
+            item { TrackingControls(state, vm) }
         }
     }
 }
