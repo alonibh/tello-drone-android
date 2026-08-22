@@ -4,8 +4,8 @@ import android.view.Surface
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * UI-facing boundary. Implementations may be mock or service-backed, but Activities, Compose, and
- * ViewModels never own a physical session, UDP socket, network request, or RC loop.
+ * UI-facing boundary. Activities, Compose, and ViewModels never own a physical session, UDP
+ * socket, network request, or RC loop.
  */
 interface DroneController {
     val state: StateFlow<DroneSessionState>
@@ -31,7 +31,5 @@ interface DroneController {
     /** The UI owns only this display surface; the service owns the physical video session. */
     fun attachVideoSurface(surface: Surface) = Unit
     fun detachVideoSurface(surface: Surface) = Unit
-    fun setControllerMode(mode: ControllerMode) = Unit
-    fun applySimulatorScenario(action: SimulatorScenarioAction) = Unit
     fun onNetworkPermissionsResult(granted: Boolean) = Unit
 }

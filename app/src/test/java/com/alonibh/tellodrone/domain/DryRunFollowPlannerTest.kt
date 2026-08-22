@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DryRunFollowPlannerTest {
-    private val config = FollowPlannerConfig.LEGACY_SIMULATION
+    private val config = FollowPlannerConfig.LEGACY_DIAGNOSTIC
 
     @Test fun `first error sample seeds and subsequent sample uses ema`() {
         val engine = TrackingErrorEngine()

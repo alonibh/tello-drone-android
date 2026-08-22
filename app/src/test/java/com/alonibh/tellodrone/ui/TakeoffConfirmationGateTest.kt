@@ -1,6 +1,5 @@
 package com.alonibh.tellodrone.ui
 
-import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
@@ -32,15 +31,7 @@ class TakeoffConfirmationGateTest {
         assertFalse(gate.confirm(stale) {})
     }
 
-    @Test fun `mock mode does not request a real aircraft confirmation`() {
-        val gate = TakeoffConfirmationGate()
-        val mockState = eligibleRealState().copy(controllerMode = ControllerMode.Mock)
-
-        assertFalse(gate.request(mockState))
-    }
-
     private fun eligibleRealState() = DroneSessionState(
-        controllerMode = ControllerMode.Real,
         connection = DroneConnectionState.Connected,
         flight = FlightState.Grounded,
         telemetry = TelemetrySnapshot(isFresh = true),

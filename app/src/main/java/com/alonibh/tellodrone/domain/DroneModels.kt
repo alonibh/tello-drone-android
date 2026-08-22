@@ -3,14 +3,12 @@ package com.alonibh.tellodrone.domain
 import java.time.Instant
 import com.alonibh.tellodrone.vision.DetectorBenchmarkResult
 
-enum class ControllerMode { Real, Mock }
-enum class SimulatorScenarioAction { MovePersonLeft, MovePersonRight, CenterPerson, TogglePersonVisibility, Reset }
 enum class DroneConnectionState { Disconnected, AwaitingPermission, Connecting, Connected, Error }
 enum class NetworkSelectionState { Idle, PermissionRequired, PermissionDenied, Requesting, Available, Lost, Error }
 enum class FlightState { Grounded, TakingOff, Flying, Landing, Unknown, Error, Emergency }
 enum class TrackingMode { Off, DetectOnly, TargetLocked, Follow }
 enum class ControlAuthority { Manual, Autonomous }
-enum class VideoAvailability { Unavailable, Mock, Streaming, Error }
+enum class VideoAvailability { Unavailable, Streaming, Error }
 enum class PersonDetectionState { Off, Starting, Detecting, Error }
 enum class DetectorBackendPreference { Accelerated, Cpu }
 enum class DetectorBackend { Gpu, Cpu }
@@ -142,19 +140,7 @@ data class ManualControlVector(
     val yaw: Float = 0f,
 )
 
-/** UI-only simulator observability. These are the exact final integer axes accepted by transport. */
-data class SimulatorDiagnostics(
-    val lateralRc: Int = 0,
-    val forwardRc: Int = 0,
-    val verticalRc: Int = 0,
-    val yawRc: Int = 0,
-    val personHorizontalPosition: Float = .5f,
-    val personHorizontalError: Float = 0f,
-    val personVisible: Boolean = true,
-)
-
 data class DroneSessionState(
-    val controllerMode: ControllerMode = ControllerMode.Real,
     val connection: DroneConnectionState = DroneConnectionState.Disconnected,
     val networkSelection: NetworkSelectionState = NetworkSelectionState.Idle,
     val flight: FlightState = FlightState.Grounded,
@@ -177,7 +163,6 @@ data class DroneSessionState(
     val manualVector: ManualControlVector = ManualControlVector(),
     /** App command state only: STOP/HOVER completed its explicit RC-zero action. */
     val hoverActive: Boolean = false,
-    val simulatorDiagnostics: SimulatorDiagnostics? = null,
     val lastMessage: String? = null,
 )
 

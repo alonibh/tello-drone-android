@@ -47,8 +47,8 @@ data class DryRunControlIntent(
 
 data class FollowPlannerConfig(val yaw: PidConfig, val vertical: PidConfig, val forwardBack: PidConfig) {
     companion object {
-        /** Test/legacy simulation values only; not production flight tuning. */
-        val LEGACY_SIMULATION = FollowPlannerConfig(
+        /** Legacy diagnostic values only; not production flight tuning. */
+        val LEGACY_DIAGNOSTIC = FollowPlannerConfig(
             yaw = PidConfig(1f, .1f, 0f, -.5f, .5f, -.25f, .25f),
             vertical = PidConfig(1f, .1f, 0f, -.5f, .5f, -.25f, .25f),
             forwardBack = PidConfig(1f, .1f, 0f, -.5f, .5f, -.25f, .25f),

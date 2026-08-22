@@ -2,29 +2,15 @@
 
 ## Phase 3 runtime ownership
 
-`DroneController` remains the UI boundary. `AppDroneController` selects either the retained
-`MockDroneController` or `RealDroneController`; mode changes are allowed only while disconnected.
-The application owns this adapter, so Activity recreation and screen rotation do not replace it.
+`DroneController` remains the UI boundary. `TelloApplication` exposes a single
+`RealDroneController`, so Activity recreation and screen rotation do not replace its service-backed
+connection boundary.
 
 `RealDroneController` is intentionally thin. The physical session, Wi-Fi request, UDP sockets,
 command sequencing, telemetry receiver, health monitor, and RC loop are owned by
 `TelloDroneService`. The service runs as a `connectedDevice` foreground service from the moment a
 user starts real connection selection until a safe disconnect or terminal connection failure.
 Compose and `DroneViewModel` never own these resources.
-
-## In-app closed-loop simulator
-
-The selectable **SIMULATOR** is application-owned and never crosses the physical service or Android
-network boundary. Its internal `ControllerMode.Mock` value is retained only as an implementation
-detail. `MockDroneController` creates a fresh `TelloFlightSession`, `SimulatorTelloTransport`,
-`SimulatorVideoController`, pure Kotlin `SimulatorPlant`, and supervised scope for each start. A
-disconnect or reset closes every job and adapter, and a closed session is never reused.
-
-Synthetic boxes enter the same session-owned selection, `TargetAssociationEngine`,
-`TrackingErrorEngine`, `YawFollowGate` / `ProductionYawController`, and `RcControlLoop` path as real
-tracking. The exact final `RcVector` enters the simulator transport and independent plant before the
-next synthetic observation. The plant does not reuse production sign or mapping helpers. See
-[SIMULATOR.md](SIMULATOR.md) for the axis contract, user flow, and validation limits.
 
 Phase 3A adds the physical video socket, bounded H.264 pipeline, and `MediaCodec` decoder to the
 same service/session ownership boundary. Compose owns only the current `SurfaceView` display
@@ -290,7 +276,7 @@ production gains. `DryRunFollowPlanner` consumes only normalized errors, associa
 explicit config, returning `DryRunControlIntent` rather than a manual vector or RC command. It emits
 non-zero diagnostic intent only for fresh `Matched` or initial `Selected` targets. Missing, stale,
 ambiguous, lost, invalid-timing, and invalid-error input always emits non-actionable zero intent.
-Lost and a new selection reset PID state. The named legacy simulation values are test-only and not
+Lost and a new selection reset PID state. The named legacy diagnostic values are test-only and not
 flight tuning. Real autonomous RC is NOT implemented; the Teclast detector benchmark remains the
 hard gate before any future RC integration.
 
@@ -300,7 +286,6 @@ It never changes control authority or emits a command. Manual input, STOP/HOVER,
 telemetry/video/detector/connection failure, landing, and emergency fail closed; safety-significant
 interruptions latch `RequiresRearm`, so healthy input alone can never re-engage shadow eligibility.
 
-The former UI-development mock presentation has been replaced by the closed-loop in-app simulator.
 Historical Phase 4B dry-run behavior remains documented here as the precursor to later production
 yaw-follow; manual RC, its TTL/stale-input zeroing, STOP/HOVER, and Emergency retain their existing
 roles.

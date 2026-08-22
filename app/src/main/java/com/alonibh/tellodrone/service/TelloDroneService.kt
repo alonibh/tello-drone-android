@@ -18,7 +18,6 @@ import com.alonibh.tellodrone.MainActivity
 import com.alonibh.tellodrone.R
 import com.alonibh.tellodrone.data.TelloSessionStore
 import com.alonibh.tellodrone.domain.ControlAuthority
-import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DetectorModel
@@ -112,7 +111,6 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
         startConnectedDeviceForeground("Select the TELLO Wi-Fi network")
         TelloSessionStore.update {
             it.copy(
-                controllerMode = ControllerMode.Real,
                 connection = DroneConnectionState.Connecting,
                 networkSelection = NetworkSelectionState.Requesting,
                 flight = FlightState.Unknown,

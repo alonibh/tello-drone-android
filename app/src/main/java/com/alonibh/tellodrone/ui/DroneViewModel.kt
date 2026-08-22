@@ -4,50 +4,46 @@ import android.view.Surface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
 import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.PersonDetection
-import com.alonibh.tellodrone.domain.SimulatorScenarioAction
 import com.alonibh.tellodrone.domain.TrackingMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
-class DroneViewModel(private val controller: DroneController) : ViewModel() {
+class DroneViewModel(private val controller: DroneController) : ViewModel(), DroneDashboardActions {
     val uiState: StateFlow<DroneSessionState> = controller.state.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         controller.state.value,
     )
-    fun connect() = controller.connect()
-    fun disconnect() = controller.disconnect()
-    fun takeOff() = controller.takeOff()
-    fun land() = controller.land()
-    fun stopAndHover() = controller.stopAndHover()
-    fun emergencyMotorKill() = controller.emergencyMotorKill()
-    fun setTrackingMode(mode: TrackingMode) = controller.setTrackingMode(mode)
-    fun setDetectorModel(model: DetectorModel) =
+    override fun connect() = controller.connect()
+    override fun disconnect() = controller.disconnect()
+    override fun takeOff() = controller.takeOff()
+    override fun land() = controller.land()
+    override fun stopAndHover() = controller.stopAndHover()
+    override fun emergencyMotorKill() = controller.emergencyMotorKill()
+    override fun setTrackingMode(mode: TrackingMode) = controller.setTrackingMode(mode)
+    override fun setDetectorModel(model: DetectorModel) =
         controller.setDetectorModel(model)
-    fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
+    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
         controller.setDetectorBackendPreference(preference)
-    fun setDetectorConfidenceThreshold(threshold: Float) =
+    override fun setDetectorConfidenceThreshold(threshold: Float) =
         controller.setDetectorConfidenceThreshold(threshold)
-    fun runDetectorBenchmark() = controller.runDetectorBenchmark()
-    fun cancelDetectorBenchmark() = controller.cancelDetectorBenchmark()
-    fun selectTarget(detection: PersonDetection) = controller.selectTarget(detection)
+    override fun runDetectorBenchmark() = controller.runDetectorBenchmark()
+    override fun cancelDetectorBenchmark() = controller.cancelDetectorBenchmark()
+    override fun selectTarget(detection: PersonDetection) = controller.selectTarget(detection)
     fun setCurrentFollowDistance() = controller.setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = controller.setShadowAutonomyArmed(armed)
-    fun setYawFollowArmed(armed: Boolean) = controller.setYawFollowArmed(armed)
-    fun setManualVector(vector: ManualControlVector) = controller.setManualControlVector(vector)
-    fun setSpeed(percent: Int) = controller.setSpeed(percent)
-    fun attachVideoSurface(surface: Surface) = controller.attachVideoSurface(surface)
-    fun detachVideoSurface(surface: Surface) = controller.detachVideoSurface(surface)
-    fun setControllerMode(mode: ControllerMode) = controller.setControllerMode(mode)
-    fun applySimulatorScenario(action: SimulatorScenarioAction) = controller.applySimulatorScenario(action)
+    override fun setYawFollowArmed(armed: Boolean) = controller.setYawFollowArmed(armed)
+    override fun setManualVector(vector: ManualControlVector) = controller.setManualControlVector(vector)
+    override fun setSpeed(percent: Int) = controller.setSpeed(percent)
+    override fun attachVideoSurface(surface: Surface) = controller.attachVideoSurface(surface)
+    override fun detachVideoSurface(surface: Surface) = controller.detachVideoSurface(surface)
     fun onNetworkPermissionsResult(granted: Boolean) = controller.onNetworkPermissionsResult(granted)
 
     class Factory(private val controller: DroneController) : ViewModelProvider.Factory {

@@ -5,7 +5,6 @@ import android.content.Intent
 import android.view.Surface
 import androidx.core.content.ContextCompat
 import com.alonibh.tellodrone.domain.ControlAuthority
-import com.alonibh.tellodrone.domain.ControllerMode
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
@@ -29,7 +28,6 @@ class RealDroneController(context: Context) : DroneController {
         if (missing.isNotEmpty()) {
             TelloSessionStore.update {
                 it.copy(
-                    controllerMode = ControllerMode.Real,
                     connection = DroneConnectionState.AwaitingPermission,
                     networkSelection = NetworkSelectionState.PermissionRequired,
                     lastMessage = "Nearby Wi-Fi and local-network access are required only to connect to Tello",

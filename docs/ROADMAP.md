@@ -2,14 +2,14 @@
 
 ## Phase 0/1 — complete
 
-Android foundation, architecture contracts, adaptive tablet UI, and mock state/controller.
+Android foundation, architecture contracts, and adaptive tablet UI.
 
 ## Phase 2 — implemented; awaiting physical validation
 
 - Android Wi-Fi selection/request with per-socket `Network` binding and API 37 local-network access
 - testable UDP command transport, serialized acknowledgements, timeouts, and state receiver
 - `connectedDevice` foreground service, real telemetry, takeoff/land, manual RC, STOP/HOVER, motor kill
-- fixed-rate RC freshness/clamping, connection-loss behavior, wake lock, real/mock mode
+- fixed-rate RC freshness/clamping, connection-loss behavior, and wake lock
 
 See [the staged physical validation procedure](PHYSICAL_TESTING.md). Phase 2 is not considered
 physically verified until those checks are completed with a real tablet and Tello.
