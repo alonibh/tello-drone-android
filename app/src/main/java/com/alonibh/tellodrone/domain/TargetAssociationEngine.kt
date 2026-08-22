@@ -38,10 +38,16 @@ class TargetAssociationEngine {
             sourceTimestampNanos <= target.lastSeenSourceTimestampNanos
         ) return TargetAssociationResult.Ignored(target)
 
+        val frameDetections = detections.filter {
+            it.frameSequence == frameSequence && it.sourceTimestampNanos == sourceTimestampNanos
+        }
+        if (target.identityUncertain) {
+            return ambiguousOrLost(target, sourceTimestampNanos, frameDetections.size)
+        }
+
         val predictedBoundingBox = predictedBoundingBox(target, sourceTimestampNanos)
-        val candidates = detections
+        val candidates = frameDetections
             .asSequence()
-            .filter { it.frameSequence == frameSequence && it.sourceTimestampNanos == sourceTimestampNanos }
             .map { detection ->
                 Candidate(
                     detection = detection,
@@ -55,8 +61,14 @@ class TargetAssociationEngine {
 
         if (candidates.isEmpty()) return missingOrLost(target, sourceTimestampNanos)
         val best = candidates.first()
-        if (candidates.size > 1 && candidates[1].score - best.score <= AMBIGUITY_SCORE_MARGIN) {
-            return TargetAssociationResult.Ambiguous(target, candidates.size)
+        val candidateMatchesKnownCompetitor = target.competingPersonBoundingBoxes.any { competitor ->
+            metrics(competitor, best.detection.boundingBox).isEligible
+        }
+        if (candidates.size > 1 || candidateMatchesKnownCompetitor) {
+            return TargetAssociationResult.Ambiguous(
+                target.copy(identityUncertain = true),
+                candidates.size,
+            )
         }
         return TargetAssociationResult.Matched(
             target.copy(
@@ -71,9 +83,25 @@ class TargetAssociationEngine {
                     null
                 },
                 associationMatchCount = (target.associationMatchCount + 1).coerceAtMost(2),
+                competingPersonBoundingBoxes = frameDetections
+                    .asSequence()
+                    .filterNot { it === best.detection }
+                    .map { it.boundingBox }
+                    .toList(),
             ),
         )
     }
+
+    private fun ambiguousOrLost(
+        target: TrackedTarget,
+        timestampNanos: Long,
+        candidateCount: Int,
+    ): TargetAssociationResult =
+        if (timestampNanos - target.lastSeenSourceTimestampNanos > MISSING_TIMEOUT_NANOS) {
+            TargetAssociationResult.Lost()
+        } else {
+            TargetAssociationResult.Ambiguous(target, candidateCount)
+        }
 
     private fun missingOrLost(target: TrackedTarget, timestampNanos: Long): TargetAssociationResult =
         if (timestampNanos - target.lastSeenSourceTimestampNanos > MISSING_TIMEOUT_NANOS) {
@@ -173,8 +201,6 @@ class TargetAssociationEngine {
         /** Permitted next/previous target-area ratio. */
         const val MIN_AREA_RATIO = 0.50f
         const val MAX_AREA_RATIO = 2.00f
-        /** Close scores are ambiguous rather than a reason to switch people. */
-        const val AMBIGUITY_SCORE_MARGIN = 0.08f
         private const val CENTER_WEIGHT = 0.50f
         private const val IOU_WEIGHT = 0.35f
         private const val SIZE_WEIGHT = 0.15f

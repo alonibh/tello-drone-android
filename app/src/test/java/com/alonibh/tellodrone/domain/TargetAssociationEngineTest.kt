@@ -46,15 +46,103 @@ class TargetAssociationEngineTest {
         assertEquals(samePerson.boundingBox, result.target.boundingBox)
     }
 
-    @Test fun `two similarly plausible candidates are ambiguous`() {
+    @Test fun `any two target-plausible candidates are ambiguous`() {
         val selected = TargetSelection.select(detection())
         val first = detection(box = box(.32f, .20f, .52f, .80f), frame = 2L, timestamp = 2_000L)
-        val second = detection(box = box(.33f, .20f, .53f, .80f), frame = 2L, timestamp = 2_000L)
+        val second = detection(box = box(.38f, .20f, .58f, .80f), frame = 2L, timestamp = 2_000L)
 
         val result = engine.associate(selected, 2L, 2_000L, listOf(first, second))
 
         assertTrue(result is TargetAssociationResult.Ambiguous)
-        assertEquals(selected, result.target)
+        assertEquals(selected.boundingBox, result.target?.boundingBox)
+        assertTrue(result.target?.identityUncertain == true)
+    }
+
+    @Test fun `selected A remains matched while B is separate`() {
+        val selectedA = TargetSelection.select(
+            detection(box = box(.20f, .20f, .40f, .80f)),
+        )
+        val movedA = detection(box = box(.22f, .20f, .42f, .80f), frame = 2L, timestamp = 2_000L)
+        val separateB = detection(box = box(.62f, .20f, .82f, .80f), frame = 2L, timestamp = 2_000L)
+
+        val result = engine.associate(selectedA, 2L, 2_000L, listOf(movedA, separateB))
+            as TargetAssociationResult.Matched
+
+        assertEquals(movedA.boundingBox, result.target.boundingBox)
+    }
+
+    @Test fun `B crossing and occluding A never transfers selected identity`() {
+        val trackedAWithSeparateB = trackAWithSeparateB()
+        val occludingB = detection(
+            box = box(.52f, .20f, .72f, .80f),
+            frame = 3L,
+            timestamp = 3_000L,
+        )
+
+        val result = engine.associate(trackedAWithSeparateB, 3L, 3_000L, listOf(occludingB))
+
+        assertTrue(result is TargetAssociationResult.Ambiguous)
+        assertEquals(trackedAWithSeparateB.boundingBox, result.target?.boundingBox)
+        assertFalse(result.target?.boundingBox == occludingB.boundingBox)
+    }
+
+    @Test fun `B alone cannot become A after ambiguity or loss`() {
+        val trackedAWithSeparateB = trackAWithSeparateB()
+        val occludingB = detection(box = box(.52f, .20f, .72f, .80f), frame = 3L, timestamp = 3_000L)
+        val ambiguous = engine.associate(trackedAWithSeparateB, 3L, 3_000L, listOf(occludingB))
+            as TargetAssociationResult.Ambiguous
+        val bAlone = detection(box = box(.45f, .20f, .65f, .80f), frame = 4L, timestamp = 4_000L)
+
+        val stillAmbiguous = engine.associate(ambiguous.target, 4L, 4_000L, listOf(bAlone))
+        assertTrue(stillAmbiguous is TargetAssociationResult.Ambiguous)
+        assertEquals(trackedAWithSeparateB.boundingBox, stillAmbiguous.target?.boundingBox)
+
+        val lostTimestamp = trackedAWithSeparateB.lastSeenSourceTimestampNanos +
+            TargetAssociationEngine.MISSING_TIMEOUT_NANOS + 1L
+        val lost = engine.associate(
+            stillAmbiguous.target,
+            5L,
+            lostTimestamp,
+            listOf(bAlone.copy(frameSequence = 5L, sourceTimestampNanos = lostTimestamp)),
+        )
+        assertTrue(lost is TargetAssociationResult.Lost)
+
+        val afterLoss = engine.associate(
+            lost.target,
+            6L,
+            lostTimestamp + 1L,
+            listOf(bAlone.copy(frameSequence = 6L, sourceTimestampNanos = lostTimestamp + 1L)),
+        )
+        assertTrue(afterLoss is TargetAssociationResult.Lost)
+        assertNull(afterLoss.target)
+    }
+
+    @Test fun `explicit reselection after identity ambiguity tracks selected B`() {
+        val trackedAWithSeparateB = trackAWithSeparateB()
+        val occludingB = detection(box = box(.52f, .20f, .72f, .80f), frame = 3L, timestamp = 3_000L)
+        val ambiguous = engine.associate(trackedAWithSeparateB, 3L, 3_000L, listOf(occludingB))
+        assertTrue(ambiguous is TargetAssociationResult.Ambiguous)
+
+        val explicitlySelectedB = TargetSelection.select(occludingB)
+        val movedB = detection(box = box(.54f, .20f, .74f, .80f), frame = 4L, timestamp = 4_000L)
+        val result = engine.associate(explicitlySelectedB, 4L, 4_000L, listOf(movedB))
+            as TargetAssociationResult.Matched
+
+        assertEquals(movedB.boundingBox, result.target.boundingBox)
+    }
+
+    @Test fun `normal one-person motion remains matched across frames`() {
+        val selected = TargetSelection.select(
+            detection(box = box(.20f, .20f, .40f, .80f)),
+        )
+        val first = detection(box = box(.25f, .20f, .45f, .80f), frame = 2L, timestamp = 2_000L)
+        val firstMatch = engine.associate(selected, 2L, 2_000L, listOf(first))
+            as TargetAssociationResult.Matched
+        val second = detection(box = box(.30f, .20f, .50f, .80f), frame = 3L, timestamp = 3_000L)
+        val secondMatch = engine.associate(firstMatch.target, 3L, 3_000L, listOf(second))
+            as TargetAssociationResult.Matched
+
+        assertEquals(second.boundingBox, secondMatch.target.boundingBox)
     }
 
     @Test fun `short disappearance is temporarily missing`() {
@@ -136,7 +224,8 @@ class TargetAssociationEngineTest {
 
         assertTrue(result is TargetAssociationResult.Ambiguous)
         assertEquals(2, (result as TargetAssociationResult.Ambiguous).candidateCount)
-        assertEquals(moving, result.target)
+        assertEquals(moving.boundingBox, result.target.boundingBox)
+        assertTrue(result.target.identityUncertain)
     }
 
     @Test fun `absence beyond timeout is lost`() {
@@ -244,6 +333,16 @@ class TargetAssociationEngineTest {
             300_000_000L,
             listOf(detection(box = box(.40f, .20f, .60f, .80f), frame = 3L, timestamp = 300_000_000L)),
         ) as TargetAssociationResult.Matched).target
+    }
+
+    private fun trackAWithSeparateB(): TrackedTarget {
+        val selectedA = TargetSelection.select(
+            detection(box = box(.40f, .20f, .60f, .80f)),
+        )
+        val movedA = detection(box = box(.42f, .20f, .62f, .80f), frame = 2L, timestamp = 2_000L)
+        val separateB = detection(box = box(.62f, .20f, .82f, .80f), frame = 2L, timestamp = 2_000L)
+        return (engine.associate(selectedA, 2L, 2_000L, listOf(movedA, separateB))
+            as TargetAssociationResult.Matched).target
     }
 
     private fun detection(

@@ -112,6 +112,10 @@ data class TrackedTarget(
     val previousMatchedSourceTimestampNanos: Long? = null,
     /** Saturates at two; explicit selection starts with no association matches. */
     val associationMatchCount: Int = 0,
+    /** Non-target people from the last unambiguous match, retained to prevent identity transfer. */
+    val competingPersonBoundingBoxes: List<NormalizedBoundingBox> = emptyList(),
+    /** Once set, association cannot match again; only explicit selection creates a new identity. */
+    val identityUncertain: Boolean = false,
 )
 
 /** User-selected visual standoff scale; it is not a physical distance or meter estimate. */
