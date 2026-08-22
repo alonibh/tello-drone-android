@@ -391,6 +391,25 @@ class TargetAssociationEngineTest {
         ) as TargetAssociationResult.Matched).target
     }
 
+    @Test fun `diagnostics explain an ineligible jitter box without changing fail closed result`() {
+        val selected = TargetSelection.select(detection())
+        val implausiblySmall = detection(
+            box = box(.38f, .40f, .43f, .55f),
+            frame = 2L,
+            timestamp = 2_000L,
+        )
+
+        val evaluation = engine.evaluate(selected, 2L, 2_000L, listOf(implausiblySmall))
+
+        assertTrue(evaluation.result is TargetAssociationResult.TemporarilyMissing)
+        assertEquals(TargetAssociationDecision.TemporarilyMissing, evaluation.diagnostics.decision)
+        assertEquals(0, evaluation.diagnostics.eligibleCandidateCount)
+        val candidate = evaluation.diagnostics.candidates.single()
+        assertFalse(candidate.eligible)
+        assertTrue(candidate.strict.areaRatio < TargetAssociationEngine.MIN_AREA_RATIO)
+        assertNull(evaluation.diagnostics.selectedDetectionIndex)
+    }
+
     private fun trackAWithNearbyB(): TrackedTarget {
         val selectedA = TargetSelection.select(
             detection(box = box(.30f, .20f, .50f, .80f)),

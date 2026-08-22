@@ -13,6 +13,9 @@ import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.domain.YawFollowState
+import com.alonibh.tellodrone.vision.VisionTraceExport
+import com.alonibh.tellodrone.vision.VisionTraceFrame
+import com.alonibh.tellodrone.vision.VisionTraceRecorder
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.Flow
@@ -358,6 +361,30 @@ class TelloFlightSessionTest {
         assertTrue(fixture.session.state.value.dryRunControlIntent!!.actionable)
         assertEquals(com.alonibh.tellodrone.domain.ControlAuthority.Manual, fixture.session.state.value.authority)
         assertTrue(fixture.transport.rc.isEmpty())
+    }
+
+    @Test fun `every completed detector frame records combined inference and association trace`() = runTest {
+        val video = FakeVideoController()
+        val recorder = FakeVisionTraceRecorder()
+        val fixture = fixture(video, visionTrace = recorder)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        val selected = detection(frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(selected))
+        runCurrent()
+        fixture.session.selectTarget(selected)
+        val moved = detection(frame = 2L, timestamp = 1_100_000_000L)
+        video.publishDetections(2L, 1_100_000_000L, listOf(moved))
+        runCurrent()
+
+        assertEquals(listOf(1L, 2L), recorder.frames.map { it.frameSequence })
+        assertEquals(87L, recorder.frames.last().inferenceMillis)
+        assertEquals(.55f, recorder.frames.last().confidenceThreshold)
+        assertEquals(TargetAssociationState.Matched, recorder.frames.last().associationState)
+        assertEquals(0, recorder.frames.last().associationDiagnostics?.selectedDetectionIndex)
+        assertEquals(moved.boundingBox, recorder.frames.last().selectedTargetAfter?.boundingBox)
     }
 
     @Test fun `edge clipped matched target can start calibration and only unclipped frames accumulate`() = runTest {
@@ -744,6 +771,7 @@ class TelloFlightSessionTest {
 
     private fun TestScope.fixture(
         video: TelloVideoController? = null,
+        visionTrace: VisionTraceRecorder = com.alonibh.tellodrone.vision.NoOpVisionTraceRecorder,
         beforeYawFollowStateCommit: ((MutableStateFlow<com.alonibh.tellodrone.domain.DroneSessionState>) -> Unit)? = null,
     ): Fixture {
         val clock = RcControlLoopTest.FakeClock(1_000)
@@ -758,6 +786,7 @@ class TelloFlightSessionTest {
                 clock,
                 video,
                 detectorNowNanos::get,
+                visionTrace = visionTrace,
                 beforeYawFollowStateCommit = beforeYawFollowStateCommit,
             ),
             detectorNowNanos,
@@ -840,6 +869,11 @@ class TelloFlightSessionTest {
                 personDetectionState = PersonDetectionState.Detecting,
                 processedDetectorFrameSequence = frame,
                 processedDetectorSourceTimestampNanos = timestamp,
+                detectorModelName = "fake-model",
+                detectorBackend = com.alonibh.tellodrone.domain.DetectorBackend.Cpu,
+                detectorConfidenceThreshold = .55f,
+                detectorInferenceMillis = 87L,
+                detectorCandidates = detections,
                 personDetections = detections,
             )
         }
@@ -855,6 +889,13 @@ class TelloFlightSessionTest {
         override suspend fun close() {
             closed = true
         }
+    }
+
+    private class FakeVisionTraceRecorder : VisionTraceRecorder {
+        override val capturesFrames = true
+        val frames = mutableListOf<VisionTraceFrame>()
+        override fun record(frame: VisionTraceFrame) { frames += frame }
+        override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) = Unit
     }
 
     private fun detection(

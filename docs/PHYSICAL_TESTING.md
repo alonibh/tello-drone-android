@@ -129,6 +129,19 @@ phase is non-autonomous: no takeoff and no movement test are permitted.
 
 Do not take off. Do not interpret any displayed intent as a flight command; Phase 4E sends none.
 
+## Debug vision trace export
+
+Debug builds keep a bounded, asynchronous JSONL vision trace while person detection is running.
+Each completed detector frame records its sequence and capture timestamp, pre-threshold person
+candidates, accepted detections, selected target before/after association, association state and
+geometry/competitor diagnostics, and inference timing. Release builds do not record or expose this
+facility.
+
+After a grounded test, open **Tracking**, tap **EXPORT VISION TRACE**, and choose a destination in
+the Android document picker. Export flushes the current trace and starts a fresh trace for later
+frames. The status message reports exported and dropped frame counts; any dropped count means the
+background trace writer could not keep up and the trace should be treated as incomplete.
+
 ## Grounded validation status
 
 ## Phase 4F Xiaomi Mi A1 grounded visual-distance procedure

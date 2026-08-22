@@ -14,6 +14,7 @@ import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.service.TelloDroneService
 import com.alonibh.tellodrone.service.TelloServiceGateway
+import com.alonibh.tellodrone.vision.VisionTraceFeature
 import kotlinx.coroutines.flow.StateFlow
 
 /** Thin UI adapter; the foreground service owns every physical-session resource. */
@@ -89,6 +90,18 @@ class RealDroneController(context: Context) : DroneController {
     override fun selectTarget(detection: PersonDetection) { TelloServiceGateway.selectTarget(detection) }
     override fun setCurrentFollowDistance() { TelloServiceGateway.setCurrentFollowDistance() }
     override fun setYawFollowArmed(armed: Boolean) { TelloServiceGateway.setYawFollowArmed(armed) }
+    override fun exportVisionTrace(destinationUri: String) {
+        VisionTraceFeature.export(applicationContext, destinationUri) { result ->
+            TelloSessionStore.update { state ->
+                state.copy(
+                    lastMessage = result.fold(
+                        onSuccess = { "Exported ${it.frameCount} vision trace frames (${it.droppedFrameCount} dropped)" },
+                        onFailure = { "Vision trace export failed: ${it.message ?: it.javaClass.simpleName}" },
+                    ),
+                )
+            }
+        }
+    }
 
     private fun outOfScope() = TelloSessionStore.update {
         it.copy(

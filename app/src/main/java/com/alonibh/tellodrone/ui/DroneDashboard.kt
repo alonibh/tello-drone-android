@@ -8,6 +8,8 @@ import android.provider.Settings
 import android.content.Context
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -61,6 +63,7 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Wifi
@@ -126,6 +129,7 @@ import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.domain.YawFollowState
+import com.alonibh.tellodrone.vision.VisionTraceFeature
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -459,7 +463,13 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneDashboardActions, modi
             textAlign = TextAlign.Center,
             maxLines = 1,
         )
-        state.target?.let { target ->
+        state.targetOverlayPresentation()?.let { presentation ->
+            val target = presentation.target
+            val targetColor = when (presentation.kind) {
+                TargetOverlayKind.Current -> TelloGreen
+                TargetOverlayKind.LastSeenMissing -> Color(0xFFFFC857)
+                TargetOverlayKind.IdentityUncertain -> TelloRed
+            }
             val mapped = VideoOverlayCoordinateMapper.mapFillBounds(target.boundingBox, maxWidth.value, maxHeight.value)
             if (mapped != null) {
                 val boxWidth = (mapped.right - mapped.left).dp
@@ -468,13 +478,13 @@ private fun VideoPanel(state: DroneSessionState, vm: DroneDashboardActions, modi
                     Box(
                         Modifier
                             .size(boxWidth, boxHeight)
-                            .border(2.dp, TelloGreen, RoundedCornerShape(3.dp)),
+                            .border(2.dp, targetColor, RoundedCornerShape(3.dp)),
                     )
                     Text(
-                        "TARGET SELECTED",
+                        presentation.label,
                         color = TelloInk,
                         modifier = Modifier
-                            .background(TelloGreen)
+                            .background(targetColor)
                             .padding(horizontal = 5.dp, vertical = 2.dp),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -654,10 +664,22 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneDashboardActions, m
 }
 
 @Composable private fun TrackingControls(state: DroneSessionState, vm: DroneDashboardActions) = ControlCard("PERSON TRACKING / YAW FOLLOW • PHASE 4H1") {
+    val traceExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { destination -> destination?.let { vm.exportVisionTrace(it.toString()) } }
     val canStart = state.connection == DroneConnectionState.Connected &&
         state.video.availability == VideoAvailability.Streaming &&
         state.video.analysisLatestSequence != null
     RealPersonDetectionAction(state, vm, canStart)
+    if (VisionTraceFeature.isAvailable) {
+        OutlineAction(
+            "EXPORT VISION TRACE",
+            Icons.Default.Share,
+            true,
+            { traceExportLauncher.launch("tello-vision-trace.jsonl") },
+            Modifier.fillMaxWidth().testTag("export_vision_trace"),
+        )
+    }
     val targetStatus = when (state.targetAssociationState) {
         TargetAssociationState.None -> null
         TargetAssociationState.Selected, TargetAssociationState.Matched -> "TARGET SELECTED"
@@ -665,7 +687,15 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneDashboardActions, m
         TargetAssociationState.Lost -> "TARGET LOST"
         TargetAssociationState.Ambiguous -> "TARGET AMBIGUOUS"
     }
-    targetStatus?.let { StatusLine("Target", it, if (state.targetAssociationState == TargetAssociationState.Lost) TelloRed else TelloGreen) }
+    targetStatus?.let {
+        val statusColor = when (state.targetAssociationState) {
+            TargetAssociationState.Selected, TargetAssociationState.Matched -> TelloGreen
+            TargetAssociationState.TemporarilyMissing -> Color(0xFFFFC857)
+            TargetAssociationState.Ambiguous, TargetAssociationState.Lost -> TelloRed
+            TargetAssociationState.None -> TelloTextMuted
+        }
+        StatusLine("Target", it, statusColor)
+    }
     if (state.target == null) {
         Text("Tap a person to select.", color = TelloTextMuted, fontSize = 11.sp)
     }
@@ -738,6 +768,27 @@ private fun RealPersonDetectionAction(state: DroneSessionState, vm: DroneDashboa
 internal fun DroneSessionState.isCurrentTargetDetection(detection: com.alonibh.tellodrone.domain.PersonDetection): Boolean = target?.let {
     detection.frameSequence == it.lastSeenFrameSequence && detection.sourceTimestampNanos == it.lastSeenSourceTimestampNanos && detection.boundingBox == it.boundingBox
 } == true
+
+internal enum class TargetOverlayKind { Current, LastSeenMissing, IdentityUncertain }
+
+internal data class TargetOverlayPresentation(
+    val target: com.alonibh.tellodrone.domain.TrackedTarget,
+    val kind: TargetOverlayKind,
+    val label: String,
+)
+
+internal fun DroneSessionState.targetOverlayPresentation(): TargetOverlayPresentation? {
+    val currentTarget = target ?: return null
+    return when (targetAssociationState) {
+        TargetAssociationState.Selected, TargetAssociationState.Matched ->
+            TargetOverlayPresentation(currentTarget, TargetOverlayKind.Current, "TARGET SELECTED")
+        TargetAssociationState.TemporarilyMissing ->
+            TargetOverlayPresentation(currentTarget, TargetOverlayKind.LastSeenMissing, "LAST SEEN • MISSING")
+        TargetAssociationState.Ambiguous ->
+            TargetOverlayPresentation(currentTarget, TargetOverlayKind.IdentityUncertain, "IDENTITY UNCERTAIN")
+        TargetAssociationState.None, TargetAssociationState.Lost -> null
+    }
+}
 
 @Composable private fun TrackingDestination(state: DroneSessionState, vm: DroneDashboardActions, modifier: Modifier = Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

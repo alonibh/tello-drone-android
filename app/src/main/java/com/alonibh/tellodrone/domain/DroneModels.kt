@@ -80,10 +80,14 @@ data class VideoState(
     val detectorModelName: String? = null,
     val detectorFellBackFromGpu: Boolean = false,
     val detectorErrorReason: String? = null,
+    /** App-visible threshold used for this completed inference. */
+    val detectorConfidenceThreshold: Float? = null,
     /** Identity of the detector frame that most recently completed inference, even with no people. */
     val processedDetectorFrameSequence: Long? = null,
     /** Monotonic capture timestamp for [processedDetectorFrameSequence]. */
     val processedDetectorSourceTimestampNanos: Long? = null,
+    /** Person candidates emitted by the model before the app-visible confidence threshold. */
+    val detectorCandidates: List<PersonDetection> = emptyList(),
     val personDetections: List<PersonDetection> = emptyList(),
     val errorReason: String? = null,
 )

@@ -12,6 +12,7 @@ import com.alonibh.tellodrone.domain.DetectorModel
 
 data class PersonDetectionSnapshot(
     val state: PersonDetectionState = PersonDetectionState.Off,
+    val candidates: List<PersonDetection> = emptyList(),
     val detections: List<PersonDetection> = emptyList(),
     val measuredFps: Float? = null,
     val inferenceMillis: Long? = null,
@@ -19,6 +20,7 @@ data class PersonDetectionSnapshot(
     val backend: DetectorBackend? = null,
     val fellBackFromGpu: Boolean = false,
     val errorReason: String? = null,
+    val confidenceThreshold: Float? = null,
     /** Present only for a completed detector inference; it is retained when that result is empty. */
     val processedFrameSequence: Long? = null,
     val processedSourceTimestampNanos: Long? = null,
@@ -50,21 +52,25 @@ class PersonDetectionStore(
 
     @Synchronized
     fun result(
+        candidates: List<PersonDetection>,
         detections: List<PersonDetection>,
         processedFrameSequence: Long,
         processedSourceTimestampNanos: Long,
         measuredFps: Float?,
         inferenceMillis: Long,
         descriptor: PersonDetectorDescriptor,
+        confidenceThreshold: Float,
     ): PersonDetectionSnapshot {
         snapshot = PersonDetectionSnapshot(
             state = PersonDetectionState.Detecting,
+            candidates = candidates.toList(),
             detections = detections.toList(),
             measuredFps = measuredFps,
             inferenceMillis = inferenceMillis,
             modelName = descriptor.modelName,
             backend = descriptor.backend,
             fellBackFromGpu = descriptor.fellBackFromGpu,
+            confidenceThreshold = confidenceThreshold,
             processedFrameSequence = processedFrameSequence,
             processedSourceTimestampNanos = processedSourceTimestampNanos,
         )
@@ -226,12 +232,14 @@ class PersonDetectionPipeline(
                 if (!isRequestCurrentLocked(request)) return
                 onSnapshot(
                     store.result(
+                        candidates = detections,
                         detections = filteredDetections,
                         processedFrameSequence = frame.metadata.sequence,
                         processedSourceTimestampNanos = frame.metadata.captureTimestampNanos,
                         measuredFps = measuredFps,
                         inferenceMillis = ((finishedAt - startedAt).coerceAtLeast(0L) / 1_000_000L),
                         descriptor = descriptor,
+                        confidenceThreshold = request.confidenceThreshold,
                     ),
                 )
                 onInferenceMeasurement(

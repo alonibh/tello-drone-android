@@ -30,6 +30,7 @@ class DroneViewModel(private val controller: DroneController) : ViewModel(), Dro
     fun setCurrentFollowDistance() = controller.setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = controller.setShadowAutonomyArmed(armed)
     override fun setYawFollowArmed(armed: Boolean) = controller.setYawFollowArmed(armed)
+    override fun exportVisionTrace(destinationUri: String) = controller.exportVisionTrace(destinationUri)
     override fun setManualVector(vector: ManualControlVector) = controller.setManualControlVector(vector)
     override fun setSpeed(percent: Int) = controller.setSpeed(percent)
     override fun attachVideoSurface(surface: Surface) = controller.attachVideoSurface(surface)

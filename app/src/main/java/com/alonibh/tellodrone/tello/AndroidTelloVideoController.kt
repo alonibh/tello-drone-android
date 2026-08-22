@@ -512,8 +512,10 @@ class AndroidTelloVideoController(
                 detectorModelName = snapshot.modelName,
                 detectorFellBackFromGpu = snapshot.fellBackFromGpu,
                 detectorErrorReason = snapshot.errorReason,
+                detectorConfidenceThreshold = snapshot.confidenceThreshold,
                 processedDetectorFrameSequence = snapshot.processedFrameSequence,
                 processedDetectorSourceTimestampNanos = snapshot.processedSourceTimestampNanos,
+                detectorCandidates = snapshot.candidates,
                 personDetections = snapshot.detections,
             )
         }

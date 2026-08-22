@@ -90,6 +90,8 @@ class PersonDetectionPipelineTest {
         pipeline.process(frame())
 
         assertEquals(2, snapshots.last().detections.size)
+        assertEquals(3, snapshots.last().candidates.size)
+        assertEquals(.70f, snapshots.last().confidenceThreshold)
         assertEquals(listOf(0.75f, 0.85f), snapshots.last().detections.map { it.confidence })
 
         pipeline.stop()
@@ -126,12 +128,30 @@ class PersonDetectionPipelineTest {
     @Test fun `stale result expires at five hundred milliseconds and off clears state`() {
         val store = PersonDetectionStore()
         store.start("fake-model")
-        store.result(listOf(detection(sourceTimestamp = 1_000_000_000L)), 1L, 1_000_000_000L, 7f, 20L, descriptor())
+        store.result(
+            candidates = listOf(detection(sourceTimestamp = 1_000_000_000L)),
+            detections = listOf(detection(sourceTimestamp = 1_000_000_000L)),
+            processedFrameSequence = 1L,
+            processedSourceTimestampNanos = 1_000_000_000L,
+            measuredFps = 7f,
+            inferenceMillis = 20L,
+            descriptor = descriptor(),
+            confidenceThreshold = .55f,
+        )
 
         assertEquals(1, store.expire(1_499_999_999L).detections.size)
         assertTrue(store.expire(1_500_000_000L).detections.isEmpty())
 
-        store.result(listOf(detection(sourceTimestamp = 2_000_000_000L)), 1L, 2_000_000_000L, 7f, 20L, descriptor())
+        store.result(
+            candidates = listOf(detection(sourceTimestamp = 2_000_000_000L)),
+            detections = listOf(detection(sourceTimestamp = 2_000_000_000L)),
+            processedFrameSequence = 1L,
+            processedSourceTimestampNanos = 2_000_000_000L,
+            measuredFps = 7f,
+            inferenceMillis = 20L,
+            descriptor = descriptor(),
+            confidenceThreshold = .55f,
+        )
         val off = store.stop()
         assertEquals(PersonDetectionState.Off, off.state)
         assertTrue(off.detections.isEmpty())

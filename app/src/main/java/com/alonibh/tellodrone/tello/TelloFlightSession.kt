@@ -15,6 +15,7 @@ import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.TargetAssociationEngine
+import com.alonibh.tellodrone.domain.TargetAssociationDiagnostics
 import com.alonibh.tellodrone.domain.TargetAssociationResult
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TargetSelection
@@ -31,6 +32,9 @@ import com.alonibh.tellodrone.domain.YawFollowState
 import com.alonibh.tellodrone.domain.withPersonDetectionVideoState
 import com.alonibh.tellodrone.domain.isZero
 import com.alonibh.tellodrone.vision.PersonDetectionStore
+import com.alonibh.tellodrone.vision.NoOpVisionTraceRecorder
+import com.alonibh.tellodrone.vision.VisionTraceFrame
+import com.alonibh.tellodrone.vision.VisionTraceRecorder
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -58,6 +62,7 @@ class TelloFlightSession(
         networkSelection = NetworkSelectionState.Available,
         flight = FlightState.Unknown,
     ),
+    private val visionTrace: VisionTraceRecorder = NoOpVisionTraceRecorder,
     /** Test-only interleaving point immediately before a yaw-owned state commit. */
     private val beforeYawFollowStateCommit: ((MutableStateFlow<DroneSessionState>) -> Unit)? = null,
 ) {
@@ -570,6 +575,7 @@ class TelloFlightSession(
 
     private fun applyVideoState(videoState: VideoState) {
         var publishActive = false
+        var traceFrame: VisionTraceFrame? = null
         synchronized(trackingLock) {
             val frame = videoState.detectorFrameIdentity()
             val ready = videoState.availability == VideoAvailability.Streaming &&
@@ -583,11 +589,17 @@ class TelloFlightSession(
                     latestAcceptedDetectorFrame = newAcceptedFrame
                     publishActive = true
                 }
+                var selectedTargetBefore: com.alonibh.tellodrone.domain.TrackedTarget? = null
+                var associationDiagnostics: TargetAssociationDiagnostics? = null
                 mutableState.update { current ->
                     val baseline = current.withPersonDetectionVideoState(videoState)
                     when {
-                        newAcceptedFrame != null && current.target != null ->
-                            applyAssociation(baseline, current.target, newAcceptedFrame)
+                        newAcceptedFrame != null && current.target != null -> {
+                            selectedTargetBefore = current.target
+                            applyAssociation(baseline, current.target, newAcceptedFrame).also {
+                                associationDiagnostics = it.diagnostics
+                            }.state
+                        }
                         current.target != null && current.video.personDetections.isNotEmpty() &&
                             videoState.personDetections.isEmpty() && frame == current.video.detectorFrameIdentity() -> {
                             val errors = trackingErrors.update(current.target, targetFresh = false)
@@ -606,8 +618,26 @@ class TelloFlightSession(
                         else -> baseline
                     }
                 }
+                if (newAcceptedFrame != null) {
+                    val after = mutableState.value
+                    traceFrame = VisionTraceFrame(
+                        frameSequence = newAcceptedFrame.sequence,
+                        sourceTimestampNanos = newAcceptedFrame.sourceTimestampNanos,
+                        detectorModel = videoState.detectorModelName,
+                        detectorBackend = videoState.detectorBackend?.name,
+                        confidenceThreshold = videoState.detectorConfidenceThreshold,
+                        inferenceMillis = videoState.detectorInferenceMillis,
+                        candidates = videoState.detectorCandidates,
+                        detections = videoState.personDetections,
+                        selectedTargetBefore = selectedTargetBefore,
+                        selectedTargetAfter = after.target,
+                        associationState = after.targetAssociationState,
+                        associationDiagnostics = associationDiagnostics,
+                    )
+                }
             }
         }
+        traceFrame?.let(visionTrace::record)
         reconcileYawFollow(publishActive)
     }
 
@@ -615,19 +645,23 @@ class TelloFlightSession(
         baseline: DroneSessionState,
         currentTarget: com.alonibh.tellodrone.domain.TrackedTarget,
         frame: DetectorFrameIdentity,
-    ): DroneSessionState {
-        val result = targetAssociation.associate(
+    ): AssociationUpdate {
+        val evaluation = targetAssociation.evaluate(
             selectedTarget = currentTarget,
             frameSequence = frame.sequence,
             sourceTimestampNanos = frame.sourceTimestampNanos,
             detections = baseline.personDetections,
+            includeDetailedDiagnostics = visionTrace.capturesFrames,
         )
-        if (result is TargetAssociationResult.Ignored) return baseline
+        val result = evaluation.result
+        if (result is TargetAssociationResult.Ignored) {
+            return AssociationUpdate(baseline, evaluation.diagnostics)
+        }
         val dtSeconds = lastPlannerFrameTimestampNanos
             ?.let { (frame.sourceTimestampNanos - it) / 1_000_000_000f }
             ?: Float.NaN
         lastPlannerFrameTimestampNanos = frame.sourceTimestampNanos
-        return when (result) {
+        val state = when (result) {
             is TargetAssociationResult.Matched -> {
                 val calibration = acceptCalibrationSample(baseline, result.target, frame)
                 val errors = trackingErrors.update(result.target, targetFresh = true, distanceReference = calibration.reference)
@@ -699,7 +733,13 @@ class TelloFlightSession(
             }
             is TargetAssociationResult.Ignored -> baseline
         }
+        return AssociationUpdate(state, evaluation.diagnostics)
     }
+
+    private data class AssociationUpdate(
+        val state: DroneSessionState,
+        val diagnostics: TargetAssociationDiagnostics,
+    )
 
     private fun resetRealTracking() = synchronized(trackingLock) { resetRealTrackingLocked() }
 

@@ -14,6 +14,25 @@ class VideoOverlayCoordinateMapperTest {
         assertTrue(state.isCurrentTargetDetection(detection))
         assertFalse(state.isCurrentTargetDetection(detection.copy(boundingBox = NormalizedBoundingBox(.21f, .2f, .5f, .8f))))
     }
+
+    @Test fun `missing and ambiguous targets are never presented as current green observations`() {
+        val detection = com.alonibh.tellodrone.domain.PersonDetection(NormalizedBoundingBox(.2f, .2f, .5f, .8f), .9f, 4L, 5L)
+        val target = com.alonibh.tellodrone.domain.TargetSelection.select(detection)
+
+        val missing = com.alonibh.tellodrone.domain.DroneSessionState(
+            target = target,
+            targetAssociationState = com.alonibh.tellodrone.domain.TargetAssociationState.TemporarilyMissing,
+        ).targetOverlayPresentation()!!
+        val ambiguous = com.alonibh.tellodrone.domain.DroneSessionState(
+            target = target.copy(identityUncertain = true),
+            targetAssociationState = com.alonibh.tellodrone.domain.TargetAssociationState.Ambiguous,
+        ).targetOverlayPresentation()!!
+
+        assertEquals(TargetOverlayKind.LastSeenMissing, missing.kind)
+        assertEquals("LAST SEEN • MISSING", missing.label)
+        assertEquals(TargetOverlayKind.IdentityUncertain, ambiguous.kind)
+        assertEquals("IDENTITY UNCERTAIN", ambiguous.label)
+    }
     @Test fun `maps normalized analysis surface box into stretched preview overlay`() {
         val result = VideoOverlayCoordinateMapper.mapFillBounds(
             NormalizedBoundingBox(.25f, .10f, .75f, .90f),

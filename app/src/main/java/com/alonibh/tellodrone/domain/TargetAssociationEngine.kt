@@ -22,6 +22,51 @@ sealed interface TargetAssociationResult {
     data class Ignored(override val target: TrackedTarget) : TargetAssociationResult
 }
 
+enum class TargetAssociationDecision { NoTarget, Ignored, Matched, TemporarilyMissing, Lost, Ambiguous }
+
+data class TargetAssociationMetrics(
+    val centerDisplacement: Float,
+    val iou: Float,
+    val areaRatio: Float,
+    val eligible: Boolean,
+    val score: Float,
+)
+
+data class TargetCandidateDiagnostic(
+    val detectionIndex: Int,
+    val strict: TargetAssociationMetrics,
+    val predicted: TargetAssociationMetrics?,
+    val eligible: Boolean,
+    val score: Float?,
+)
+
+data class CompetitorMatchDiagnostic(
+    val detectionIndex: Int,
+    val metrics: TargetAssociationMetrics,
+)
+
+data class CompetitorDiagnostic(
+    val competitorIndex: Int,
+    val boundingBox: NormalizedBoundingBox,
+    val predictedBoundingBox: NormalizedBoundingBox?,
+    val detectionMatches: List<CompetitorMatchDiagnostic>,
+)
+
+data class TargetAssociationDiagnostics(
+    val decision: TargetAssociationDecision,
+    val targetAgeNanos: Long?,
+    val predictedTargetBoundingBox: NormalizedBoundingBox? = null,
+    val candidates: List<TargetCandidateDiagnostic> = emptyList(),
+    val competitors: List<CompetitorDiagnostic> = emptyList(),
+    val selectedDetectionIndex: Int? = null,
+    val eligibleCandidateCount: Int = 0,
+)
+
+data class TargetAssociationEvaluation(
+    val result: TargetAssociationResult,
+    val diagnostics: TargetAssociationDiagnostics,
+)
+
 /**
  * Conservative, backend-independent association for an explicitly selected target. It never
  * selects or reacquires a target; callers must preserve `Lost` until another explicit selection.
@@ -32,22 +77,44 @@ class TargetAssociationEngine {
         frameSequence: Long,
         sourceTimestampNanos: Long,
         detections: List<PersonDetection>,
-    ): TargetAssociationResult {
-        val target = selectedTarget ?: return TargetAssociationResult.Lost()
+    ): TargetAssociationResult = evaluate(
+        selectedTarget,
+        frameSequence,
+        sourceTimestampNanos,
+        detections,
+    ).result
+
+    fun evaluate(
+        selectedTarget: TrackedTarget?,
+        frameSequence: Long,
+        sourceTimestampNanos: Long,
+        detections: List<PersonDetection>,
+        includeDetailedDiagnostics: Boolean = true,
+    ): TargetAssociationEvaluation {
+        val target = selectedTarget ?: return evaluation(
+            TargetAssociationResult.Lost(),
+            TargetAssociationDecision.NoTarget,
+            targetAgeNanos = null,
+        )
+        val targetAgeNanos = (sourceTimestampNanos - target.lastSeenSourceTimestampNanos).coerceAtLeast(0L)
         if (frameSequence <= target.lastSeenFrameSequence ||
             sourceTimestampNanos <= target.lastSeenSourceTimestampNanos
-        ) return TargetAssociationResult.Ignored(target)
+        ) return evaluation(
+            TargetAssociationResult.Ignored(target),
+            TargetAssociationDecision.Ignored,
+            targetAgeNanos,
+        )
 
         val frameDetections = detections.filter {
             it.frameSequence == frameSequence && it.sourceTimestampNanos == sourceTimestampNanos
         }
         if (target.identityUncertain) {
-            return ambiguousOrLost(target, sourceTimestampNanos, frameDetections.size)
+            val result = ambiguousOrLost(target, sourceTimestampNanos, frameDetections.size)
+            return evaluation(result, result.decision(), targetAgeNanos)
         }
 
         val predictedBoundingBox = predictedBoundingBox(target, sourceTimestampNanos)
-        val candidates = frameDetections
-            .asSequence()
+        val allCandidates = frameDetections
             .mapIndexed { index, detection ->
                 Candidate(
                     detectionIndex = index,
@@ -56,6 +123,8 @@ class TargetAssociationEngine {
                     predictedMetrics = predictedBoundingBox?.let { metrics(it, detection.boundingBox) },
                 )
             }
+        val candidates = allCandidates
+            .asSequence()
             .filter { it.isEligible }
             .sortedBy { it.score }
             .toList()
@@ -66,26 +135,57 @@ class TargetAssociationEngine {
                 predictedBoundingBox = predictedBoundingBox(competitor, sourceTimestampNanos),
             )
         }
+        fun diagnostics(
+            decision: TargetAssociationDecision,
+            selectedDetectionIndex: Int? = null,
+        ) = TargetAssociationDiagnostics(
+            decision = decision,
+            targetAgeNanos = targetAgeNanos,
+            predictedTargetBoundingBox = predictedBoundingBox,
+            candidates = if (includeDetailedDiagnostics) allCandidates.map { it.diagnostic() } else emptyList(),
+            competitors = if (includeDetailedDiagnostics) competitorContinuity.mapIndexed { index, competitor ->
+                CompetitorDiagnostic(
+                    competitorIndex = index,
+                    boundingBox = competitor.track.boundingBox,
+                    predictedBoundingBox = competitor.predictedBoundingBox,
+                    detectionMatches = frameDetections.mapIndexed { detectionIndex, detection ->
+                        CompetitorMatchDiagnostic(
+                            detectionIndex,
+                            metricsFor(competitor, detection.boundingBox).diagnostic(),
+                        )
+                    },
+                )
+            } else emptyList(),
+            selectedDetectionIndex = selectedDetectionIndex,
+            eligibleCandidateCount = candidates.size,
+        )
         if (candidates.isEmpty()) {
-            return missingOrLostWithCompetitorContinuity(
+            val result = missingOrLostWithCompetitorContinuity(
                 target,
                 competitorContinuity,
                 frameDetections,
                 sourceTimestampNanos,
             )
+            return TargetAssociationEvaluation(result, diagnostics(result.decision()))
         }
         val decision = decideIdentity(candidates, frameDetections, competitorContinuity)
-        if (decision is IdentityDecision.Ambiguous) return ambiguous(target, candidates.size)
+        if (decision is IdentityDecision.Ambiguous) {
+            return TargetAssociationEvaluation(
+                ambiguous(target, candidates.size),
+                diagnostics(TargetAssociationDecision.Ambiguous),
+            )
+        }
         if (decision is IdentityDecision.TargetMissing) {
-            return missingOrLostWithCompetitorContinuity(
+            val result = missingOrLostWithCompetitorContinuity(
                 target,
                 competitorContinuity,
                 frameDetections,
                 sourceTimestampNanos,
             )
+            return TargetAssociationEvaluation(result, diagnostics(result.decision()))
         }
         val best = (decision as IdentityDecision.Match).candidate
-        return TargetAssociationResult.Matched(
+        val result = TargetAssociationResult.Matched(
             target.copy(
                 boundingBox = best.detection.boundingBox,
                 confidence = best.detection.confidence,
@@ -105,6 +205,24 @@ class TargetAssociationEngine {
                 ),
             ),
         )
+        return TargetAssociationEvaluation(
+            result,
+            diagnostics(TargetAssociationDecision.Matched, best.detectionIndex),
+        )
+    }
+
+    private fun evaluation(
+        result: TargetAssociationResult,
+        decision: TargetAssociationDecision,
+        targetAgeNanos: Long?,
+    ) = TargetAssociationEvaluation(result, TargetAssociationDiagnostics(decision, targetAgeNanos))
+
+    private fun TargetAssociationResult.decision() = when (this) {
+        is TargetAssociationResult.Matched -> TargetAssociationDecision.Matched
+        is TargetAssociationResult.TemporarilyMissing -> TargetAssociationDecision.TemporarilyMissing
+        is TargetAssociationResult.Lost -> TargetAssociationDecision.Lost
+        is TargetAssociationResult.Ambiguous -> TargetAssociationDecision.Ambiguous
+        is TargetAssociationResult.Ignored -> TargetAssociationDecision.Ignored
     }
 
     private fun decideIdentity(
@@ -246,6 +364,14 @@ class TargetAssociationEngine {
             .minByOrNull { it.score }
         val isEligible: Boolean = matchingMetrics != null
         val score: Float = matchingMetrics?.score ?: Float.POSITIVE_INFINITY
+
+        fun diagnostic() = TargetCandidateDiagnostic(
+            detectionIndex = detectionIndex,
+            strict = strictMetrics.diagnostic(),
+            predicted = predictedMetrics?.diagnostic(),
+            eligible = isEligible,
+            score = score.takeIf { it.isFinite() },
+        )
     }
 
     private data class CompetitorContinuity(
@@ -284,6 +410,14 @@ class TargetAssociationEngine {
             CENTER_WEIGHT * (centerDisplacement / MAX_CENTER_DISPLACEMENT) +
                 IOU_WEIGHT * (1f - iou) +
                 SIZE_WEIGHT * abs(1f - areaRatio)
+
+        fun diagnostic() = TargetAssociationMetrics(
+            centerDisplacement = centerDisplacement,
+            iou = iou,
+            areaRatio = areaRatio,
+            eligible = isEligible,
+            score = score,
+        )
     }
 
     private fun predictedBoundingBox(target: TrackedTarget, sourceTimestampNanos: Long): NormalizedBoundingBox? {

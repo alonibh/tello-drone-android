@@ -31,6 +31,7 @@ import com.alonibh.tellodrone.tello.NetworkTelloTransport
 import com.alonibh.tellodrone.tello.SystemMonotonicClock
 import com.alonibh.tellodrone.tello.TelloFlightSession
 import com.alonibh.tellodrone.tello.TelloWifiNetworkManager
+import com.alonibh.tellodrone.vision.VisionTraceFeature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -132,6 +133,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                         flight = FlightState.Unknown,
                         hoverActive = false,
                     ),
+                    visionTrace = VisionTraceFeature.recorder(applicationContext),
                     onFatalConnectionLoss = { scope.launch { finishService() } },
                 )
                 if (!connectionGate.activate { session = newSession }) {

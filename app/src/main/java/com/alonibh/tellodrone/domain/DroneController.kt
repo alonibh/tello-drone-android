@@ -21,6 +21,7 @@ interface DroneController {
     fun setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = Unit
     fun setYawFollowArmed(armed: Boolean)
+    fun exportVisionTrace(destinationUri: String) = Unit
     fun setManualControlVector(vector: ManualControlVector)
     fun setSpeed(percent: Int)
     /** The UI owns only this display surface; the service owns the physical video session. */
