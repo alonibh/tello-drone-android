@@ -19,7 +19,7 @@ import org.junit.Test
 import kotlin.concurrent.thread
 
 class PersonDetectionPipelineTest {
-    @Test fun `production start uses EfficientDet CPU at fifty five percent`() {
+    @Test fun `production start uses EfficientDet Lite2 INT8 CPU at fifty five percent`() {
         val requests = mutableListOf<Pair<DetectorModel, DetectorBackendPreference>>()
         val snapshots = mutableListOf<PersonDetectionSnapshot>()
         val pipeline = PersonDetectionPipeline(
@@ -39,11 +39,11 @@ class PersonDetectionPipelineTest {
         pipeline.process(frame())
 
         assertEquals(
-            listOf(DetectorModel.EfficientDetLite0 to DetectorBackendPreference.Cpu),
+            listOf(DetectorModel.EfficientDetLite2Int8 to DetectorBackendPreference.Cpu),
             requests,
         )
         assertEquals(DetectorBackend.Cpu, snapshots.last().backend)
-        assertEquals(DetectorModel.EfficientDetLite0.displayName, snapshots.last().modelName)
+        assertEquals(DetectorModel.EfficientDetLite2Int8.displayName, snapshots.last().modelName)
         assertEquals(listOf(.55f), snapshots.last().detections.map { it.confidence })
     }
 

@@ -192,10 +192,11 @@ class VisionSessionTest {
         }
     }
 
-    @Test fun `production detector configuration remains Lite0 CPU point fifty five`() {
-        assertEquals(DetectorModel.EfficientDetLite0, DetectorModel.Default)
-        assertEquals(DetectorModel.EfficientDetLite0, ProductionPersonDetectorConfiguration.model)
+    @Test fun `production detector configuration is Lite2 INT8 CPU point fifty five`() {
+        assertEquals(DetectorModel.EfficientDetLite2Int8, DetectorModel.Default)
+        assertEquals(DetectorModel.EfficientDetLite2Int8, ProductionPersonDetectorConfiguration.model)
         assertEquals(DetectorBackendPreference.Cpu, ProductionPersonDetectorConfiguration.backendPreference)
+        assertEquals(4, TfliteTaskPersonDetector.CPU_THREADS)
         assertEquals(.55f, ProductionPersonDetectorConfiguration.confidenceThreshold)
         assertEquals(
             listOf(DetectorModel.EfficientDetLite0, DetectorModel.EfficientDetLite2Int8),

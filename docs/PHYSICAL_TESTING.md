@@ -77,13 +77,17 @@ was approximately 2320–2350 ms per inference, about 0.4 detector FPS, with pre
 effectively unusable and took tens of seconds. Do not compare those observations as if they were
 harness reports.
 
-Grounded real-device testing on the Teclast tablet finalized the production detector configuration:
+The latest Teclast grounded session/replay comparison finalized the production detector configuration:
 
-- model: **EfficientDet-Lite0**
+- model: **EfficientDet-Lite2 INT8**
 - backend: **CPU** (four Task threads)
 - person confidence threshold: **0.55**
-- observed sustained detector rate: approximately **6.7 FPS**
-- observed median inference: approximately **67 ms p50**
+
+Lite2 replay had one Missing transition and no Lost transition, versus nine Missing transitions for
+Lite0; it measured approximately 9.1 effective FPS and 108 ms p50 inference. Lite0 had also lost a
+clearly visible single person during live tracking.
+- observed effective detector rate: approximately **9.1 FPS**
+- observed median inference: approximately **108 ms p50**
 
 CPU clearly outperformed GPU on this tablet. EfficientDet visual testing was cleaner than MobileNet
 and avoided the small false `PERSON` boxes observed with MobileNet. The threshold remains 0.55:
@@ -144,16 +148,17 @@ rotates capture so the next analyzed frame starts a fresh session.
 
 To replay without a drone, tap **IMPORT / SELECT SESSION**, choose the ZIP, then tap **RUN MODEL
 COMPARISON**. Replay validates frame/trace correspondence, sorts by source timestamp and sequence,
-and runs four-thread CPU inference at 0.55 through production EfficientDet-Lite0 and debug-only
-EfficientDet-Lite2 INT8. **COPY / EXPORT REPORT** copies the JSON report and opens the document picker.
+and runs four-thread CPU inference at 0.55 through production EfficientDet-Lite2 INT8 and debug-only
+EfficientDet-Lite0. **COPY / EXPORT REPORT** copies the JSON report and opens the document picker.
 The report includes startup and inference percentiles, effective inference FPS, candidates and
 accepted detections per frame, duplicate suppression counts, deterministic association transitions,
 and identity-switch invariant violations. Frame paths in each result point back into the session ZIP.
 
 The Lite2 asset is Google's TF Hub `tensorflow/lite-model/efficientdet/lite2/detection/metadata/1`
 integer-quantized metadata model, 7,557,887 bytes, SHA-256
-`6FD32C84AB1EB0F7E7F3A7A20A20D7DF1530DAA8378728F7C79571096286BD52`. It is packaged only in the
-debug variant. Production remains EfficientDet-Lite0, four-thread CPU, threshold 0.55.
+`6FD32C84AB1EB0F7E7F3A7A20A20D7DF1530DAA8378728F7C79571096286BD52`. It is packaged with production
+builds. Production is EfficientDet-Lite2 INT8, four-thread CPU, threshold 0.55; Lite0 is
+packaged only in debug for replay comparison.
 
 ## Grounded validation status
 

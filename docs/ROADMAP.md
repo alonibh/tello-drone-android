@@ -21,7 +21,7 @@ physically verified until those checks are completed with a real tablet and Tell
 
 ## Phase 4 — person detection
 
-- production detector fixed from Teclast testing: EfficientDet-Lite0, four-thread CPU, 0.55 threshold
+- production detector fixed from Teclast replay testing: EfficientDet-Lite2 INT8, four-thread CPU, 0.55 threshold
 - `PersonDetector`, overlays, target selection/lock, dry-run and replay; no autonomous flight
 
 ## Phase 5 — tracking controller

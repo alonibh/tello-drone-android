@@ -194,7 +194,8 @@ Lite Task Vision types. It uses the official Task ObjectDetector artifacts `0.4.
 image inference, a `person` label allowlist, and at most five results. The Task layer admits scores
 from 0.50 so the app-owned production pipeline can apply its fixed 0.55 threshold.
 
-The production model is EfficientDet-Lite0. The prior SSD MobileNet V1 comparison model remains an
+The production model is EfficientDet-Lite2 INT8. EfficientDet-Lite0 remains a debug replay comparison
+model, while the prior SSD MobileNet V1 comparison model remains an
 internal detector abstraction, but there is no runtime model selection path in the normal UI or
 service boundary. The app exposes only the `person` category.
 
@@ -333,11 +334,11 @@ or land operation.
 
 ## Phase 4D finalized detector configuration
 
-Grounded Teclast comparison testing selected EfficientDet-Lite0 on four-thread CPU at a fixed 0.55
-person threshold. It sustained approximately 6.7 detector FPS with approximately 67 ms p50
-inference, clearly outperforming GPU on the target tablet. EfficientDet also avoided the small false
-`PERSON` boxes observed with MobileNet. Raising the threshold is intentionally rejected because
-valid nearby people were observed around 52–61% confidence.
+Grounded Teclast session replay selected EfficientDet-Lite2 INT8 on four-thread CPU at a fixed 0.55
+person threshold. It delivered approximately 9.1 effective FPS with approximately 108 ms p50
+inference and reduced replay Missing transitions from nine with Lite0 to one, with no Lost transition.
+Lite0 live tracking had lost a clearly visible single person. Raising the threshold is intentionally
+rejected because valid nearby people were observed around 52–61% confidence.
 
 `AndroidTelloVideoController.setPersonDetectionEnabled(true)` calls the production detector entry
 point, which explicitly supplies all three fixed values to `PersonDetectionPipeline`. The former
@@ -349,8 +350,8 @@ Debug variants additionally detach the exact analyzed bitmap into a bounded visi
 The later association trace is paired by `(frameSequence, sourceTimestampNanos)` before background
 JPEG compression, so exported session archives cannot silently mismatch results and images. Offline
 replay uses only imported ZIP frames and app-local detector instances; it does not create a drone
-session, socket, network request, decoder, surface, RC loop, or control command. EfficientDet-Lite2
-INT8 is a debug replay comparison asset and is never selected by the production detector entry point.
+session, socket, network request, decoder, surface, RC loop, or control command. EfficientDet-Lite0
+is a debug replay comparison asset and is never selected by the production detector entry point.
 
 Phase 4A ends at frame-local person boxes over the real preview. It adds no target selection, target
 lock, identity or face recognition, cross-frame tracking, PID, autonomous control, Follow mode,

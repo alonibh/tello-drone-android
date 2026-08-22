@@ -110,7 +110,7 @@ fun normalizeConfidenceThreshold(value: Float): Float {
 }
 
 internal object ProductionPersonDetectorConfiguration {
-    val model = DetectorModel.EfficientDetLite0
+    val model = DetectorModel.EfficientDetLite2Int8
     val backendPreference = DetectorBackendPreference.Cpu
     const val confidenceThreshold = DEFAULT_PERSON_CONFIDENCE_THRESHOLD
 }
