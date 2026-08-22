@@ -19,6 +19,34 @@ import org.junit.Test
 import kotlin.concurrent.thread
 
 class PersonDetectionPipelineTest {
+    @Test fun `production start uses EfficientDet CPU at fifty five percent`() {
+        val requests = mutableListOf<Pair<DetectorModel, DetectorBackendPreference>>()
+        val snapshots = mutableListOf<PersonDetectionSnapshot>()
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { model, preference ->
+                requests += model to preference
+                FakePersonDetector(backendFor(preference), model.displayName) {
+                    listOf(
+                        detection(sourceTimestamp = 100L, confidence = .54f),
+                        detection(sourceTimestamp = 100L, confidence = .55f),
+                    )
+                }
+            },
+            onSnapshot = snapshots::add,
+        )
+
+        pipeline.startProductionDetection()
+        pipeline.process(frame())
+
+        assertEquals(
+            listOf(DetectorModel.EfficientDetLite0 to DetectorBackendPreference.Cpu),
+            requests,
+        )
+        assertEquals(DetectorBackend.Cpu, snapshots.last().backend)
+        assertEquals(DetectorModel.EfficientDetLite0.displayName, snapshots.last().modelName)
+        assertEquals(listOf(.55f), snapshots.last().detections.map { it.confidence })
+    }
+
     @Test fun `fake detector result is published and zero result clears immediately`() {
         var result = listOf(detection(sourceTimestamp = 100L))
         val fake = FakePersonDetector { result }
@@ -177,7 +205,7 @@ class PersonDetectionPipelineTest {
         val worker = thread(start = true) { pipeline.process(frame()) }
         assertTrue(creationStarted.await(2, TimeUnit.SECONDS))
 
-        pipeline.stop() // benchmark cancellation uses this same generation-safe stop.
+        pipeline.stop()
         allowCreation.countDown()
         worker.join(2_000)
         pipeline.releaseIfStopped()

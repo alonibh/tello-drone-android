@@ -7,8 +7,6 @@ import androidx.core.content.ContextCompat
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneController
-import com.alonibh.tellodrone.domain.DetectorBackendPreference
-import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
@@ -88,17 +86,6 @@ class RealDroneController(context: Context) : DroneController {
             TelloServiceGateway.setTrackingMode(mode)
         } else outOfScope()
     }
-    override fun setDetectorModel(model: DetectorModel) {
-        TelloServiceGateway.setDetectorModel(model)
-    }
-    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
-        TelloServiceGateway.setDetectorBackendPreference(preference)
-    }
-    override fun setDetectorConfidenceThreshold(threshold: Float) {
-        TelloServiceGateway.setDetectorConfidenceThreshold(threshold)
-    }
-    override fun runDetectorBenchmark() { TelloServiceGateway.runDetectorBenchmark() }
-    override fun cancelDetectorBenchmark() { TelloServiceGateway.cancelDetectorBenchmark() }
     override fun selectTarget(detection: PersonDetection) { TelloServiceGateway.selectTarget(detection) }
     override fun setCurrentFollowDistance() { TelloServiceGateway.setCurrentFollowDistance() }
     override fun setYawFollowArmed(armed: Boolean) { TelloServiceGateway.setYawFollowArmed(armed) }

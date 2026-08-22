@@ -8,8 +8,6 @@ import com.alonibh.tellodrone.domain.FollowDistanceCalibrationState
 import com.alonibh.tellodrone.domain.FollowDistanceEligibility
 import com.alonibh.tellodrone.domain.FollowDistanceEligibilityReason
 import com.alonibh.tellodrone.domain.DroneConnectionState
-import com.alonibh.tellodrone.domain.DetectorBackendPreference
-import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
@@ -359,7 +357,6 @@ class TelloFlightSession(
             TrackingMode.Off -> {
                 latchYawFollowAndSendZero(YawFollowReason.DETECTOR_UNAVAILABLE)
                 activeVideo?.setPersonDetectionEnabled(false)
-                activeVideo?.cancelDetectorBenchmark()
                 resetRealTracking()
                 mutableState.update {
                     it.copy(
@@ -399,93 +396,6 @@ class TelloFlightSession(
             TrackingMode.TargetLocked, TrackingMode.Follow ->
                 invalid("Target lock and Follow are not available in Phase 4A")
         }
-    }
-
-    fun setDetectorModel(model: DetectorModel) {
-        val current = mutableState.value
-        if (current.tracking != TrackingMode.Off) {
-            invalid("Turn person detection off before changing model")
-            return
-        }
-        val changed = video?.setPersonDetectorModel(model)
-            ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
-        if (changed.isFailure) {
-            invalid(changed.exceptionOrNull()?.message ?: "Detector model could not be changed")
-            return
-        }
-        resetRealTracking()
-        mutableState.update { state ->
-            state.copy(
-                video = state.video.copy(detectorModel = model),
-                lastMessage = "${model.displayName} selected",
-            )
-        }
-    }
-
-    fun setDetectorBackendPreference(preference: DetectorBackendPreference) {
-        val current = mutableState.value
-        if (current.tracking != TrackingMode.Off) {
-            invalid("Turn person detection off before changing backend")
-            return
-        }
-        val changed = video?.setPersonDetectorBackendPreference(preference)
-            ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
-        if (changed.isFailure) {
-            invalid(changed.exceptionOrNull()?.message ?: "Detector backend could not be changed")
-            return
-        }
-        resetRealTracking()
-        mutableState.update { state ->
-            state.copy(
-                video = state.video.copy(detectorBackendPreference = preference),
-                lastMessage = when (preference) {
-                    DetectorBackendPreference.Accelerated -> "GPU preferred; CPU fallback enabled"
-                    DetectorBackendPreference.Cpu -> "CPU comparison backend selected"
-                },
-            )
-        }
-    }
-
-    fun setDetectorConfidenceThreshold(threshold: Float) {
-        val current = mutableState.value
-        if (current.tracking != TrackingMode.Off) {
-            invalid("Turn person detection off before changing confidence threshold")
-            return
-        }
-        val normalized = com.alonibh.tellodrone.vision.normalizeConfidenceThreshold(threshold)
-        val changed = video?.setPersonDetectorConfidenceThreshold(normalized)
-            ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
-        if (changed.isFailure) {
-            invalid(changed.exceptionOrNull()?.message ?: "Detector confidence threshold could not be changed")
-            return
-        }
-        resetRealTracking()
-        mutableState.update { state ->
-            state.copy(
-                video = state.video.copy(detectorConfidenceThreshold = normalized),
-                lastMessage = "Person confidence threshold set to ${(normalized * 100f).toInt()}%",
-            )
-        }
-    }
-
-    fun runDetectorBenchmark() {
-        val current = mutableState.value
-        if (current.tracking != TrackingMode.Off) {
-            invalid("Turn person detection off before running the benchmark")
-            return
-        }
-        val started = video?.runDetectorBenchmark()
-            ?: Result.failure(IllegalStateException("Video analysis is unavailable"))
-        if (started.isSuccess) {
-            resetRealTracking()
-            mutableState.update { it.copy(tracking = TrackingMode.DetectOnly, authority = ControlAuthority.Manual, personDetections = emptyList(), target = null, lastMessage = "Running 30-second detector benchmark") }
-        } else invalid(started.exceptionOrNull()?.message ?: "Detector benchmark could not start")
-    }
-
-    fun cancelDetectorBenchmark() {
-        video?.cancelDetectorBenchmark()
-        resetRealTracking()
-        mutableState.update { it.copy(tracking = TrackingMode.Off, authority = ControlAuthority.Manual, personDetections = emptyList(), target = null, lastMessage = "Detector benchmark cancelled") }
     }
 
     /**

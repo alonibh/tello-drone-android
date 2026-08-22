@@ -1,7 +1,6 @@
 package com.alonibh.tellodrone.domain
 
 import java.time.Instant
-import com.alonibh.tellodrone.vision.DetectorBenchmarkResult
 
 enum class DroneConnectionState { Disconnected, AwaitingPermission, Connecting, Connected, Error }
 enum class NetworkSelectionState { Idle, PermissionRequired, PermissionDenied, Requesting, Available, Lost, Error }
@@ -26,10 +25,9 @@ enum class DetectorModel(
     );
 
     companion object {
-        val Default = MobileNetV1
+        val Default = EfficientDetLite0
     }
 }
-enum class DetectorBenchmarkState { Off, Running, Cancelled, Failed, Complete }
 enum class FollowDistanceCalibrationState { NotSet, Calibrating, Set }
 
 /** A finite, non-empty box normalized to the captured preview surface (0f..1f). */
@@ -78,16 +76,10 @@ data class VideoState(
     val personDetectionState: PersonDetectionState = PersonDetectionState.Off,
     val detectorMeasuredFps: Float? = null,
     val detectorInferenceMillis: Long? = null,
-    val detectorModel: DetectorModel = DetectorModel.Default,
-    val detectorBackendPreference: DetectorBackendPreference = DetectorBackendPreference.Cpu,
     val detectorBackend: DetectorBackend? = null,
-    val detectorConfidenceThreshold: Float = com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD,
     val detectorModelName: String? = null,
     val detectorFellBackFromGpu: Boolean = false,
     val detectorErrorReason: String? = null,
-    val detectorBenchmarkState: DetectorBenchmarkState = DetectorBenchmarkState.Off,
-    val detectorBenchmarkResult: DetectorBenchmarkResult? = null,
-    val detectorBenchmarkReason: String? = null,
     /** Identity of the detector frame that most recently completed inference, even with no people. */
     val processedDetectorFrameSequence: Long? = null,
     /** Monotonic capture timestamp for [processedDetectorFrameSequence]. */

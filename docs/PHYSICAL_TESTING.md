@@ -41,7 +41,7 @@ The completed grounded procedure was:
 
 Phase 3 and Phase 3B physical validation are complete.
 
-## Phase 4A grounded person-detection performance validation — failed baseline, replacement pending
+## Phase 4A grounded person-detection performance validation — complete
 
 The original Phase 4A detector at commit `15c636cfc04fc74f0127ff2d351ee960641e256c` was physically
 tested on the Blaupunkt BP_6010 and failed the performance requirement. The preview remained roughly
@@ -62,54 +62,35 @@ remained approximately 18-20 FPS under detection load. This is unsuitable for re
 GPU initialization was effectively unusable, taking tens of seconds, and is not accepted as a
 real-time backend on the Blaupunkt. The Blaupunkt remains a low-end compatibility/manual-flight
 device, not the primary ML performance target. These results make no assumption about future
-Teclast measurements. The future Teclast grounded detector benchmark remains the gate before real
-target-lock or Follow work; do not request takeoff for that benchmark:
+Teclast measurements.
 
-This dry-run PID/planner foundation requires no new physical test. It sends no commands and does
-not alter manual authority; the Teclast grounded detector benchmark remains the next hardware gate.
+This dry-run PID/planner foundation required no new physical test. It sends no commands and does
+not alter manual authority.
 
 Phase 4C shadow-autonomy safety/replay is also pure dry-run logic and needs no physical validation.
-The Teclast grounded detector benchmark remains the next physical gate.
 
-## Phase 4D detector/device benchmark â€” new-tablet procedure
+## Phase 4D detector/device benchmark — final Teclast decision
 
-The following Blaupunkt BP_6010 values are **manually observed historical values**, not measurements
-produced by the Phase 4D harness: CPU (4 threads) was approximately 2320â€“2350 ms per inference,
-about 0.4 detector FPS, with preview approximately 18â€“20 FPS under detection. GPU startup was
+The following Blaupunkt BP_6010 values are **manually observed historical values**: CPU (4 threads)
+was approximately 2320–2350 ms per inference, about 0.4 detector FPS, with preview approximately
+18–20 FPS under detection. GPU startup was
 effectively unusable and took tens of seconds. Do not compare those observations as if they were
 harness reports.
 
-Do not claim Teclast or any new-tablet results until copied reports are recorded. With the Tello
-grounded, run this exact procedure; no takeoff is permitted:
+Grounded real-device testing on the Teclast tablet finalized the production detector configuration:
 
-1. Install the latest build.
-2. Keep the Tello grounded.
-3. Connect REAL.
-4. Open Tracking.
-5. Select GPU PREFERRED.
-6. Run 30s benchmark.
-7. Copy report.
-8. Select CPU COMPARE.
-9. Run 30s benchmark.
-10. Copy report.
-11. No takeoff.
+- model: **EfficientDet-Lite0**
+- backend: **CPU** (four Task threads)
+- person confidence threshold: **0.55**
+- observed sustained detector rate: approximately **6.7 FPS**
+- observed median inference: approximately **67 ms p50**
 
-1. Teclast landscape, Tello on floor.
-2. Connect REAL and confirm normal ~30 FPS preview.
-3. Leave the default GPU PREFERRED backend selected, enable DETECT PEOPLE, and record the displayed
-   active backend, fallback indicator, latest inference milliseconds, detector FPS, and preview FPS
-   for at least 60 seconds with one clearly visible person.
-4. Confirm one correctly aligned PERSON box appears; move around the frame and leave it, confirming
-   new results do not grow a lag and boxes clear quickly. Try two people where confidence permits.
-5. Disable detection and confirm boxes disappear immediately.
-6. Select CPU COMPARE, re-enable DETECT PEOPLE, repeat the same scene and motions for at least 60
-   seconds, and record the same diagnostics. Do not infer that GPU is faster merely because it loads.
-7. Confirm telemetry and controls remain responsive throughout. The acceptance target is at least
-   4 detector FPS (ideally 5 or more), typical inference no more than 250 ms, and 28–30 preview FPS.
-8. Select the backend with better sustained grounded measurements, disable detection, and disconnect.
-
-No takeoff is permitted for this performance validation. Do not claim the replacement meets its
-performance target until exact measurements from this procedure are recorded here.
+CPU clearly outperformed GPU on this tablet. EfficientDet visual testing was cleaner than MobileNet
+and avoided the small false `PERSON` boxes observed with MobileNet. The threshold remains 0.55:
+nearby valid people were sometimes reported around 52–61%, so raising it would reject useful
+observations. These results satisfy the prior minimum detector-performance gate. The comparison and
+benchmark controls were development-only and were removed after this decision; normal operation now
+always starts the fixed configuration above.
 
 ## Landscape operational UI — complete
 
@@ -127,14 +108,14 @@ and dismissal of transient system UI restore the edge-to-edge operational view.
 
 ## Phase 4E Xiaomi Mi A1 grounded live dry-run procedure
 
-The Xiaomi Mi A1 CPU detector is suitable for this development-only grounded validation: observed
-CPU performance was approximately 61 ms p50 and 82 ms p95 (roughly 7â€“9 detector FPS) while preview
-remained about 30 FPS. Use **CPU COMPARE** manually. This phase is non-autonomous: no takeoff and no
-movement test are permitted.
+The earlier Xiaomi Mi A1 CPU comparison was suitable for this development-only grounded validation:
+observed performance was approximately 61 ms p50 and 82 ms p95 (roughly 7–9 detector FPS) while
+preview remained about 30 FPS. Current builds use the fixed production detector configuration. This
+phase is non-autonomous: no takeoff and no movement test are permitted.
 
 1. Place the Tello on the floor, connect REAL, and confirm fresh grounded telemetry and the live preview.
-2. Open Tracking, select **CPU COMPARE**, then enable **DETECT PEOPLE**. Confirm DETECTING and live
-   person boxes with current inference/FPS diagnostics.
+2. Open Tracking and tap **START PERSON DETECTION**. Confirm DETECTING and live person boxes with
+   current inference/FPS diagnostics.
 3. Tap one visible person box. Confirm `TARGET SELECTED`, manual authority, normalized errors and
    dry-run intent are shown, and the UI says `NO COMMANDS SENT`.
 4. Move that person slightly. Confirm the same selected box updates as matched; vary confidence if
@@ -152,11 +133,11 @@ Do not take off. Do not interpret any displayed intent as a flight command; Phas
 
 ## Phase 4F Xiaomi Mi A1 grounded visual-distance procedure
 
-No takeoff: select **CPU COMPARE**, Detect People, select one person, stand at the desired current
-visual standoff, and tap **SET CURRENT DISTANCE**. After `FOLLOW DISTANCE SET`, confirm forward/back
-is near zero at that visual scale, positive when walking farther, and negative when walking closer.
-Lose the target, reselect it, and confirm the reference is cleared and must be set again. This is a
-visual camera-scale reference only, not a meter-accurate distance measurement; no commands are sent.
+No takeoff: start person detection, select one person, stand at the desired current visual standoff,
+and tap **SET CURRENT DISTANCE**. After `FOLLOW DISTANCE SET`, confirm forward/back is near zero at
+that visual scale, positive when walking farther, and negative when walking closer. Lose the target,
+reselect it, and confirm the reference is cleared and must be set again. This is a visual camera-scale
+reference only, not a meter-accurate distance measurement; no commands are sent.
 
 - **Xiaomi Mi A1, Android 9 / API 28:** manual TELLO Wi-Fi connection, SDK command-mode
   acknowledgement, fresh grounded telemetry, correct `Grounded` state, safe disconnect, and the
@@ -178,9 +159,8 @@ aircraft behavior after link loss, not app-controlled behavior. Connection-loss 
 physically validated.
 
 Emergency Motor Kill remains intentionally untested. The original Phase 4A grounded performance
-test failed; the replacement detector is implemented but pending the exact grounded GPU/CPU
-comparison above. Target lock, tracking, and autonomous flight remain unimplemented. Mi A1 manual
-flight also remains unverified.
+test failed, and the replacement detector configuration is now finalized by the Teclast grounded
+comparison above. Mi A1 manual flight remains unverified.
 
 **Phase 2 physical validation: complete.**
 

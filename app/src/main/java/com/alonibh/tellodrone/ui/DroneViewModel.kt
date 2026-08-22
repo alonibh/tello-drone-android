@@ -6,8 +6,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.alonibh.tellodrone.domain.DroneController
 import com.alonibh.tellodrone.domain.DroneSessionState
-import com.alonibh.tellodrone.domain.DetectorBackendPreference
-import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.TrackingMode
@@ -28,14 +26,6 @@ class DroneViewModel(private val controller: DroneController) : ViewModel(), Dro
     override fun stopAndHover() = controller.stopAndHover()
     override fun emergencyMotorKill() = controller.emergencyMotorKill()
     override fun setTrackingMode(mode: TrackingMode) = controller.setTrackingMode(mode)
-    override fun setDetectorModel(model: DetectorModel) =
-        controller.setDetectorModel(model)
-    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) =
-        controller.setDetectorBackendPreference(preference)
-    override fun setDetectorConfidenceThreshold(threshold: Float) =
-        controller.setDetectorConfidenceThreshold(threshold)
-    override fun runDetectorBenchmark() = controller.runDetectorBenchmark()
-    override fun cancelDetectorBenchmark() = controller.cancelDetectorBenchmark()
     override fun selectTarget(detection: PersonDetection) = controller.selectTarget(detection)
     fun setCurrentFollowDistance() = controller.setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = controller.setShadowAutonomyArmed(armed)

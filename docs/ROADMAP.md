@@ -21,7 +21,7 @@ physically verified until those checks are completed with a real tablet and Tell
 
 ## Phase 4 — person detection
 
-- select model/runtime after licensing and tablet benchmarks
+- production detector fixed from Teclast testing: EfficientDet-Lite0, four-thread CPU, 0.55 threshold
 - `PersonDetector`, overlays, target selection/lock, dry-run and replay; no autonomous flight
 
 ## Phase 5 — tracking controller

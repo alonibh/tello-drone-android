@@ -3,8 +3,6 @@
 package com.alonibh.tellodrone.ui
 
 import android.content.Intent
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.os.Build
 import android.provider.Settings
 import android.content.Context
@@ -117,9 +115,6 @@ import com.alonibh.tellodrone.TelloPanelRaised
 import com.alonibh.tellodrone.TelloRed
 import com.alonibh.tellodrone.TelloTextMuted
 import com.alonibh.tellodrone.domain.DetectorBackend
-import com.alonibh.tellodrone.domain.DetectorBackendPreference
-import com.alonibh.tellodrone.domain.DetectorBenchmarkState
-import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
@@ -131,11 +126,6 @@ import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.domain.YawFollowState
-import com.alonibh.tellodrone.vision.DEFAULT_PERSON_CONFIDENCE_THRESHOLD
-import com.alonibh.tellodrone.vision.MIN_PERSON_CONFIDENCE_THRESHOLD
-import com.alonibh.tellodrone.vision.MAX_PERSON_CONFIDENCE_THRESHOLD
-import com.alonibh.tellodrone.vision.PERSON_CONFIDENCE_THRESHOLD_STEP
-import com.alonibh.tellodrone.vision.formatReport
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -668,7 +658,6 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneDashboardActions, m
         state.video.availability == VideoAvailability.Streaming &&
         state.video.analysisLatestSequence != null
     RealPersonDetectionAction(state, vm, canStart)
-    AdvancedDetectorControls(state, vm)
     val targetStatus = when (state.targetAssociationState) {
         TargetAssociationState.None -> null
         TargetAssociationState.Selected, TargetAssociationState.Matched -> "TARGET SELECTED"
@@ -746,97 +735,9 @@ private fun RealPersonDetectionAction(state: DroneSessionState, vm: DroneDashboa
     }
 }
 
-@Composable
-private fun AdvancedDetectorControls(state: DroneSessionState, vm: DroneDashboardActions) {
-    var expanded by remember { mutableStateOf(false) }
-    OutlineAction(
-        "ADVANCED DETECTOR",
-        Icons.Default.Settings,
-        true,
-        { expanded = !expanded },
-        Modifier.fillMaxWidth(),
-        active = expanded,
-    )
-    if (!expanded) return
-
-    val canSelectConfig = state.tracking == TrackingMode.Off &&
-        state.video.personDetectionState !in setOf(PersonDetectionState.Starting, PersonDetectionState.Detecting)
-    AdaptiveActionPair(
-        {
-            OutlineAction("MOBILENET V1", Icons.Default.Settings, canSelectConfig, { vm.setDetectorModel(DetectorModel.MobileNetV1) }, Modifier.fillMaxWidth(), active = state.video.detectorModel == DetectorModel.MobileNetV1)
-        },
-        {
-            OutlineAction("EFFICIENTDET LITE0", Icons.Default.Settings, canSelectConfig, { vm.setDetectorModel(DetectorModel.EfficientDetLite0) }, Modifier.fillMaxWidth(), active = state.video.detectorModel == DetectorModel.EfficientDetLite0)
-        },
-    )
-    AdaptiveActionPair(
-        {
-            OutlineAction("GPU PREFERRED", Icons.Default.Settings, canSelectConfig, { vm.setDetectorBackendPreference(DetectorBackendPreference.Accelerated) }, Modifier.fillMaxWidth(), active = state.video.detectorBackendPreference == DetectorBackendPreference.Accelerated)
-        },
-        {
-            OutlineAction("CPU COMPARE", Icons.Default.Settings, canSelectConfig, { vm.setDetectorBackendPreference(DetectorBackendPreference.Cpu) }, Modifier.fillMaxWidth(), active = state.video.detectorBackendPreference == DetectorBackendPreference.Cpu)
-        },
-    )
-    AdaptiveActionPair(
-        {
-            OutlineAction(
-                "- 5% THRESHOLD",
-                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                canSelectConfig && state.video.detectorConfidenceThreshold > MIN_PERSON_CONFIDENCE_THRESHOLD + 0.001f,
-                { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold - PERSON_CONFIDENCE_THRESHOLD_STEP) },
-                Modifier.fillMaxWidth(),
-            )
-        },
-        {
-            OutlineAction(
-                "+ 5% THRESHOLD",
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                canSelectConfig && state.video.detectorConfidenceThreshold < MAX_PERSON_CONFIDENCE_THRESHOLD - 0.001f,
-                { vm.setDetectorConfidenceThreshold(state.video.detectorConfidenceThreshold + PERSON_CONFIDENCE_THRESHOLD_STEP) },
-                Modifier.fillMaxWidth(),
-            )
-        },
-    )
-    DetectorBenchmarkControls(state, vm)
-}
-
 internal fun DroneSessionState.isCurrentTargetDetection(detection: com.alonibh.tellodrone.domain.PersonDetection): Boolean = target?.let {
     detection.frameSequence == it.lastSeenFrameSequence && detection.sourceTimestampNanos == it.lastSeenSourceTimestampNanos && detection.boundingBox == it.boundingBox
 } == true
-
-@Composable
-private fun DetectorBenchmarkControls(state: DroneSessionState, vm: DroneDashboardActions) {
-    val context = LocalContext.current
-    val running = state.video.detectorBenchmarkState == DetectorBenchmarkState.Running
-    val available = state.connection == DroneConnectionState.Connected &&
-        state.video.availability == VideoAvailability.Streaming && state.video.analysisLatestSequence != null &&
-        state.tracking == TrackingMode.Off && state.video.personDetectionState == PersonDetectionState.Off
-    HorizontalDivider(color = TelloLine)
-    Text("BENCHMARK", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-    if (running) {
-        StatusLine("Benchmark", "RUNNING - 30s valid inference", TelloGreen)
-        OutlineAction("CANCEL BENCHMARK", Icons.Default.StopCircle, true, vm::cancelDetectorBenchmark, Modifier.fillMaxWidth())
-    } else {
-        ActionButton("RUN 30s BENCHMARK", Icons.Default.PersonSearch, available, vm::runDetectorBenchmark, Modifier.fillMaxWidth())
-    }
-    state.video.detectorBenchmarkReason?.let { Text(it, color = TelloRed, fontSize = 11.sp) }
-    state.video.detectorBenchmarkResult?.let { result ->
-        Text("DEVICE", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-        StatusLine("Device", "${result.manufacturer} ${result.model}")
-        StatusLine("Android", "${result.androidVersion} / API ${result.sdkLevel}")
-        Text("PERFORMANCE", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-        StatusLine("Startup", result.startupMillis?.let { "$it ms" } ?: "Unavailable")
-        StatusLine("Inference p50", result.inferenceP50Millis?.let { "$it ms" } ?: "Unavailable")
-        StatusLine("Inference p95", result.inferenceP95Millis?.let { "$it ms" } ?: "Unavailable")
-        StatusLine("Detector", result.detectorFps?.let { "%.1f FPS".format(it) } ?: "Unavailable")
-        StatusLine("Preview", result.previewFps?.let { "%.1f FPS".format(it) } ?: "Unavailable")
-        StatusLine("Frames", result.completedInferences.toString())
-        OutlineAction("COPY REPORT", Icons.Default.CheckCircle, true, {
-            (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                .setPrimaryClip(ClipData.newPlainText("Tello detector benchmark", result.formatReport()))
-        }, Modifier.fillMaxWidth())
-    }
-}
 
 @Composable private fun TrackingDestination(state: DroneSessionState, vm: DroneDashboardActions, modifier: Modifier = Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1060,7 +961,7 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
 @Composable private fun CompactLandscapeDisconnectedPreview() = PreviewCompactHeightDestination(DroneSessionState(), "Dashboard", showApi28WifiAction = true)
 @Preview(name = "Phone landscape Controls", widthDp = 640, heightDp = 360)
 @Composable private fun CompactLandscapeControlsPreview() = PreviewCompactHeightDestination(DroneSessionState(connection = DroneConnectionState.Connected, flight = FlightState.Flying), "Controls")
-@Preview(name = "Phone landscape Tracking benchmark", widthDp = 640, heightDp = 360)
+@Preview(name = "Phone landscape Tracking", widthDp = 640, heightDp = 360)
 @Composable private fun CompactLandscapeTrackingPreview() = PreviewCompactHeightDestination(
     DroneSessionState(connection = DroneConnectionState.Connected, video = VideoState(availability = VideoAvailability.Streaming, analysisLatestSequence = 1L)),
     "Tracking",

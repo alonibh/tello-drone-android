@@ -3,8 +3,6 @@
 package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.DroneConnectionState
-import com.alonibh.tellodrone.domain.DetectorBackendPreference
-import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
@@ -33,16 +31,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TelloFlightSessionTest {
-    @Test fun `real detector defaults match tested Xiaomi configuration`() = runTest {
-        val video = FakeVideoController()
-        val fixture = fixture(video)
-
-        assertEquals(DetectorModel.MobileNetV1, fixture.session.state.value.video.detectorModel)
-        assertEquals(DetectorBackendPreference.Cpu, fixture.session.state.value.video.detectorBackendPreference)
-        assertEquals(.55f, fixture.session.state.value.video.detectorConfidenceThreshold, 0f)
-        assertEquals(DetectorBackendPreference.Cpu, video.backendPreference)
-    }
-
     @Test fun `first telemetry connection update cannot be reverted by yaw state commit`() = runTest {
         val clock = RcControlLoopTest.FakeClock(1_000)
         val transport = FakeTransport()
@@ -288,110 +276,6 @@ class TelloFlightSessionTest {
         assertTrue(video.closed)
         assertEquals(listOf("command", "streamon"), fixture.transport.commands)
         assertEquals(DroneConnectionState.Error, fixture.session.state.value.connection)
-    }
-
-    @Test fun `detector backend switch preserves authority and target`() = runTest {
-        val video = FakeVideoController()
-        val fixture = fixture(video)
-        val before = fixture.session.state.value
-
-        fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Accelerated)
-
-        val after = fixture.session.state.value
-        assertEquals(DetectorBackendPreference.Accelerated, video.backendPreference)
-        assertEquals(DetectorBackendPreference.Accelerated, after.video.detectorBackendPreference)
-        assertEquals(before.authority, after.authority)
-        assertEquals(before.target, after.target)
-    }
-
-    @Test fun `detector model switch applies when detection is off`() = runTest {
-        val video = FakeVideoController()
-        val fixture = fixture(video)
-        val before = fixture.session.state.value
-
-        fixture.session.setDetectorModel(DetectorModel.EfficientDetLite0)
-
-        val after = fixture.session.state.value
-        assertEquals(DetectorModel.EfficientDetLite0, video.model)
-        assertEquals(DetectorModel.EfficientDetLite0, after.video.detectorModel)
-        assertEquals(before.authority, after.authority)
-        assertEquals(before.target, after.target)
-    }
-
-    @Test fun `detector model switch is rejected while detection is active`() = runTest {
-        val video = FakeVideoController()
-        val fixture = fixture(video)
-        fixture.transport.emitTelemetry(fixture.clock.value)
-        assertTrue(fixture.session.connect())
-        runCurrent()
-        fixture.session.setTrackingMode(com.alonibh.tellodrone.domain.TrackingMode.DetectOnly)
-        runCurrent()
-        assertEquals(TrackingMode.DetectOnly, fixture.session.state.value.tracking)
-        val before = fixture.session.state.value
-
-        fixture.session.setDetectorModel(DetectorModel.EfficientDetLite0)
-
-        val after = fixture.session.state.value
-        assertEquals(DetectorModel.MobileNetV1, video.model)
-        assertEquals(DetectorModel.MobileNetV1, after.video.detectorModel)
-        assertEquals(TrackingMode.DetectOnly, after.tracking)
-        assertEquals(before.authority, after.authority)
-        assertEquals(before.target, after.target)
-    }
-
-    @Test fun `detector backend switch is rejected while detection is active`() = runTest {
-        val video = FakeVideoController()
-        val fixture = fixture(video)
-        fixture.transport.emitTelemetry(fixture.clock.value)
-        assertTrue(fixture.session.connect())
-        runCurrent()
-        fixture.session.setTrackingMode(com.alonibh.tellodrone.domain.TrackingMode.DetectOnly)
-        runCurrent()
-        assertEquals(TrackingMode.DetectOnly, fixture.session.state.value.tracking)
-        val before = fixture.session.state.value
-
-        fixture.session.setDetectorBackendPreference(DetectorBackendPreference.Accelerated)
-
-        val after = fixture.session.state.value
-        assertEquals(DetectorBackendPreference.Cpu, video.backendPreference)
-        assertEquals(TrackingMode.DetectOnly, after.tracking)
-        assertEquals(before.authority, after.authority)
-        assertEquals(before.target, after.target)
-    }
-
-    @Test fun `detector confidence threshold update applies when detection is off`() = runTest {
-        val video = FakeVideoController()
-        val fixture = fixture(video)
-        val before = fixture.session.state.value
-
-        fixture.session.setDetectorConfidenceThreshold(0.75f)
-
-        val after = fixture.session.state.value
-        assertEquals(0.75f, video.confidenceThreshold)
-        assertEquals(0.75f, after.video.detectorConfidenceThreshold)
-        assertEquals(before.authority, after.authority)
-        assertEquals(before.target, after.target)
-    }
-
-    @Test fun `detector confidence threshold update is rejected while detection is active`() = runTest {
-        val video = FakeVideoController()
-        val fixture = fixture(video)
-        fixture.transport.emitTelemetry(fixture.clock.value)
-        assertTrue(fixture.session.connect())
-        runCurrent()
-        fixture.session.setTrackingMode(com.alonibh.tellodrone.domain.TrackingMode.DetectOnly)
-        runCurrent()
-        assertEquals(TrackingMode.DetectOnly, fixture.session.state.value.tracking)
-        val before = fixture.session.state.value
-
-        fixture.session.setDetectorConfidenceThreshold(0.75f)
-
-        val after = fixture.session.state.value
-        assertEquals(0.55f, video.confidenceThreshold)
-        assertEquals(0.55f, after.video.detectorConfidenceThreshold)
-        assertEquals(TrackingMode.DetectOnly, after.tracking)
-        assertEquals(before.authority, after.authority)
-        assertEquals(before.target, after.target)
     }
 
     @Test fun `flight acknowledgements require post acknowledgement height verification`() = runTest {
@@ -928,9 +812,6 @@ class TelloFlightSessionTest {
         override val state: StateFlow<VideoState> = mutableState
         var prepared = false
         var closed = false
-        var backendPreference = DetectorBackendPreference.Cpu
-        var confidenceThreshold = 0.55f
-        var model = DetectorModel.Default
 
         override suspend fun prepare(): Result<Unit> {
             prepared = true
@@ -943,24 +824,6 @@ class TelloFlightSessionTest {
 
         override fun streamFailed(reason: String) {
             mutableState.value = VideoState(VideoAvailability.Error, errorReason = reason)
-        }
-
-        override fun setPersonDetectorModel(model: DetectorModel): Result<Unit> {
-            this.model = model
-            mutableState.value = mutableState.value.copy(detectorModel = model)
-            return Result.success(Unit)
-        }
-
-        override fun setPersonDetectorBackendPreference(preference: DetectorBackendPreference): Result<Unit> {
-            backendPreference = preference
-            mutableState.value = mutableState.value.copy(detectorBackendPreference = preference)
-            return Result.success(Unit)
-        }
-
-        override fun setPersonDetectorConfidenceThreshold(threshold: Float): Result<Unit> {
-            confidenceThreshold = threshold
-            mutableState.value = mutableState.value.copy(detectorConfidenceThreshold = threshold)
-            return Result.success(Unit)
         }
 
         override fun setPersonDetectionEnabled(enabled: Boolean): Result<Unit> {

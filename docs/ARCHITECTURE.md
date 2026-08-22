@@ -191,23 +191,18 @@ unavailable rather than being fabricated. These are feed diagnostics, not detect
 The foreground-service-owned `AndroidTelloVideoController` owns `PersonDetectionPipeline` and the
 `PersonDetector` lifecycle. `TfliteTaskPersonDetector` is the only class that imports TensorFlow
 Lite Task Vision types. It uses the official Task ObjectDetector artifacts `0.4.4`, synchronous
-image inference, a `person` label allowlist, `0.50` confidence threshold, and at most five results.
-The old MediaPipe Tasks dependency and EfficientDet asset are no longer packaged.
+image inference, a `person` label allowlist, and at most five results. The Task layer admits scores
+from 0.50 so the app-owned production pipeline can apply its fixed 0.55 threshold.
 
-The bundled model is TensorFlow's official SSD MobileNet V1 TFLite `metadata` variant, release v2,
-trained on COCO and published under Apache License 2.0. It was downloaded from
-`https://www.kaggle.com/api/v1/models/tensorflow/ssd-mobilenet-v1/tfLite/metadata/2/download`.
-The checked-in asset is `ssd_mobilenet_v1_metadata_v2.tflite`, 4,185,175 bytes, SHA-256
-`CBDECD08B44C5DEA3821F77C5468E2936ECFBF43CDE0795A2729FDB43401E58B`. Release v2 embeds the
-Task-compatible model metadata and COCO label file; the app exposes only `person`.
+The production model is EfficientDet-Lite0. The prior SSD MobileNet V1 comparison model remains an
+internal detector abstraction, but there is no runtime model selection path in the normal UI or
+service boundary. The app exposes only the `person` category.
 
-`FallbackPersonDetectorFactory` implements two explicit backend selections. GPU PREFERRED creates
-the official GPU delegate on the analysis thread; a GPU initialization or inference failure closes
-that detector and retries once with the CPU backend. CPU COMPARE bypasses GPU and uses the supported
-four-thread Task CPU configuration. The active backend, fallback state, model, detector FPS, and
-latest inference milliseconds are shown in Tracking diagnostics. GPU creation is not treated as
-proof of better performance: grounded validation must compare both selections on the target device.
-Backend selection is allowed only while detection is OFF and does not modify target or authority.
+`FallbackPersonDetectorFactory` retains explicit backend construction for isolated tests and prior
+comparison behavior. Production startup always requests CPU directly and uses the supported
+four-thread Task CPU configuration; it cannot attempt GPU fallback. The active backend, model,
+detector FPS, and latest inference milliseconds remain diagnostics, not configuration controls.
+There is no model, backend, threshold, or benchmark action in the UI-facing controller boundary.
 
 Detector construction, every blocking `detect()` call, fallback, and release occur on the existing
 `tello-analysis-consumer` thread. OFF publishes empty state immediately, then schedules release on
@@ -283,8 +278,8 @@ explicit config, returning `DryRunControlIntent` rather than a manual vector or 
 non-zero diagnostic intent only for fresh `Matched` or initial `Selected` targets. Missing, stale,
 ambiguous, lost, invalid-timing, and invalid-error input always emits non-actionable zero intent.
 Lost and a new selection reset PID state. The named legacy diagnostic values are test-only and not
-flight tuning. Real autonomous RC is NOT implemented; the Teclast detector benchmark remains the
-hard gate before any future RC integration.
+flight tuning. Real autonomous RC is NOT implemented; later physical safety gates remain required
+before any future RC integration.
 
 Phase 4C adds a pure `SHADOW AUTONOMY SAFETY GATE` after dry-run planning:
 `Detection -> selection -> association -> normalized errors -> dry-run PID/planner -> SHADOW AUTONOMY SAFETY GATE -> [TECLAST + PHYSICAL HARD GATE] -> future RC integration`.
@@ -336,27 +331,19 @@ source-monotonic interval between detector results; first or invalid timing fail
 remains diagnostic only and is never converted to a manual vector, RC loop input, command, takeoff,
 or land operation.
 
-## Phase 4D detector benchmark instrumentation
+## Phase 4D finalized detector configuration
 
-Tracking exposes a real-device, grounded-only 30-second benchmark when the real connection has a
-streaming preview, an analysis frame, and person detection is OFF. Starting it enables the existing
-`PersonDetectionPipeline` with the selected backend; it neither creates a frame queue nor changes
-PixelCopy, decoding, model configuration, detection thresholds, or backend implementation. The
-first three completed inferences are deterministic warm-up and are excluded from inference
-percentiles. The 30-second steady-state window begins when that third warm-up inference completes;
-detector FPS and the preview/analysis observations use that same window. Reports distinguish total
-completed inferences from steady-state samples. Detector creation time is measured separately with
-a monotonic clock. A monotonic 15-second startup timeout stops/releases detection and reports
-`DETECTOR STARTUP TIMEOUT` if no inference completes.
+Grounded Teclast comparison testing selected EfficientDet-Lite0 on four-thread CPU at a fixed 0.55
+person threshold. It sustained approximately 6.7 detector FPS with approximately 67 ms p50
+inference, clearly outperforming GPU on the target tablet. EfficientDet also avoided the small false
+`PERSON` boxes observed with MobileNet. Raising the threshold is intentionally rejected because
+valid nearby people were observed around 52–61% confidence.
 
-The service-owned video controller observes the existing render, analysis, and detector callbacks
-to report completed inferences, min/p50/p95/max steady-state inference, detector/preview FPS, and
-analysis FPS only when it is actually observed. Android build metadata is limited to manufacturer,
-model, Android/API level, supported ABIs, and available processor count. No device identifiers or
-network/personal identifiers are collected. Completion, cancellation, detector failure, Surface
-loss, and video loss stop/release the detector through the normal existing lifecycle. Benchmark
-state has no imports or calls to RC control, manual vectors, control authority, flight commands,
-or takeoff; it is observational instrumentation only.
+`AndroidTelloVideoController.setPersonDetectionEnabled(true)` calls the production detector entry
+point, which explicitly supplies all three fixed values to `PersonDetectionPipeline`. The former
+comparison controls, threshold controls, benchmark/report UI, service commands, and benchmark state
+were removed after the decision. This does not change PixelCopy, decoding, mapping, association,
+yaw-follow, video, or flight-safety behavior.
 
 Phase 4A ends at frame-local person boxes over the real preview. It adds no target selection, target
 lock, identity or face recognition, cross-frame tracking, PID, autonomous control, Follow mode,

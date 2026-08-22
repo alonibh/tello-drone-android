@@ -334,3 +334,9 @@ class PersonDetectionPipeline(
         }
     }
 }
+
+internal fun PersonDetectionPipeline.startProductionDetection() = start(
+    model = ProductionPersonDetectorConfiguration.model,
+    preference = ProductionPersonDetectorConfiguration.backendPreference,
+    confidenceThreshold = ProductionPersonDetectorConfiguration.confidenceThreshold,
+)

@@ -1,8 +1,6 @@
 package com.alonibh.tellodrone.ui
 
 import android.view.Surface
-import com.alonibh.tellodrone.domain.DetectorBackendPreference
-import com.alonibh.tellodrone.domain.DetectorModel
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.TrackingMode
@@ -16,11 +14,6 @@ interface DroneDashboardActions {
     fun stopAndHover()
     fun emergencyMotorKill()
     fun setTrackingMode(mode: TrackingMode)
-    fun setDetectorModel(model: DetectorModel)
-    fun setDetectorBackendPreference(preference: DetectorBackendPreference)
-    fun setDetectorConfidenceThreshold(threshold: Float)
-    fun runDetectorBenchmark()
-    fun cancelDetectorBenchmark()
     fun selectTarget(detection: PersonDetection)
     fun setYawFollowArmed(armed: Boolean)
     fun setManualVector(vector: ManualControlVector)
@@ -37,11 +30,6 @@ object NoOpDroneDashboardActions : DroneDashboardActions {
     override fun stopAndHover() = Unit
     override fun emergencyMotorKill() = Unit
     override fun setTrackingMode(mode: TrackingMode) = Unit
-    override fun setDetectorModel(model: DetectorModel) = Unit
-    override fun setDetectorBackendPreference(preference: DetectorBackendPreference) = Unit
-    override fun setDetectorConfidenceThreshold(threshold: Float) = Unit
-    override fun runDetectorBenchmark() = Unit
-    override fun cancelDetectorBenchmark() = Unit
     override fun selectTarget(detection: PersonDetection) = Unit
     override fun setYawFollowArmed(armed: Boolean) = Unit
     override fun setManualVector(vector: ManualControlVector) = Unit

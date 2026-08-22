@@ -4,29 +4,21 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
-import com.alonibh.tellodrone.domain.DetectorBackend
-import com.alonibh.tellodrone.domain.DetectorBackendPreference
-import com.alonibh.tellodrone.domain.DetectorBenchmarkState
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.ui.DroneDashboard
 import com.alonibh.tellodrone.ui.NoOpDroneDashboardActions
-import com.alonibh.tellodrone.vision.DetectorBenchmarkResult
 import org.junit.Rule
 import org.junit.Test
-import org.junit.Assert.assertEquals
 
 class DroneDashboardTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
@@ -62,36 +54,12 @@ class DroneDashboardTest {
         compose.onNodeWithTag("layout_compact_height").assertExists()
     }
 
-    @Test fun expanded_tracking_pane_scrolls_to_completed_benchmark_report() {
+    @Test fun tracking_exposes_no_detector_configuration_or_benchmark_ui() {
         val dashboardState = DroneSessionState(
             connection = DroneConnectionState.Connected,
             video = VideoState(
                 availability = VideoAvailability.Streaming,
                 analysisLatestSequence = 1L,
-                detectorBenchmarkState = DetectorBenchmarkState.Complete,
-                detectorBenchmarkResult = DetectorBenchmarkResult(
-                    manufacturer = "Teclast",
-                    model = "Tablet",
-                    androidVersion = "Android",
-                    sdkLevel = 35,
-                    supportedAbis = listOf("arm64-v8a"),
-                    availableProcessors = 8,
-                    requestedBackend = DetectorBackendPreference.Cpu,
-                    actualBackend = DetectorBackend.Cpu,
-                    fellBackFromGpu = false,
-                    detectorModel = "MobileNet",
-                    startupMillis = 12L,
-                    durationMillis = 30_000L,
-                    completedInferences = 100,
-                    steadyStateInferences = 97,
-                    inferenceMinMillis = 8L,
-                    inferenceP50Millis = 10L,
-                    inferenceP95Millis = 14L,
-                    inferenceMaxMillis = 20L,
-                    detectorFps = 50f,
-                    previewFps = 30f,
-                    analysisFrameFps = 30f,
-                ),
             ),
         )
         compose.setContent {
@@ -103,11 +71,18 @@ class DroneDashboardTest {
         }
 
         compose.onNodeWithText("Tracking").performClick()
-        compose.onNodeWithText("ADVANCED DETECTOR").performClick()
-        compose.onNodeWithTag("expanded_tracking_scroll").performTouchInput {
-            swipeUp()
-            swipeUp()
-        }
-        compose.onNodeWithText("COPY REPORT").assertIsDisplayed()
+        compose.onNodeWithText("START PERSON DETECTION").assertExists()
+        listOf(
+            "ADVANCED DETECTOR",
+            "MOBILENET V1",
+            "EFFICIENTDET LITE0",
+            "GPU PREFERRED",
+            "CPU COMPARE",
+            "- 5% THRESHOLD",
+            "+ 5% THRESHOLD",
+            "RUN 30s BENCHMARK",
+            "CANCEL BENCHMARK",
+            "COPY REPORT",
+        ).forEach { label -> compose.onNodeWithText(label).assertDoesNotExist() }
     }
 }

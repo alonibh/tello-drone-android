@@ -95,12 +95,17 @@ data class RawObjectDetection(
 const val DEFAULT_PERSON_CONFIDENCE_THRESHOLD = 0.55f
 const val MIN_PERSON_CONFIDENCE_THRESHOLD = 0.50f
 const val MAX_PERSON_CONFIDENCE_THRESHOLD = 0.90f
-const val PERSON_CONFIDENCE_THRESHOLD_STEP = 0.05f
 
 fun normalizeConfidenceThreshold(value: Float): Float {
     if (!value.isFinite()) return DEFAULT_PERSON_CONFIDENCE_THRESHOLD
     val stepped = Math.round(value * 20f) / 20f
     return stepped.coerceIn(MIN_PERSON_CONFIDENCE_THRESHOLD, MAX_PERSON_CONFIDENCE_THRESHOLD)
+}
+
+internal object ProductionPersonDetectorConfiguration {
+    val model = DetectorModel.EfficientDetLite0
+    val backendPreference = DetectorBackendPreference.Cpu
+    const val confidenceThreshold = DEFAULT_PERSON_CONFIDENCE_THRESHOLD
 }
 
 object PersonDetectionMapper {
