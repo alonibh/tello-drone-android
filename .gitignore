@@ -6,3 +6,7 @@ local.properties
 .idea/
 *.iml
 captures/
+tools/vision_lab/.cache/
+tools/vision_lab/.venv/
+tools/vision_lab/work/
+tools/vision_lab/__pycache__/

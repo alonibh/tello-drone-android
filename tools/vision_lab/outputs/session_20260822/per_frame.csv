@@ -1,0 +1,341 @@
+approach,capture_index,frame_sequence,timestamp_ns,state,source,confidence,box_norm,tracker_quality,note
+baseline,1,433,12525188084513,Tracked,recorded EfficientDet-Lite2,0.812500,"[0.228125,0.2,0.55625,0.9625]",,Matched
+baseline,2,434,12525419365930,Tracked,recorded EfficientDet-Lite2,0.824219,"[0.21875,0.2,0.546875,0.9625]",,Matched
+baseline,3,435,12525554171263,Tracked,recorded EfficientDet-Lite2,0.824219,"[0.21875,0.1875,0.546875,0.95]",,Matched
+baseline,4,436,12525687352013,Tracked,recorded EfficientDet-Lite2,0.812500,"[0.21875,0.19583334,0.546875,0.975]",,Matched
+baseline,5,437,12525822375596,Tracked,recorded EfficientDet-Lite2,0.812500,"[0.21875,0.2,0.546875,0.9625]",,Matched
+baseline,6,438,12525956596972,Tracked,recorded EfficientDet-Lite2,0.812500,"[0.21875,0.19583334,0.546875,0.975]",,Matched
+baseline,7,440,12526228069638,Tracked,recorded EfficientDet-Lite2,0.726562,"[0.253125,0.15,0.540625,0.9583333]",,Matched
+baseline,8,441,12526355752222,Tracked,recorded EfficientDet-Lite2,0.640625,"[0.2625,0.12083333,0.55,0.9583333]",,Matched
+baseline,9,442,12526523208722,Missing,none,,,,TemporarilyMissing
+baseline,10,443,12526661348389,Missing,none,,,,TemporarilyMissing
+baseline,11,444,12526789218055,Missing,none,,,,TemporarilyMissing
+baseline,12,445,12526925578722,Missing,none,,,,TemporarilyMissing
+baseline,13,447,12527189398764,Missing,none,,,,TemporarilyMissing
+baseline,14,448,12527320513055,Missing,none,,,,TemporarilyMissing
+baseline,15,449,12527522316806,Lost,none,,,,Lost
+baseline,16,450,12527658504931,Lost,none,,,,Lost
+baseline,17,451,12527798973431,Lost,none,,,,Lost
+baseline,18,453,12528089910639,Lost,none,,,,Lost
+baseline,19,454,12528228203848,Lost,none,,,,Lost
+baseline,20,455,12528357245806,Lost,none,,,,Lost
+baseline,21,456,12528521323931,Lost,none,,,,Lost
+baseline,22,457,12528655547556,Lost,none,,,,Lost
+baseline,23,458,12528789712223,Lost,none,,,,Lost
+baseline,24,459,12528921197515,Lost,none,,,,Lost
+baseline,25,460,12529055570306,Lost,none,,,,Lost
+baseline,26,461,12529189563223,Lost,none,,,,Lost
+baseline,27,462,12529321656056,Lost,none,,,,Lost
+baseline,28,463,12529497385807,Lost,none,,,,Lost
+baseline,29,464,12529652866515,Lost,none,,,,Lost
+baseline,30,465,12529788431265,Lost,none,,,,Lost
+baseline,31,467,12530053902307,Lost,none,,,,Lost
+baseline,32,468,12530186161265,Lost,none,,,,Lost
+baseline,33,469,12530322509515,Lost,none,,,,Lost
+baseline,34,470,12530452977140,Lost,none,,,,Lost
+baseline,35,471,12530588443057,Lost,none,,,,Lost
+baseline,36,472,12530722004807,Lost,none,,,,Lost
+baseline,37,473,12530858062807,Lost,none,,,,Lost
+baseline,38,474,12530987213474,Lost,none,,,,Lost
+baseline,39,476,12531286294474,Lost,none,,,,Lost
+baseline,40,477,12531464862474,Lost,none,,,,Lost
+baseline,41,478,12531610996766,Lost,none,,,,Lost
+baseline,42,479,12531754464558,Lost,none,,,,Lost
+baseline,43,480,12531888719724,Lost,none,,,,Lost
+baseline,44,481,12532052668058,Lost,none,,,,Lost
+baseline,45,482,12532189847433,Lost,none,,,,Lost
+baseline,46,483,12532402721475,Lost,none,,,,Lost
+baseline,47,484,12532554977225,Lost,none,,,,Lost
+baseline,48,485,12532688432308,Lost,none,,,,Lost
+baseline,49,486,12532863942891,Lost,none,,,,Lost
+baseline,50,487,12532989625517,Lost,none,,,,Lost
+baseline,51,488,12533124220975,Lost,none,,,,Lost
+baseline,52,490,12533424401308,Lost,none,,,,Lost
+baseline,53,491,12533561324017,Lost,none,,,,Lost
+baseline,54,493,12533825746934,Lost,none,,,,Lost
+baseline,55,494,12533956733184,Lost,none,,,,Lost
+baseline,56,495,12534089324309,Lost,none,,,,Lost
+baseline,57,496,12534230096434,Lost,none,,,,Lost
+baseline,58,497,12534421573101,Lost,none,,,,Lost
+baseline,59,499,12534691036059,Lost,none,,,,Lost
+baseline,60,501,12534954324059,Lost,none,,,,Lost
+baseline,61,502,12535098349476,Lost,none,,,,Lost
+baseline,62,503,12535258796559,Lost,none,,,,Lost
+baseline,63,504,12535479391059,Lost,none,,,,Lost
+baseline,64,505,12535625805893,Lost,none,,,,Lost
+baseline,65,507,12535890157143,Lost,none,,,,Lost
+baseline,66,508,12536023323601,Lost,none,,,,Lost
+baseline,67,509,12536164319976,Lost,none,,,,Lost
+baseline,68,510,12536328563476,Lost,none,,,,Lost
+baseline,69,511,12536512245310,Lost,none,,,,Lost
+baseline,70,513,12536786634560,Lost,none,,,,Lost
+baseline,71,514,12536921950768,Lost,none,,,,Lost
+baseline,72,515,12537054685727,Lost,none,,,,Lost
+baseline,73,516,12537187383185,Lost,none,,,,Lost
+baseline,74,517,12537323447352,Lost,none,,,,Lost
+baseline,75,518,12537457164394,Lost,none,,,,Lost
+baseline,76,520,12537723490019,Lost,none,,,,Lost
+baseline,77,522,12537988709436,Lost,none,,,,Lost
+baseline,78,523,12538126621686,Lost,none,,,,Lost
+baseline,79,524,12538424167602,Lost,none,,,,Lost
+baseline,80,525,12538556571894,Lost,none,,,,Lost
+baseline,81,526,12538686842853,Lost,none,,,,Lost
+baseline,82,527,12538823257686,Lost,none,,,,Lost
+baseline,83,528,12538954317978,Lost,none,,,,Lost
+baseline,84,529,12539091394769,Lost,none,,,,Lost
+baseline,85,530,12539231408895,Lost,none,,,,Lost
+yolo11n_detector,1,433,12525188084513,Tracked,detector,0.892628,"[0.2329498291015625,0.20428543090820311,0.5461554527282715,0.9885786692301433]",,identity-safe detector correction
+yolo11n_detector,2,434,12525419365930,Tracked,detector,0.879998,"[0.23250751495361327,0.2048911412556966,0.5433562278747559,0.9894997278849283]",,identity-safe detector correction
+yolo11n_detector,3,435,12525554171263,Tracked,detector,0.882951,"[0.23229212760925294,0.20196803410847983,0.5340567588806152,0.9895926157633463]",,identity-safe detector correction
+yolo11n_detector,4,436,12525687352013,Tracked,detector,0.882588,"[0.23196778297424317,0.2013737360636393,0.5363770008087159,0.9896509170532226]",,identity-safe detector correction
+yolo11n_detector,5,437,12525822375596,Tracked,detector,0.885418,"[0.2333906650543213,0.2026641845703125,0.5411064624786377,0.988925552368164]",,identity-safe detector correction
+yolo11n_detector,6,438,12525956596972,Tracked,detector,0.883157,"[0.23252229690551757,0.2006631851196289,0.5423039436340332,0.9851037979125976]",,identity-safe detector correction
+yolo11n_detector,7,440,12526228069638,Tracked,detector,0.908442,"[0.2529332637786865,0.15160287221272786,0.5298576354980469,0.9895421981811523]",,identity-safe detector correction
+yolo11n_detector,8,441,12526355752222,Tracked,detector,0.901970,"[0.26535816192626954,0.13437817891438802,0.5292719841003418,0.9927716573079427]",,identity-safe detector correction
+yolo11n_detector,9,442,12526523208722,Tracked,detector,0.906229,"[0.2778592348098755,0.1154393196105957,0.5328286170959473,0.9892923990885417]",,identity-safe detector correction
+yolo11n_detector,10,443,12526661348389,Tracked,detector,0.903278,"[0.30741868019104,0.08445555369059245,0.5374550342559814,0.9866740544637044]",,identity-safe detector correction
+yolo11n_detector,11,444,12526789218055,Tracked,detector,0.895586,"[0.3243190050125122,0.07711289723714193,0.5411063194274902,0.9884687423706054]",,identity-safe detector correction
+yolo11n_detector,12,445,12526925578722,Tracked,detector,0.886539,"[0.3340289115905762,0.07087459564208984,0.5446060180664063,0.9916879653930664]",,identity-safe detector correction
+yolo11n_detector,13,447,12527189398764,Tracked,detector,0.885798,"[0.35172486305236816,0.06458816528320313,0.5514415264129638,0.9909066518147787]",,identity-safe detector correction
+yolo11n_detector,14,448,12527320513055,Tracked,detector,0.879212,"[0.35415961742401125,0.06547339757283528,0.552817440032959,0.9921414693196614]",,identity-safe detector correction
+yolo11n_detector,15,449,12527522316806,Tracked,detector,0.880804,"[0.35344810485839845,0.06303173700968424,0.5523612022399902,0.9896774291992188]",,identity-safe detector correction
+yolo11n_detector,16,450,12527658504931,Tracked,detector,0.877684,"[0.35628106594085696,0.06414066950480143,0.5550596237182617,0.99219970703125]",,identity-safe detector correction
+yolo11n_detector,17,451,12527798973431,Tracked,detector,0.879552,"[0.35743026733398436,0.06385746002197265,0.5565811157226562,0.9887009302775065]",,identity-safe detector correction
+yolo11n_detector,18,453,12528089910639,Tracked,detector,0.865625,"[0.36654372215270997,0.06176191965738932,0.565193510055542,0.9927586237589519]",,identity-safe detector correction
+yolo11n_detector,19,454,12528228203848,Tracked,detector,0.850549,"[0.36932079792022704,0.05957390467325847,0.5750945091247559,0.9931877136230469]",,identity-safe detector correction
+yolo11n_detector,20,455,12528357245806,Tracked,detector,0.862260,"[0.3749564170837402,0.06097497940063477,0.5828873634338378,0.9963884989420573]",,identity-safe detector correction
+yolo11n_detector,21,456,12528521323931,Tracked,detector,0.865362,"[0.3759284019470215,0.06180775960286458,0.5841021537780762,0.998599624633789]",,identity-safe detector correction
+yolo11n_detector,22,457,12528655547556,Tracked,detector,0.881693,"[0.39040000438690187,0.06111307144165039,0.6038615226745605,0.9951686859130859]",,identity-safe detector correction
+yolo11n_detector,23,458,12528789712223,Tracked,detector,0.873199,"[0.3938919544219971,0.05911245346069336,0.610247278213501,0.9955530802408854]",,identity-safe detector correction
+yolo11n_detector,24,459,12528921197515,Tracked,detector,0.874565,"[0.39771459102630613,0.05683326721191406,0.6124139785766601,0.9935846964518229]",,identity-safe detector correction
+yolo11n_detector,25,460,12529055570306,Tracked,detector,0.869536,"[0.39763200283050537,0.054544893900553386,0.6091569900512696,0.9937854131062825]",,identity-safe detector correction
+yolo11n_detector,26,461,12529189563223,Tracked,detector,0.869263,"[0.39849808216094973,0.054923057556152344,0.6071366310119629,0.9892558415730794]",,identity-safe detector correction
+yolo11n_detector,27,462,12529321656056,Tracked,detector,0.867251,"[0.39789137840270994,0.0569734255472819,0.6017750263214111,0.9887503306070964]",,identity-safe detector correction
+yolo11n_detector,28,463,12529497385807,Tracked,detector,0.872588,"[0.3960155963897705,0.05689573287963867,0.6007983684539795,0.9940382639567057]",,identity-safe detector correction
+yolo11n_detector,29,464,12529652866515,Tracked,detector,0.873355,"[0.3881310701370239,0.05694561004638672,0.5917920112609864,0.9912847518920899]",,identity-safe detector correction
+yolo11n_detector,30,465,12529788431265,Tracked,detector,0.877727,"[0.38460190296173097,0.05568854014078776,0.5888352394104004,0.9913607915242513]",,identity-safe detector correction
+yolo11n_detector,31,467,12530053902307,Tracked,detector,0.868032,"[0.39143364429473876,0.05615994135538737,0.5876254081726074,0.9876041412353516]",,identity-safe detector correction
+yolo11n_detector,32,468,12530186161265,Tracked,detector,0.871742,"[0.3861777067184448,0.05543327331542969,0.5880543708801269,0.9806751251220703]",,identity-safe detector correction
+yolo11n_detector,33,469,12530322509515,Tracked,detector,0.876862,"[0.38447673320770265,0.05779530207316081,0.5881884574890137,0.9932509104410807]",,identity-safe detector correction
+yolo11n_detector,34,470,12530452977140,Tracked,detector,0.875366,"[0.38843722343444825,0.0556918462117513,0.5893051624298096,0.984294064839681]",,identity-safe detector correction
+yolo11n_detector,35,471,12530588443057,Tracked,detector,0.870635,"[0.39627087116241455,0.05606244405110677,0.5907073020935059,0.9927326202392578]",,identity-safe detector correction
+yolo11n_detector,36,472,12530722004807,Tracked,detector,0.868754,"[0.3956611156463623,0.057132562001546226,0.5907872676849365,0.9879233042399088]",,identity-safe detector correction
+yolo11n_detector,37,473,12530858062807,Tracked,detector,0.879725,"[0.3876465320587158,0.056209468841552736,0.5912739276885987,0.9891989390055339]",,identity-safe detector correction
+yolo11n_detector,38,474,12530987213474,Tracked,detector,0.883151,"[0.38555796146392823,0.05596021016438802,0.5907196044921875,0.9914924621582031]",,identity-safe detector correction
+yolo11n_detector,39,476,12531286294474,Tracked,detector,0.874149,"[0.3950899600982666,0.05674114227294922,0.5894325733184814,0.9923514684041341]",,identity-safe detector correction
+yolo11n_detector,40,477,12531464862474,Tracked,detector,0.861209,"[0.3967155933380127,0.05558312733968099,0.5893929958343506,0.9910486221313477]",,identity-safe detector correction
+yolo11n_detector,41,478,12531610996766,Tracked,detector,0.862368,"[0.39531726837158204,0.05732119878133138,0.5884309768676758,0.9956736246744792]",,identity-safe detector correction
+yolo11n_detector,42,479,12531754464558,Tracked,detector,0.869292,"[0.38935103416442873,0.05745236078898112,0.585441255569458,0.9977625528971354]",,identity-safe detector correction
+yolo11n_detector,43,480,12531888719724,Tracked,detector,0.855785,"[0.38479247093200686,0.05943304697672526,0.5805107593536377,1.0]",,identity-safe detector correction
+yolo11n_detector,44,481,12532052668058,Tracked,detector,0.859823,"[0.3736286640167236,0.06161775588989258,0.5711818218231202,0.9968249003092448]",,identity-safe detector correction
+yolo11n_detector,45,482,12532189847433,Tracked,detector,0.881123,"[0.35443112850189207,0.06518001556396484,0.5529964447021485,0.9914215723673503]",,identity-safe detector correction
+yolo11n_detector,46,483,12532402721475,Tracked,detector,0.860424,"[0.339862060546875,0.06707639694213867,0.5365059852600098,0.9801853179931641]",,identity-safe detector correction
+yolo11n_detector,47,484,12532554977225,Tracked,detector,0.877506,"[0.30996007919311525,0.07697547276814778,0.5191967964172364,0.9894607543945313]",,identity-safe detector correction
+yolo11n_detector,48,485,12532688432308,Tracked,detector,0.875372,"[0.30181546211242677,0.07703034083048503,0.5147462368011475,0.9852526346842448]",,identity-safe detector correction
+yolo11n_detector,49,486,12532863942891,Tracked,detector,0.883853,"[0.2998325347900391,0.07795874277750652,0.5147237777709961,0.9850914637247722]",,identity-safe detector correction
+yolo11n_detector,50,487,12532989625517,Tracked,detector,0.890684,"[0.30042479038238523,0.0762664794921875,0.5181766510009765,0.9864444732666016]",,identity-safe detector correction
+yolo11n_detector,51,488,12533124220975,Tracked,detector,0.877797,"[0.30751810073852537,0.07553987503051758,0.5339752197265625,0.9874465942382813]",,identity-safe detector correction
+yolo11n_detector,52,490,12533424401308,Tracked,detector,0.850779,"[0.35871248245239257,0.06971298853556315,0.5714451789855957,0.9856643676757812]",,identity-safe detector correction
+yolo11n_detector,53,491,12533561324017,Tracked,detector,0.860153,"[0.375977611541748,0.07034079233805339,0.5835777282714844,0.9894008000691732]",,identity-safe detector correction
+yolo11n_detector,54,493,12533825746934,Tracked,detector,0.871829,"[0.4217997550964355,0.05987339019775391,0.6466279029846191,0.9364171346028646]",,identity-safe detector correction
+yolo11n_detector,55,494,12533956733184,Tracked,detector,0.862592,"[0.4362794876098633,0.05741119384765625,0.6725666046142578,0.9382705688476562]",,identity-safe detector correction
+yolo11n_detector,56,495,12534089324309,Tracked,detector,0.881152,"[0.42727174758911135,0.055808003743489584,0.6754951477050781,0.9918243408203125]",,identity-safe detector correction
+yolo11n_detector,57,496,12534230096434,Tracked,detector,0.896060,"[0.43338470458984374,0.05363413492838542,0.6670875549316406,0.9927747090657552]",,identity-safe detector correction
+yolo11n_detector,58,497,12534421573101,Tracked,detector,0.897420,"[0.4349249839782715,0.05399055480957031,0.6664732933044434,0.9930854797363281]",,identity-safe detector correction
+yolo11n_detector,59,499,12534691036059,Tracked,detector,0.895146,"[0.42979040145874026,0.055601247151692706,0.6664013862609863,0.9917278289794922]",,identity-safe detector correction
+yolo11n_detector,60,501,12534954324059,Tracked,detector,0.882905,"[0.43133392333984377,0.053904088338216145,0.6570761680603028,0.9588564554850261]",,identity-safe detector correction
+yolo11n_detector,61,502,12535098349476,Tracked,detector,0.851799,"[0.42510223388671875,0.05573755900065104,0.6432737350463867,0.9302876790364584]",,identity-safe detector correction
+yolo11n_detector,62,503,12535258796559,Tracked,detector,0.859084,"[0.3978869915008545,0.06299918492635091,0.6198795795440674,0.9673954010009765]",,identity-safe detector correction
+yolo11n_detector,63,504,12535479391059,Tracked,detector,0.857786,"[0.3758340358734131,0.0731466293334961,0.5913811206817627,0.9848037083943685]",,identity-safe detector correction
+yolo11n_detector,64,505,12535625805893,Tracked,detector,0.882698,"[0.30117461681365965,0.10017274220784506,0.5802161216735839,0.9880539576212565]",,identity-safe detector correction
+yolo11n_detector,65,507,12535890157143,Tracked,detector,0.898276,"[0.24628615379333496,0.1678166389465332,0.5283731460571289,0.9588343302408854]",,identity-safe detector correction
+yolo11n_detector,66,508,12536023323601,Tracked,detector,0.899724,"[0.23257150650024414,0.1991747538248698,0.5318140983581543,0.9625975290934244]",,identity-safe detector correction
+yolo11n_detector,67,509,12536164319976,Tracked,detector,0.867672,"[0.22108559608459472,0.23357226053873698,0.5355870723724365,0.958969243367513]",,identity-safe detector correction
+yolo11n_detector,68,510,12536328563476,Tracked,detector,0.852459,"[0.21859588623046874,0.2583751360575358,0.5377920150756836,0.9663305918375651]",,identity-safe detector correction
+yolo11n_detector,69,511,12536512245310,Tracked,detector,0.882930,"[0.21648268699645995,0.26617069244384767,0.5398776531219482,0.9722425460815429]",,identity-safe detector correction
+yolo11n_detector,70,513,12536786634560,Tracked,detector,0.877800,"[0.21464128494262696,0.2893747011820475,0.5417342185974121,0.958908208211263]",,identity-safe detector correction
+yolo11n_detector,71,514,12536921950768,Tracked,detector,0.874272,"[0.21468501091003417,0.298574701944987,0.5433316230773926,0.9581315358479817]",,identity-safe detector correction
+yolo11n_detector,72,515,12537054685727,Tracked,detector,0.860232,"[0.21511945724487305,0.3031689008076986,0.5442986965179444,0.9643245697021484]",,identity-safe detector correction
+yolo11n_detector,73,516,12537187383185,Tracked,detector,0.859763,"[0.21592583656311035,0.3113422393798828,0.5430969715118408,0.9672086079915364]",,identity-safe detector correction
+yolo11n_detector,74,517,12537323447352,Tracked,detector,0.863264,"[0.2149075984954834,0.3170172373453776,0.5452197074890137,0.9658318837483724]",,identity-safe detector correction
+yolo11n_detector,75,518,12537457164394,Tracked,detector,0.864836,"[0.21553220748901367,0.3188732147216797,0.5460865020751953,0.9691605885823568]",,identity-safe detector correction
+yolo11n_detector,76,520,12537723490019,Tracked,detector,0.854169,"[0.21720609664916993,0.31947409311930336,0.5465652465820312,0.9509529749552409]",,identity-safe detector correction
+yolo11n_detector,77,522,12537988709436,Tracked,detector,0.881655,"[0.2175224781036377,0.31803595225016273,0.5491928577423095,0.9753741582234701]",,identity-safe detector correction
+yolo11n_detector,78,523,12538126621686,Tracked,detector,0.885887,"[0.21857662200927735,0.31883544921875,0.5480708122253418,0.9701780954996745]",,identity-safe detector correction
+yolo11n_detector,79,524,12538424167602,Tracked,detector,0.872170,"[0.21617064476013184,0.32817112604777016,0.5505352973937988,0.9389631907145183]",,identity-safe detector correction
+yolo11n_detector,80,525,12538556571894,Tracked,detector,0.832635,"[0.20185565948486328,0.34304765065511067,0.5494960308074951,0.9541615168253581]",,identity-safe detector correction
+yolo11n_detector,81,526,12538686842853,Tracked,detector,0.803627,"[0.2123258113861084,0.3497809092203776,0.5447187900543213,0.9539642333984375]",,identity-safe detector correction
+yolo11n_detector,82,527,12538823257686,Tracked,detector,0.820315,"[0.21434659957885743,0.3579125722249349,0.5422011375427246,0.9592600504557292]",,identity-safe detector correction
+yolo11n_detector,83,528,12538954317978,Tracked,detector,0.746399,"[0.2110210418701172,0.3610140164693197,0.5404416084289551,0.9585589090983073]",,identity-safe detector correction
+yolo11n_detector,84,529,12539091394769,Tracked,detector,0.796961,"[0.21055960655212402,0.35971848169962567,0.5394491195678711,0.9715201059977213]",,identity-safe detector correction
+yolo11n_detector,85,530,12539231408895,Tracked,detector,0.759505,"[0.20774178504943847,0.3599394798278809,0.5405801296234131,0.9634332021077474]",,identity-safe detector correction
+efficientdet_lk,1,433,12525188084513,Tracked,detector correction,0.812500,"[0.228125,0.2,0.55625,0.9625]",1.000000,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,2,434,12525419365930,Tracked,detector correction,0.824219,"[0.21875,0.2,0.546875,0.9625]",0.998542,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,3,435,12525554171263,Tracked,detector correction,0.824219,"[0.21875,0.1875,0.546875,0.95]",0.999065,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,4,436,12525687352013,Tracked,detector correction,0.812500,"[0.21875,0.19583334,0.546875,0.975]",0.999696,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,5,437,12525822375596,Tracked,detector correction,0.812500,"[0.21875,0.2,0.546875,0.9625]",0.999652,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,6,438,12525956596972,Tracked,detector correction,0.812500,"[0.21875,0.19583334,0.546875,0.975]",0.999660,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,7,440,12526228069638,Tracked,detector correction,0.726562,"[0.253125,0.15,0.540625,0.9583333]",0.845627,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,8,441,12526355752222,Tracked,detector correction,0.640625,"[0.2625,0.12083333,0.55,0.9583333]",0.826959,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,9,442,12526523208722,Tracked,visual tracker,0.855432,"[0.2573981523513794,0.11269143422444662,0.5594553470611572,0.9636343638102214]",0.855432,EfficientDet-Lite2 + LK: accepted flow (22.51 ms)
+efficientdet_lk,10,443,12526661348389,Tracked,visual tracker,0.877271,"[0.2536136627197266,0.10442490577697754,0.5699960708618164,0.9684231440226237]",0.877271,EfficientDet-Lite2 + LK: accepted flow (20.97 ms)
+efficientdet_lk,11,444,12526789218055,Tracked,visual tracker,0.985605,"[0.2522463798522949,0.099217160542806,0.5766251087188721,0.9714385350545247]",0.985605,EfficientDet-Lite2 + LK: accepted flow (11.54 ms)
+efficientdet_lk,12,445,12526925578722,Tracked,visual tracker,0.997611,"[0.25099821090698243,0.09421456654866536,0.5830143451690674,0.9747804005940756]",0.997611,EfficientDet-Lite2 + LK: accepted flow (15.40 ms)
+efficientdet_lk,13,447,12527189398764,Tracked,visual tracker,0.996250,"[0.25039427280426024,0.08998330434163411,0.591159439086914,0.9780267715454102]",0.996250,EfficientDet-Lite2 + LK: accepted flow (8.82 ms)
+efficientdet_lk,14,448,12527320513055,Tracked,visual tracker,0.989217,"[0.25095043182373045,0.09092541535695393,0.5934971332550049,0.9765308380126954]",0.989217,EfficientDet-Lite2 + LK: accepted flow (12.11 ms)
+efficientdet_lk,15,449,12527522316806,Tracked,visual tracker,0.999411,"[0.25094478130340575,0.09053324063618978,0.5942279815673828,0.9767670313517253]",0.999411,EfficientDet-Lite2 + LK: accepted flow (14.04 ms)
+efficientdet_lk,16,450,12527658504931,Tracked,visual tracker,0.971739,"[0.25093965530395507,0.08811643918355307,0.5975336551666259,0.9801912943522135]",0.971739,EfficientDet-Lite2 + LK: accepted flow (12.32 ms)
+efficientdet_lk,17,451,12527798973431,Tracked,visual tracker,0.990225,"[0.25082442760467527,0.08817985852559408,0.5995985507965088,0.9798456827799479]",0.990225,EfficientDet-Lite2 + LK: accepted flow (8.66 ms)
+efficientdet_lk,18,453,12528089910639,Tracked,detector correction,0.562500,"[0.375,0.054166666999999995,0.5875,0.9875]",0.978624,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,19,454,12528228203848,Tracked,detector correction,0.601562,"[0.375,0.045833334,0.5875,0.99583334]",0.916728,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,20,455,12528357245806,Tracked,detector correction,0.582031,"[0.378125,0.0375,0.59375,1.0]",0.973325,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,21,456,12528521323931,Tracked,detector correction,0.582031,"[0.375,0.0375,0.6,1.0]",0.999181,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,22,457,12528655547556,Tracked,detector correction,0.695312,"[0.378125,0.058333334,0.615625,1.0]",0.902754,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,23,458,12528789712223,Tracked,detector correction,0.640625,"[0.378125,0.045833334,0.621875,0.99583334]",0.983917,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,24,459,12528921197515,Tracked,detector correction,0.640625,"[0.375,0.045833334,0.621875,0.99583334]",0.988422,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,25,460,12529055570306,Tracked,detector correction,0.621094,"[0.378125,0.045833334,0.615625,0.99583334]",0.998407,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,26,461,12529189563223,Tracked,detector correction,0.562500,"[0.38125,0.0375,0.615625,1.0]",0.998631,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,27,462,12529321656056,Tracked,detector correction,0.582031,"[0.38125,0.045833334,0.615625,0.99583334]",0.998566,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,28,463,12529497385807,Tracked,detector correction,0.601562,"[0.384375,0.0375,0.6125,1.0]",0.978127,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,29,464,12529652866515,Tracked,detector correction,0.601562,"[0.378125,0.0375,0.615625,1.0]",0.946119,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,30,465,12529788431265,Tracked,detector correction,0.562500,"[0.38125,0.041666668,0.603125,1.0]",0.998902,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,31,467,12530053902307,Tracked,visual tracker,0.992203,"[0.3803726673126221,0.04235097169876099,0.6021905422210694,0.9997101465861002]",0.992203,EfficientDet-Lite2 + LK: accepted flow (6.19 ms)
+efficientdet_lk,32,468,12530186161265,Tracked,detector correction,0.582031,"[0.375,0.0375,0.609375,1.0]",0.999571,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,33,469,12530322509515,Tracked,detector correction,0.601562,"[0.378125,0.0375,0.60625,1.0]",0.999018,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,34,470,12530452977140,Tracked,detector correction,0.562500,"[0.378125,0.0375,0.60625,1.0]",0.999373,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,35,471,12530588443057,Tracked,visual tracker,0.999393,"[0.37841100692749025,0.03768049478530884,0.607084846496582,1.0]",0.999393,EfficientDet-Lite2 + LK: accepted flow (7.71 ms)
+efficientdet_lk,36,472,12530722004807,Tracked,detector correction,0.562500,"[0.384375,0.05,0.6125,1.0]",0.999610,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,37,473,12530858062807,Tracked,detector correction,0.562500,"[0.38125,0.058333334,0.615625,1.0]",0.999489,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,38,474,12530987213474,Tracked,detector correction,0.582031,"[0.384375,0.05,0.6125,1.0]",0.999628,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,39,476,12531286294474,Tracked,detector correction,0.601562,"[0.378125,0.058333334,0.60625,1.0]",0.999080,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,40,477,12531464862474,Tracked,visual tracker,0.999507,"[0.3777806282043457,0.05813996394475301,0.6063010215759277,1.0]",0.999507,EfficientDet-Lite2 + LK: accepted flow (9.01 ms)
+efficientdet_lk,41,478,12531610996766,Tracked,detector correction,0.562500,"[0.375,0.0375,0.609375,1.0]",0.998866,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,42,479,12531754464558,Tracked,visual tracker,0.994395,"[0.37250485420227053,0.03774981101353963,0.607184362411499,0.998086675008138]",0.994395,EfficientDet-Lite2 + LK: accepted flow (18.06 ms)
+efficientdet_lk,43,480,12531888719724,Tracked,detector correction,0.562500,"[0.38125,0.045833334,0.59375,0.99583334]",0.975256,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,44,481,12532052668058,Tracked,detector correction,0.582031,"[0.378125,0.041666668,0.584375,0.975]",0.944858,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,45,482,12532189847433,Tracked,visual tracker,0.849913,"[0.3512199640274048,0.037448883056640625,0.5819250106811523,0.9784852981567382]",0.849913,EfficientDet-Lite2 + LK: accepted flow (23.17 ms)
+efficientdet_lk,46,483,12532402721475,Tracked,visual tracker,0.984180,"[0.33367104530334474,0.03431901931762695,0.5808450222015381,0.9807989756266277]",0.984180,EfficientDet-Lite2 + LK: accepted flow (12.87 ms)
+efficientdet_lk,47,484,12532554977225,Tracked,visual tracker,0.876989,"[0.3025207996368408,0.028869611024856568,0.5789774894714356,0.9876996994018554]",0.876989,EfficientDet-Lite2 + LK: accepted flow (19.07 ms)
+efficientdet_lk,48,485,12532688432308,Tracked,visual tracker,0.997425,"[0.29717111587524414,0.027082590262095134,0.5767972469329834,0.9891672770182292]",0.997425,EfficientDet-Lite2 + LK: accepted flow (10.36 ms)
+efficientdet_lk,49,486,12532863942891,Tracked,visual tracker,0.998892,"[0.29311773777008054,0.024639554818471274,0.5781647205352783,0.9903643925984701]",0.998892,EfficientDet-Lite2 + LK: accepted flow (7.80 ms)
+efficientdet_lk,50,487,12532989625517,Tracked,visual tracker,0.996146,"[0.29407567977905275,0.021105200052261353,0.5832953453063965,0.9909037272135417]",0.996146,EfficientDet-Lite2 + LK: accepted flow (11.70 ms)
+efficientdet_lk,51,488,12533124220975,Tracked,visual tracker,0.995626,"[0.2993850469589233,0.01903697649637858,0.5892340660095214,0.9905087153116862]",0.995626,EfficientDet-Lite2 + LK: accepted flow (10.61 ms)
+efficientdet_lk,52,490,12533424401308,Tracked,visual tracker,0.599528,"[0.3327394247055054,0.01837619145711263,0.6405809879302978,0.9907580057779948]",0.599528,EfficientDet-Lite2 + LK: accepted flow (18.40 ms)
+efficientdet_lk,53,491,12533561324017,Tracked,detector correction,0.640625,"[0.38125,0.0625,0.603125,0.975]",0.000000,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,54,493,12533825746934,Tracked,detector correction,0.695312,"[0.40625,0.041666668,0.65,0.975]",0.843569,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,55,494,12533956733184,Tracked,detector correction,0.726562,"[0.4125,0.058333334,0.684375,0.99583334]",0.954205,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,56,495,12534089324309,Tracked,detector correction,0.695312,"[0.425,0.058333334,0.6875,0.99583334]",0.941692,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,57,496,12534230096434,Tracked,detector correction,0.656250,"[0.428125,0.058333334,0.68125,0.99583334]",0.898774,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,58,497,12534421573101,Tracked,detector correction,0.656250,"[0.428125,0.058333334,0.68125,0.99583334]",0.999387,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,59,499,12534691036059,Tracked,detector correction,0.621094,"[0.43125,0.058333334,0.68125,0.99583334]",0.946463,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,60,501,12534954324059,Tracked,detector correction,0.695312,"[0.40625,0.058333334,0.665625,0.99583334]",0.877289,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,61,502,12535098349476,Tracked,detector correction,0.742188,"[0.396875,0.054166666999999995,0.64375,0.96666664]",0.934715,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,62,503,12535258796559,Tracked,detector correction,0.656250,"[0.384375,0.054166666999999995,0.621875,0.9875]",0.877838,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,63,504,12535479391059,Tracked,detector correction,0.656250,"[0.378125,0.0625,0.60625,0.975]",0.914697,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,64,505,12535625805893,Tracked,detector correction,0.582031,"[0.3,0.06666667,0.56875,0.9875]",0.000000,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,65,507,12535890157143,Tracked,detector correction,0.773438,"[0.246875,0.15,0.534375,0.9583333]",0.000000,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,66,508,12536023323601,Tracked,detector correction,0.847656,"[0.228125,0.19583334,0.5375,0.9458333]",0.884037,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,67,509,12536164319976,Tracked,detector correction,0.812500,"[0.2125,0.24166666,0.553125,0.95]",0.000000,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,68,510,12536328563476,Tracked,detector correction,0.875000,"[0.23125,0.25833333,0.553125,0.96666664]",0.875789,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,69,511,12536512245310,Tracked,detector correction,0.835938,"[0.221875,0.2625,0.54375,0.9583333]",0.998826,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,70,513,12536786634560,Tracked,detector correction,0.859375,"[0.2125,0.28333333,0.540625,0.96666664]",0.908314,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,71,514,12536921950768,Tracked,detector correction,0.847656,"[0.225,0.30416667,0.540625,0.975]",0.998771,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,72,515,12537054685727,Tracked,detector correction,0.824219,"[0.225,0.3125,0.540625,0.97083336]",0.998974,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,73,516,12537187383185,Tracked,detector correction,0.800781,"[0.21875,0.3125,0.546875,0.97083336]",0.998905,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,74,517,12537323447352,Tracked,detector correction,0.812500,"[0.221875,0.3125,0.54375,0.97083336]",0.999021,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,75,518,12537457164394,Tracked,detector correction,0.835938,"[0.2125,0.3125,0.540625,0.97083336]",0.999310,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,76,520,12537723490019,Tracked,detector correction,0.824219,"[0.215625,0.3125,0.55,0.97083336]",0.999464,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,77,522,12537988709436,Tracked,detector correction,0.812500,"[0.21875,0.3125,0.546875,0.97083336]",0.958884,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,78,523,12538126621686,Tracked,detector correction,0.824219,"[0.215625,0.3125,0.55,0.97083336]",0.921530,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,79,524,12538424167602,Tracked,detector correction,0.812500,"[0.209375,0.31666666,0.54375,0.9625]",0.974998,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,80,525,12538556571894,Tracked,detector correction,0.847656,"[0.21875,0.3375,0.55,0.92083335]",0.906854,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,81,526,12538686842853,Tracked,detector correction,0.847656,"[0.221875,0.34166667,0.553125,0.9166667]",0.956627,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,82,527,12538823257686,Tracked,detector correction,0.847656,"[0.21875,0.35,0.55,0.95416665]",0.998063,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,83,528,12538954317978,Tracked,detector correction,0.867188,"[0.21875,0.34166667,0.55,0.9375]",0.999150,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,84,529,12539091394769,Tracked,detector correction,0.847656,"[0.221875,0.34166667,0.546875,0.9583333]",0.999396,EfficientDet-Lite2 + LK: identity-safe detector correction
+efficientdet_lk,85,530,12539231408895,Tracked,detector correction,0.859375,"[0.221875,0.34166667,0.546875,0.9583333]",0.999493,EfficientDet-Lite2 + LK: identity-safe detector correction
+yolo11n_lk,1,433,12525188084513,Tracked,detector correction,0.892628,"[0.2329498291015625,0.20428543090820311,0.5461554527282715,0.9885786692301433]",1.000000,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,2,434,12525419365930,Tracked,visual tracker,0.998486,"[0.23168139457702636,0.2044925848642985,0.5458625793457031,0.9885684331258138]",0.998486,YOLO11n + LK: accepted flow (16.56 ms)
+yolo11n_lk,3,435,12525554171263,Tracked,detector correction,0.882951,"[0.23229212760925294,0.20196803410847983,0.5340567588806152,0.9895926157633463]",0.998778,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,4,436,12525687352013,Tracked,visual tracker,0.999665,"[0.23205165863037108,0.20173133214314778,0.5340857028961181,0.9897697448730469]",0.999665,YOLO11n + LK: accepted flow (15.65 ms)
+yolo11n_lk,5,437,12525822375596,Tracked,detector correction,0.885418,"[0.2333906650543213,0.2026641845703125,0.5411064624786377,0.988925552368164]",0.999690,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,6,438,12525956596972,Tracked,visual tracker,0.999526,"[0.23319029808044434,0.20186651547749837,0.5415784358978272,0.9893493016560873]",0.999526,YOLO11n + LK: accepted flow (16.42 ms)
+yolo11n_lk,7,440,12526228069638,Tracked,detector correction,0.908442,"[0.2529332637786865,0.15160287221272786,0.5298576354980469,0.9895421981811523]",0.000000,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,8,441,12526355752222,Tracked,visual tracker,0.839457,"[0.25094430446624755,0.14936013221740724,0.5315395832061768,0.9885034561157227]",0.839457,YOLO11n + LK: accepted flow (25.45 ms)
+yolo11n_lk,9,442,12526523208722,Tracked,detector correction,0.906229,"[0.2778592348098755,0.1154393196105957,0.5328286170959473,0.9892923990885417]",0.969624,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,10,443,12526661348389,Tracked,visual tracker,0.844627,"[0.2763683319091797,0.11515574455261231,0.5357413768768311,0.9912537892659505]",0.844627,YOLO11n + LK: accepted flow (19.44 ms)
+yolo11n_lk,11,444,12526789218055,Tracked,detector correction,0.895586,"[0.3243190050125122,0.07711289723714193,0.5411063194274902,0.9884687423706054]",0.972240,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,12,445,12526925578722,Tracked,visual tracker,0.964500,"[0.3219289302825928,0.07270169258117676,0.547700834274292,0.9924580891927083]",0.964500,YOLO11n + LK: accepted flow (28.67 ms)
+yolo11n_lk,13,447,12527189398764,Tracked,detector correction,0.885798,"[0.35172486305236816,0.06458816528320313,0.5514415264129638,0.9909066518147787]",0.967514,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,14,448,12527320513055,Tracked,visual tracker,0.954101,"[0.3525238990783691,0.0652701457341512,0.5536166667938233,0.9886213302612304]",0.954101,YOLO11n + LK: accepted flow (20.70 ms)
+yolo11n_lk,15,449,12527522316806,Tracked,detector correction,0.880804,"[0.35344810485839845,0.06303173700968424,0.5523612022399902,0.9896774291992188]",0.999584,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,16,450,12527658504931,Tracked,visual tracker,0.938037,"[0.35179173946380615,0.06114746332168579,0.5579576969146729,0.9938662846883138]",0.938037,YOLO11n + LK: accepted flow (18.04 ms)
+yolo11n_lk,17,451,12527798973431,Tracked,detector correction,0.879552,"[0.35743026733398436,0.06385746002197265,0.5565811157226562,0.9887009302775065]",0.983867,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,18,453,12528089910639,Tracked,visual tracker,0.912706,"[0.3576653242111206,0.06011968453725179,0.5670541763305664,0.9931072235107422]",0.912706,YOLO11n + LK: accepted flow (19.90 ms)
+yolo11n_lk,19,454,12528228203848,Tracked,detector correction,0.850549,"[0.36932079792022704,0.05957390467325847,0.5750945091247559,0.9931877136230469]",0.958722,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,20,455,12528357245806,Tracked,visual tracker,0.980593,"[0.3712841272354126,0.05883542696634928,0.581331205368042,0.9944639205932617]",0.980593,YOLO11n + LK: accepted flow (16.46 ms)
+yolo11n_lk,21,456,12528521323931,Tracked,detector correction,0.865362,"[0.3759284019470215,0.06180775960286458,0.5841021537780762,0.998599624633789]",0.999379,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,22,457,12528655547556,Tracked,visual tracker,0.910201,"[0.3783396244049072,0.060605355103810626,0.6039909839630127,1.0]",0.910201,YOLO11n + LK: accepted flow (22.61 ms)
+yolo11n_lk,23,458,12528789712223,Tracked,detector correction,0.873199,"[0.3938919544219971,0.05911245346069336,0.610247278213501,0.9955530802408854]",0.998313,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,24,459,12528921197515,Tracked,visual tracker,0.991801,"[0.3940470218658447,0.05807029406229655,0.6134168148040772,0.9969710032145183]",0.991801,YOLO11n + LK: accepted flow (19.10 ms)
+yolo11n_lk,25,460,12529055570306,Tracked,detector correction,0.869536,"[0.39763200283050537,0.054544893900553386,0.6091569900512696,0.9937854131062825]",0.998936,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,26,461,12529189563223,Tracked,visual tracker,0.998595,"[0.3958651781082153,0.05475152333577474,0.6086595058441162,0.9945223490397136]",0.998595,YOLO11n + LK: accepted flow (26.39 ms)
+yolo11n_lk,27,462,12529321656056,Tracked,detector correction,0.867251,"[0.39789137840270994,0.0569734255472819,0.6017750263214111,0.9887503306070964]",0.998853,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,28,463,12529497385807,Tracked,visual tracker,0.977342,"[0.3961575746536255,0.057896769046783446,0.6007636070251465,0.9863927841186524]",0.977342,YOLO11n + LK: accepted flow (21.99 ms)
+yolo11n_lk,29,464,12529652866515,Tracked,detector correction,0.873355,"[0.3881310701370239,0.05694561004638672,0.5917920112609864,0.9912847518920899]",0.931098,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,30,465,12529788431265,Tracked,visual tracker,0.998967,"[0.38644521236419677,0.05706833203633626,0.5902397155761718,0.9910548528035482]",0.998967,YOLO11n + LK: accepted flow (18.77 ms)
+yolo11n_lk,31,467,12530053902307,Tracked,detector correction,0.868032,"[0.39143364429473876,0.05615994135538737,0.5876254081726074,0.9876041412353516]",0.999074,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,32,468,12530186161265,Tracked,visual tracker,0.999329,"[0.39150569438934324,0.05623014370600383,0.5879244804382324,0.9877204895019531]",0.999329,YOLO11n + LK: accepted flow (17.20 ms)
+yolo11n_lk,33,469,12530322509515,Tracked,detector correction,0.876862,"[0.38447673320770265,0.05779530207316081,0.5881884574890137,0.9932509104410807]",0.999158,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,34,470,12530452977140,Tracked,visual tracker,0.999252,"[0.3850985527038574,0.05806632041931152,0.5890015602111817,0.9930159886678059]",0.999252,YOLO11n + LK: accepted flow (17.02 ms)
+yolo11n_lk,35,471,12530588443057,Tracked,detector correction,0.870635,"[0.39627087116241455,0.05606244405110677,0.5907073020935059,0.9927326202392578]",0.999460,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,36,472,12530722004807,Tracked,visual tracker,0.999504,"[0.39621741771698,0.056147595246632896,0.5914204120635986,0.992822011311849]",0.999504,YOLO11n + LK: accepted flow (16.14 ms)
+yolo11n_lk,37,473,12530858062807,Tracked,detector correction,0.879725,"[0.3876465320587158,0.056209468841552736,0.5912739276885987,0.9891989390055339]",0.999628,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,38,474,12530987213474,Tracked,visual tracker,0.999546,"[0.38733065128326416,0.05599453846613566,0.5913794040679932,0.9893927256266276]",0.999546,YOLO11n + LK: accepted flow (10.60 ms)
+yolo11n_lk,39,476,12531286294474,Tracked,detector correction,0.874149,"[0.3950899600982666,0.05674114227294922,0.5894325733184814,0.9923514684041341]",0.992314,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,40,477,12531464862474,Tracked,visual tracker,0.999507,"[0.39473810195922854,0.05654964049657186,0.5894605636596679,0.9926080703735352]",0.999507,YOLO11n + LK: accepted flow (9.36 ms)
+yolo11n_lk,41,478,12531610996766,Tracked,detector correction,0.862368,"[0.39531726837158204,0.05732119878133138,0.5884309768676758,0.9956736246744792]",0.995641,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,42,479,12531754464558,Tracked,visual tracker,0.994395,"[0.3925317764282227,0.05746051867802938,0.5864638328552246,0.9939225514729818]",0.994395,YOLO11n + LK: accepted flow (11.46 ms)
+yolo11n_lk,43,480,12531888719724,Tracked,detector correction,0.855785,"[0.38479247093200686,0.05943304697672526,0.5805107593536377,1.0]",0.996236,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,44,481,12532052668058,Tracked,visual tracker,0.945412,"[0.3705812931060791,0.057391691207885745,0.5786502838134766,1.0]",0.945412,YOLO11n + LK: accepted flow (12.02 ms)
+yolo11n_lk,45,482,12532189847433,Tracked,detector correction,0.881123,"[0.35443112850189207,0.06518001556396484,0.5529964447021485,0.9914215723673503]",0.907518,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,46,483,12532402721475,Tracked,visual tracker,0.913100,"[0.33855443000793456,0.0629433274269104,0.552656888961792,0.9925044377644857]",0.913100,YOLO11n + LK: accepted flow (15.69 ms)
+yolo11n_lk,47,484,12532554977225,Tracked,detector correction,0.877506,"[0.30996007919311525,0.07697547276814778,0.5191967964172364,0.9894607543945313]",0.872364,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,48,485,12532688432308,Tracked,visual tracker,0.997630,"[0.30580384731292726,0.07634828885396322,0.5171545028686524,0.9886122385660807]",0.997630,YOLO11n + LK: accepted flow (9.27 ms)
+yolo11n_lk,49,486,12532863942891,Tracked,detector correction,0.883853,"[0.2998325347900391,0.07795874277750652,0.5147237777709961,0.9850914637247722]",0.988436,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,50,487,12532989625517,Tracked,visual tracker,0.995242,"[0.300812292098999,0.07538602352142335,0.5194286823272705,0.9864175160725911]",0.995242,YOLO11n + LK: accepted flow (15.60 ms)
+yolo11n_lk,51,488,12533124220975,Tracked,detector correction,0.877797,"[0.30751810073852537,0.07553987503051758,0.5339752197265625,0.9874465942382813]",0.954035,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,52,490,12533424401308,Tracked,detector correction,0.850779,"[0.35871248245239257,0.06971298853556315,0.5714451789855957,0.9856643676757812]",0.000000,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,53,491,12533561324017,Tracked,detector correction,0.860153,"[0.375977611541748,0.07034079233805339,0.5835777282714844,0.9894008000691732]",0.808005,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,54,493,12533825746934,Tracked,visual tracker,0.814609,"[0.377389931678772,0.06087466875712077,0.6453322410583496,0.9978905995686849]",0.814609,YOLO11n + LK: accepted flow (21.53 ms)
+yolo11n_lk,55,494,12533956733184,Tracked,detector correction,0.862592,"[0.4362794876098633,0.05741119384765625,0.6725666046142578,0.9382705688476562]",0.954534,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,56,495,12534089324309,Tracked,visual tracker,0.963260,"[0.43646907806396484,0.05438884496688843,0.684028148651123,0.9416414260864258]",0.963260,YOLO11n + LK: accepted flow (21.00 ms)
+yolo11n_lk,57,496,12534230096434,Tracked,detector correction,0.896060,"[0.43338470458984374,0.05363413492838542,0.6670875549316406,0.9927747090657552]",0.958742,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,58,497,12534421573101,Tracked,visual tracker,0.999373,"[0.4325092315673828,0.05349777539571126,0.6679835796356202,0.992435073852539]",0.999373,YOLO11n + LK: accepted flow (15.55 ms)
+yolo11n_lk,59,499,12534691036059,Tracked,detector correction,0.895146,"[0.42979040145874026,0.055601247151692706,0.6664013862609863,0.9917278289794922]",0.968081,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,60,501,12534954324059,Tracked,visual tracker,0.901833,"[0.41630067825317385,0.05475806792577108,0.6604638576507569,0.9911881764729817]",0.901833,YOLO11n + LK: accepted flow (22.39 ms)
+yolo11n_lk,61,502,12535098349476,Tracked,detector correction,0.851799,"[0.42510223388671875,0.05573755900065104,0.6432737350463867,0.9302876790364584]",0.990206,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,62,503,12535258796559,Tracked,visual tracker,0.942026,"[0.3933406829833984,0.05588397979736328,0.6308652400970459,0.9297953287760417]",0.942026,YOLO11n + LK: accepted flow (20.17 ms)
+yolo11n_lk,63,504,12535479391059,Tracked,detector correction,0.857786,"[0.3758340358734131,0.0731466293334961,0.5913811206817627,0.9848037083943685]",0.937657,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,64,505,12535625805893,Tracked,detector correction,0.882698,"[0.30117461681365965,0.10017274220784506,0.5802161216735839,0.9880539576212565]",0.000000,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,65,507,12535890157143,Tracked,detector correction,0.898276,"[0.24628615379333496,0.1678166389465332,0.5283731460571289,0.9588343302408854]",0.000000,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,66,508,12536023323601,Tracked,visual tracker,0.892491,"[0.2446197748184204,0.1800338586171468,0.5283407211303711,0.9580116271972656]",0.892491,YOLO11n + LK: accepted flow (17.25 ms)
+yolo11n_lk,67,509,12536164319976,Tracked,detector correction,0.867672,"[0.22108559608459472,0.23357226053873698,0.5355870723724365,0.958969243367513]",0.854045,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,68,510,12536328563476,Tracked,visual tracker,0.855769,"[0.22124717235565186,0.2345368544260661,0.5382030487060547,0.9619901657104493]",0.855769,YOLO11n + LK: accepted flow (18.73 ms)
+yolo11n_lk,69,511,12536512245310,Tracked,detector correction,0.882930,"[0.21648268699645995,0.26617069244384767,0.5398776531219482,0.9722425460815429]",0.999499,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,70,513,12536786634560,Tracked,visual tracker,0.881132,"[0.21773223876953124,0.2709113438924154,0.5402684211730957,0.9735034942626953]",0.881132,YOLO11n + LK: accepted flow (16.01 ms)
+yolo11n_lk,71,514,12536921950768,Tracked,detector correction,0.874272,"[0.21468501091003417,0.298574701944987,0.5433316230773926,0.9581315358479817]",0.999258,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,72,515,12537054685727,Tracked,visual tracker,0.998925,"[0.21463747024536134,0.3005483627319336,0.5434356689453125,0.9587422688802083]",0.998925,YOLO11n + LK: accepted flow (15.94 ms)
+yolo11n_lk,73,516,12537187383185,Tracked,detector correction,0.859763,"[0.21592583656311035,0.3113422393798828,0.5430969715118408,0.9672086079915364]",0.999145,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,74,517,12537323447352,Tracked,visual tracker,0.999041,"[0.21599981784820557,0.3128589948018392,0.5428409576416016,0.9675961176554362]",0.999041,YOLO11n + LK: accepted flow (23.31 ms)
+yolo11n_lk,75,518,12537457164394,Tracked,detector correction,0.864836,"[0.21553220748901367,0.3188732147216797,0.5460865020751953,0.9691605885823568]",0.999439,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,76,520,12537723490019,Tracked,visual tracker,0.999452,"[0.21587276458740234,0.3194059054056803,0.5460282802581787,0.9688807169596354]",0.999452,YOLO11n + LK: accepted flow (14.67 ms)
+yolo11n_lk,77,522,12537988709436,Tracked,detector correction,0.881655,"[0.2175224781036377,0.31803595225016273,0.5491928577423095,0.9753741582234701]",0.953630,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,78,523,12538126621686,Tracked,visual tracker,0.913040,"[0.21713500022888182,0.3168508847554525,0.5516847133636474,0.978161366780599]",0.913040,YOLO11n + LK: accepted flow (23.93 ms)
+yolo11n_lk,79,524,12538424167602,Tracked,detector correction,0.872170,"[0.21617064476013184,0.32817112604777016,0.5505352973937988,0.9389631907145183]",0.992005,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,80,525,12538556571894,Tracked,visual tracker,0.899360,"[0.21521620750427245,0.3288302739461263,0.5502797603607178,0.9392813364664714]",0.899360,YOLO11n + LK: accepted flow (26.48 ms)
+yolo11n_lk,81,526,12538686842853,Tracked,detector correction,0.803627,"[0.2123258113861084,0.3497809092203776,0.5447187900543213,0.9539642333984375]",0.999077,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,82,527,12538823257686,Tracked,visual tracker,0.998488,"[0.20932812690734864,0.3508734703063965,0.5439081192016602,0.9555251439412434]",0.998488,YOLO11n + LK: accepted flow (15.89 ms)
+yolo11n_lk,83,528,12538954317978,Tracked,detector correction,0.746399,"[0.2110210418701172,0.3610140164693197,0.5404416084289551,0.9585589090983073]",0.999370,YOLO11n + LK: identity-safe detector correction
+yolo11n_lk,84,529,12539091394769,Tracked,visual tracker,0.999411,"[0.20941741466522218,0.36074113845825195,0.5401978492736816,0.9594058990478516]",0.999411,YOLO11n + LK: accepted flow (12.24 ms)
+yolo11n_lk,85,530,12539231408895,Tracked,detector correction,0.759505,"[0.20774178504943847,0.3599394798278809,0.5405801296234131,0.9634332021077474]",0.999695,YOLO11n + LK: identity-safe detector correction
