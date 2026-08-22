@@ -116,6 +116,32 @@ class PersonDetectionMapperTest {
         assertEquals(.88f, results.single().confidence, 0f)
     }
 
+    @Test fun `tight and much larger nested boxes for one person are deduplicated`() {
+        val results = PersonDetectionMapper.map(
+            listOf(
+                raw("person", .91f, 105f, 50f, 175f, 205f),
+                raw("person", .78f, 75f, 20f, 205f, 230f),
+            ),
+            metadata(),
+        )
+
+        assertEquals(1, results.size)
+        assertEquals(.91f, results.single().confidence, 0f)
+    }
+
+    @Test fun `distinct overlapping people with different scale and offset are retained`() {
+        val results = PersonDetectionMapper.map(
+            listOf(
+                raw("person", .90f, 60f, 20f, 220f, 230f),
+                raw("person", .82f, 135f, 40f, 215f, 210f),
+            ),
+            metadata(),
+        )
+
+        assertEquals(2, results.size)
+        assertEquals(listOf(.90f, .82f), results.map { it.confidence })
+    }
+
     @Test fun `confidence tie keeps deterministic geometry order`() {
         val results = PersonDetectionMapper.map(
             listOf(

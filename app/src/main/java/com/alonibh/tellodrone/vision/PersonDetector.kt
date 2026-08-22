@@ -157,6 +157,8 @@ object PersonDetectionDeduplicator {
     const val MIN_INTERSECTION_OVER_SMALLER = .75f
     const val MIN_AREA_RATIO = .50f
     const val MAX_AREA_RATIO = 2.00f
+    const val MAX_STRONGLY_NESTED_CENTER_DISTANCE = .08f
+    const val MIN_STRONGLY_NESTED_INTERSECTION_OVER_SMALLER = .90f
 
     fun suppressSameFrameDuplicates(detections: List<PersonDetection>): List<PersonDetection> {
         val ordered = detections.sortedWith(
@@ -175,10 +177,16 @@ object PersonDetectionDeduplicator {
         return retained
     }
 
-    fun areSamePhysicalObject(kept: NormalizedBoundingBox, candidate: NormalizedBoundingBox): Boolean =
-        centerDistance(kept, candidate) <= MAX_CENTER_DISTANCE &&
-            intersectionOverSmaller(kept, candidate) >= MIN_INTERSECTION_OVER_SMALLER &&
-            areaRatio(candidate, kept) in MIN_AREA_RATIO..MAX_AREA_RATIO
+    fun areSamePhysicalObject(kept: NormalizedBoundingBox, candidate: NormalizedBoundingBox): Boolean {
+        val centerDistance = centerDistance(kept, candidate)
+        val intersectionOverSmaller = intersectionOverSmaller(kept, candidate)
+        val hasSimilarArea = areaRatio(candidate, kept) in MIN_AREA_RATIO..MAX_AREA_RATIO
+        val isStronglyNested = centerDistance <= MAX_STRONGLY_NESTED_CENTER_DISTANCE &&
+            intersectionOverSmaller >= MIN_STRONGLY_NESTED_INTERSECTION_OVER_SMALLER
+        return centerDistance <= MAX_CENTER_DISTANCE &&
+            intersectionOverSmaller >= MIN_INTERSECTION_OVER_SMALLER &&
+            (hasSimilarArea || isStronglyNested)
+    }
 
     fun centerDistance(first: NormalizedBoundingBox, second: NormalizedBoundingBox): Float = hypot(
         centerX(first) - centerX(second), centerY(first) - centerY(second),
