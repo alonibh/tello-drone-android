@@ -375,6 +375,7 @@ class TelloFlightSessionTest {
         video.publishDetections(1L, 1_000_000_000L, listOf(selected))
         runCurrent()
         fixture.session.selectTarget(selected)
+        assertEquals(listOf(selected.boundingBox), recorder.selectedTargets.map { it.boundingBox })
         val moved = detection(frame = 2L, timestamp = 1_100_000_000L)
         video.publishDetections(2L, 1_100_000_000L, listOf(moved))
         runCurrent()
@@ -894,6 +895,10 @@ class TelloFlightSessionTest {
     private class FakeVisionTraceRecorder : VisionTraceRecorder {
         override val capturesFrames = true
         val frames = mutableListOf<VisionTraceFrame>()
+        val selectedTargets = mutableListOf<com.alonibh.tellodrone.domain.TrackedTarget>()
+        override fun onTargetSelected(target: com.alonibh.tellodrone.domain.TrackedTarget) {
+            selectedTargets += target
+        }
         override fun record(frame: VisionTraceFrame) { frames += frame }
         override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) = Unit
     }

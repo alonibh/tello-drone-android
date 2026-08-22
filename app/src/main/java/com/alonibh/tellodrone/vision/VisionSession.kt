@@ -11,7 +11,7 @@ import java.util.zip.ZipFile
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.ceil
 
-const val VISION_SESSION_SCHEMA_VERSION = 1
+const val VISION_SESSION_SCHEMA_VERSION = 2
 const val VISION_SESSION_MAX_FRAMES = 600
 const val VISION_SESSION_MAX_DURATION_NANOS = 90_000_000_000L
 const val VISION_SESSION_JPEG_QUALITY = 82
@@ -25,13 +25,17 @@ class VisionCaptureLimiter(
     private var accepted = 0
 
     @Synchronized
-    fun tryReserve(sourceTimestampNanos: Long): Boolean {
-        if (sourceTimestampNanos < 0L || accepted >= maxFrames) return false
+    fun reserve(sourceTimestampNanos: Long): VisionCaptureReservation {
+        if (sourceTimestampNanos < 0L) return VisionCaptureReservation.InvalidTimestamp
+        if (accepted >= maxFrames) return VisionCaptureReservation.FrameLimitReached
         val first = firstTimestampNanos
-        if (first != null && (sourceTimestampNanos < first || sourceTimestampNanos - first > maxDurationNanos)) return false
+        if (first != null && sourceTimestampNanos < first) return VisionCaptureReservation.InvalidTimestamp
+        if (first != null && sourceTimestampNanos - first > maxDurationNanos) {
+            return VisionCaptureReservation.DurationLimitReached
+        }
         if (first == null) firstTimestampNanos = sourceTimestampNanos
         accepted++
-        return true
+        return VisionCaptureReservation.Accepted
     }
 
     @Synchronized fun acceptedCount(): Int = accepted
@@ -40,6 +44,19 @@ class VisionCaptureLimiter(
         firstTimestampNanos = null
         accepted = 0
     }
+}
+
+enum class VisionCaptureReservation {
+    Accepted,
+    FrameLimitReached,
+    DurationLimitReached,
+    InvalidTimestamp,
+}
+
+enum class VisionCaptureStartReason {
+    DetectionStarted,
+    TargetSelected,
+    Legacy,
 }
 
 class VisionCaptureDropCounter {
@@ -76,18 +93,22 @@ data class VisionSessionManifest(
     val maxDurationNanos: Long = VISION_SESSION_MAX_DURATION_NANOS,
     val capturedFrameCount: Int,
     val droppedFrameCount: Long,
+    val excludedAfterLimitFrameCount: Long = 0,
+    val captureStartReason: VisionCaptureStartReason = VisionCaptureStartReason.DetectionStarted,
     val frames: List<VisionSessionFrameEntry>,
 )
 
 data class VisionSessionExport(
     val capturedFrameCount: Int,
     val droppedFrameCount: Long,
+    val excludedAfterLimitFrameCount: Long,
     val durationNanos: Long,
 )
 
 data class VisionSessionSelection(
     val frameCount: Int,
     val droppedFrameCount: Long,
+    val associationEvaluationValid: Boolean,
 )
 
 data class VisionSessionTraceSeed(
@@ -95,6 +116,7 @@ data class VisionSessionTraceSeed(
     val sourceTimestampNanos: Long,
     val capturedFrameFile: String,
     val selectedTargetBefore: TrackedTarget?,
+    val associationState: TargetAssociationState,
 )
 
 data class VisionSessionContents(
@@ -116,6 +138,8 @@ object VisionSessionManifestJson {
         append(",\"maxDurationNanos\":").append(manifest.maxDurationNanos)
         append(",\"capturedFrameCount\":").append(manifest.capturedFrameCount)
         append(",\"droppedFrameCount\":").append(manifest.droppedFrameCount)
+        append(",\"excludedAfterLimitFrameCount\":").append(manifest.excludedAfterLimitFrameCount)
+        append(",\"captureStartReason\":\"").append(manifest.captureStartReason.name).append('"')
         append(",\"frames\":[")
         manifest.frames.forEachIndexed { index, frame ->
             if (index > 0) append(',')
@@ -144,14 +168,20 @@ object VisionSessionManifestJson {
                 height = frame.int("height"),
             )
         }
+        val schemaVersion = root.int("schemaVersion")
         return VisionSessionManifest(
-            schemaVersion = root.int("schemaVersion"),
+            schemaVersion = schemaVersion,
             frameEncoding = root.string("frameEncoding"),
             jpegQuality = root.int("jpegQuality"),
             maxFrames = root.int("maxFrames"),
             maxDurationNanos = root.long("maxDurationNanos"),
             capturedFrameCount = root.int("capturedFrameCount"),
             droppedFrameCount = root.long("droppedFrameCount"),
+            excludedAfterLimitFrameCount = root.optionalLong("excludedAfterLimitFrameCount") ?: 0L,
+            captureStartReason = root.optionalString("captureStartReason")?.let { raw ->
+                runCatching { VisionCaptureStartReason.valueOf(raw) }
+                    .getOrElse { throw MalformedVisionSessionException("Invalid captureStartReason") }
+            } ?: VisionCaptureStartReason.Legacy,
             frames = frames,
         )
     }
@@ -211,7 +241,7 @@ object VisionSessionArchive {
     }
 
     private fun validateManifest(manifest: VisionSessionManifest) {
-        if (manifest.schemaVersion != VISION_SESSION_SCHEMA_VERSION) malformed("Unsupported schema version")
+        if (manifest.schemaVersion !in 1..VISION_SESSION_SCHEMA_VERSION) malformed("Unsupported schema version")
         if (manifest.frameEncoding != "jpeg") malformed("Unsupported frame encoding")
         if (manifest.jpegQuality !in 1..100) malformed("Invalid JPEG quality")
         if (manifest.maxFrames != VISION_SESSION_MAX_FRAMES || manifest.maxDurationNanos != VISION_SESSION_MAX_DURATION_NANOS) {
@@ -220,6 +250,7 @@ object VisionSessionArchive {
         if (manifest.frames.isEmpty() || manifest.frames.size > VISION_SESSION_MAX_FRAMES) malformed("Invalid frame count")
         if (manifest.capturedFrameCount != manifest.frames.size) malformed("Manifest frame count mismatch")
         if (manifest.droppedFrameCount < 0L) malformed("Invalid dropped-frame count")
+        if (manifest.excludedAfterLimitFrameCount < 0L) malformed("Invalid post-limit frame count")
         if (manifest.frames.map { it.captureIndex }.toSet().size != manifest.frames.size) malformed("Duplicate capture index")
         manifest.frames.forEach { frame ->
             if (frame.captureIndex !in 1..VISION_SESSION_MAX_FRAMES) malformed("Invalid capture index")
@@ -254,6 +285,8 @@ object VisionSessionArchive {
             root.long("sourceTimestampNanos"),
             root.string("capturedFrameFile"),
             target,
+            runCatching { TargetAssociationState.valueOf(root.string("associationState")) }
+                .getOrElse { malformed("Invalid association state") },
         )
     }
 
@@ -308,7 +341,9 @@ class VisionReplayAssociation(
             state = TargetAssociationState.Selected
             identityUncertainLatched = false
             lostLatched = false
-        } else if (target != null) {
+        }
+        val selectionIsThisFrame = explicitReselection && originalSelection == (frameSequence to sourceTimestampNanos)
+        if (target != null && !selectionIsThisFrame) {
             val evaluation = engine.evaluate(
                 selectedTarget = target,
                 frameSequence = frameSequence,
@@ -339,7 +374,7 @@ class VisionReplayAssociation(
                 }
                 is TargetAssociationResult.Ignored -> target = associated.target
             }
-        } else if (lostLatched) {
+        } else if (!explicitReselection && lostLatched) {
             state = TargetAssociationState.Lost
         }
         return VisionReplayAssociationOutcome(state, selectedIndex, violation)
@@ -357,11 +392,43 @@ data class VisionReplayModelResult(
 )
 
 data class VisionComparisonReport(
-    val schemaVersion: Int = 1,
+    val schemaVersion: Int = 2,
     val sessionFrameCount: Int,
     val sessionDroppedFrameCount: Long,
+    val sessionExcludedAfterLimitFrameCount: Long = 0,
+    val captureStartReason: VisionCaptureStartReason = VisionCaptureStartReason.Legacy,
+    val associationEvaluationValid: Boolean = false,
+    val associationEvaluationWarning: String? = null,
+    val recordedLiveAssociationFrames: List<VisionRecordedAssociationFrame> = emptyList(),
     val models: List<VisionReplayModelResult>,
 )
+
+data class VisionRecordedAssociationFrame(
+    val frameSequence: Long,
+    val sourceTimestampNanos: Long,
+    val state: TargetAssociationState,
+)
+
+data class VisionAssociationEvaluation(
+    val valid: Boolean,
+    val warning: String?,
+)
+
+fun VisionSessionContents.associationEvaluation(): VisionAssociationEvaluation {
+    val reasons = buildList {
+        if (manifest.captureStartReason != VisionCaptureStartReason.TargetSelected) {
+            add("capture did not start at an explicit target selection")
+        }
+        if (manifest.droppedFrameCount > 0L) add("${manifest.droppedFrameCount} analyzed frame(s) were dropped")
+        if (manifest.excludedAfterLimitFrameCount > 0L) {
+            add("${manifest.excludedAfterLimitFrameCount} frame(s) occurred after the capture limit")
+        }
+        if (traceSeeds.values.none { it.selectedTargetBefore != null }) add("no selected-target seed is present")
+    }
+    return if (reasons.isEmpty()) VisionAssociationEvaluation(true, null) else {
+        VisionAssociationEvaluation(false, "Association evaluation is incomplete: ${reasons.joinToString("; ")}.")
+    }
+}
 
 data class VisionTimingSummary(
     val minNanos: Long,
@@ -389,6 +456,26 @@ object VisionComparisonReportJson {
         append('{').append("\"schemaVersion\":").append(report.schemaVersion)
         append(",\"sessionFrameCount\":").append(report.sessionFrameCount)
         append(",\"sessionDroppedFrameCount\":").append(report.sessionDroppedFrameCount)
+        append(",\"sessionExcludedAfterLimitFrameCount\":").append(report.sessionExcludedAfterLimitFrameCount)
+        append(','); stringField("captureStartReason", report.captureStartReason.name)
+        append(",\"associationEvaluationValid\":").append(report.associationEvaluationValid)
+        append(",\"associationEvaluationWarning\":")
+        report.associationEvaluationWarning?.let { append('"'); escaped(it); append('"') } ?: append("null")
+        append(",\"recordedLiveMissingTransitions\":")
+            .append(recordedTransitionCount(report.recordedLiveAssociationFrames, TargetAssociationState.TemporarilyMissing))
+        append(",\"recordedLiveAmbiguousTransitions\":")
+            .append(recordedTransitionCount(report.recordedLiveAssociationFrames, TargetAssociationState.Ambiguous))
+        append(",\"recordedLiveLostTransitions\":")
+            .append(recordedTransitionCount(report.recordedLiveAssociationFrames, TargetAssociationState.Lost))
+        append(",\"recordedLiveAssociationTransitions\":[")
+        recordedAssociationTransitions(report.recordedLiveAssociationFrames).forEachIndexed { index, transition ->
+            if (index > 0) append(',')
+            append("{\"frameSequence\":").append(transition.frame.frameSequence)
+            append(",\"sourceTimestampNanos\":").append(transition.frame.sourceTimestampNanos)
+            append(",\"from\":\"").append(transition.from.name).append('"')
+            append(",\"to\":\"").append(transition.frame.state.name).append("\"}")
+        }
+        append(']')
         append(",\"models\":[")
         report.models.forEachIndexed { modelIndex, model ->
             if (modelIndex > 0) append(',')
@@ -405,6 +492,9 @@ object VisionComparisonReportJson {
             append(",\"p95\":").append(timing.p95Nanos)
             append(",\"max\":").append(timing.maxNanos).append('}')
             append(",\"effectiveFps\":").append(timing.effectiveFps)
+            append(",\"associationEvaluationValid\":").append(report.associationEvaluationValid)
+            append(",\"associationEvaluationWarning\":")
+            report.associationEvaluationWarning?.let { append('"'); escaped(it); append('"') } ?: append("null")
             append(",\"missingTransitions\":").append(transitionCount(model.frames, TargetAssociationState.TemporarilyMissing))
             append(",\"ambiguousTransitions\":").append(transitionCount(model.frames, TargetAssociationState.Ambiguous))
             append(",\"lostTransitions\":").append(transitionCount(model.frames, TargetAssociationState.Lost))
@@ -457,6 +547,23 @@ object VisionComparisonReportJson {
         val frame: VisionReplayFrameResult,
     )
 
+    private fun recordedTransitionCount(
+        frames: List<VisionRecordedAssociationFrame>,
+        state: TargetAssociationState,
+    ): Int = recordedAssociationTransitions(frames).count { it.frame.state == state }
+
+    private fun recordedAssociationTransitions(
+        frames: List<VisionRecordedAssociationFrame>,
+    ): List<RecordedAssociationTransition> = frames.mapIndexedNotNull { index, frame ->
+        val previous = frames.getOrNull(index - 1)?.state ?: TargetAssociationState.None
+        if (frame.state == previous) null else RecordedAssociationTransition(previous, frame)
+    }
+
+    private data class RecordedAssociationTransition(
+        val from: TargetAssociationState,
+        val frame: VisionRecordedAssociationFrame,
+    )
+
     private fun StringBuilder.detections(values: List<PersonDetection>) {
         append('[')
         values.forEachIndexed { index, detection ->
@@ -471,8 +578,12 @@ object VisionComparisonReportJson {
 
     private fun StringBuilder.stringField(name: String, value: String) {
         append('"').append(name).append("\":\"")
-        value.forEach { if (it == '"' || it == '\\') append('\\'); append(it) }
+        escaped(value)
         append('"')
+    }
+
+    private fun StringBuilder.escaped(value: String) {
+        value.forEach { if (it == '"' || it == '\\') append('\\'); append(it) }
     }
 }
 
@@ -577,3 +688,9 @@ private fun Map<String, Any?>.boolean(name: String) = required(name) as? Boolean
     ?: throw MalformedVisionSessionException("$name must be boolean")
 private fun Map<String, Any?>.array(name: String) = required(name) as? List<*>
     ?: throw MalformedVisionSessionException("$name must be an array")
+private fun Map<String, Any?>.optionalLong(name: String) = get(name)?.let {
+    (it as? Number)?.toLong() ?: throw MalformedVisionSessionException("$name must be a number")
+}
+private fun Map<String, Any?>.optionalString(name: String) = get(name)?.let {
+    it as? String ?: throw MalformedVisionSessionException("$name must be a string")
+}

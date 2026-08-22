@@ -60,7 +60,11 @@ internal class DebugVisionReplayManager(private val context: Context) {
                 selected?.archive?.takeIf { it != destination }?.delete()
                 selected = opened
                 lastReportJson = null
-                VisionSessionSelection(opened.manifest.capturedFrameCount, opened.manifest.droppedFrameCount)
+                VisionSessionSelection(
+                    opened.manifest.capturedFrameCount,
+                    opened.manifest.droppedFrameCount,
+                    opened.associationEvaluation().valid,
+                )
             }
             withContext(Dispatchers.Main) { callback(result) }
         }
@@ -75,9 +79,23 @@ internal class DebugVisionReplayManager(private val context: Context) {
         scope.launch {
             val result = runCatching {
                 val models = DEBUG_REPLAY_MODELS.map { runModel(session, it) }
+                val evaluation = session.associationEvaluation()
                 VisionComparisonReport(
                     sessionFrameCount = session.manifest.capturedFrameCount,
                     sessionDroppedFrameCount = session.manifest.droppedFrameCount,
+                    sessionExcludedAfterLimitFrameCount = session.manifest.excludedAfterLimitFrameCount,
+                    captureStartReason = session.manifest.captureStartReason,
+                    associationEvaluationValid = evaluation.valid,
+                    associationEvaluationWarning = evaluation.warning,
+                    recordedLiveAssociationFrames = session.orderedFrames.mapNotNull { frame ->
+                        session.traceSeeds[frame.frameSequence to frame.sourceTimestampNanos]?.let { seed ->
+                            VisionRecordedAssociationFrame(
+                                seed.frameSequence,
+                                seed.sourceTimestampNanos,
+                                seed.associationState,
+                            )
+                        }
+                    },
                     models = models,
                 ).also { lastReportJson = VisionComparisonReportJson.encode(it) }
             }

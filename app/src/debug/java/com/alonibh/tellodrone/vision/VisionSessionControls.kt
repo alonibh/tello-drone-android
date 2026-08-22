@@ -25,7 +25,9 @@ import androidx.compose.ui.unit.dp
 fun VisionSessionControls() {
     val context = LocalContext.current
     val replay = remember { DebugVisionReplayManager(context.applicationContext) }
-    var status by remember { mutableStateOf("Capture is active while person detection analyzes frames.") }
+    var status by remember {
+        mutableStateOf("Capture is active. Selecting a target starts a fresh 90-second tracking session.")
+    }
     var sessionSelected by remember { mutableStateOf(false) }
     var reportReady by remember { mutableStateOf(false) }
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
@@ -39,7 +41,9 @@ fun VisionSessionControls() {
             VisionTraceFeature.exportSession(context, it.toString()) { result ->
                 update(result.fold(
                     onSuccess = { exported ->
-                        "Exported ${exported.capturedFrameCount} frames (${exported.droppedFrameCount} dropped)."
+                        "Exported ${exported.capturedFrameCount} frames " +
+                            "(${exported.droppedFrameCount} dropped, " +
+                            "${exported.excludedAfterLimitFrameCount} after limit)."
                     },
                     onFailure = { error -> "Session export failed: ${error.message ?: error.javaClass.simpleName}" },
                 ))
@@ -55,7 +59,10 @@ fun VisionSessionControls() {
                 result.onSuccess { selected ->
                     sessionSelected = true
                     reportReady = false
-                    status = "Selected ${selected.frameCount} frames (${selected.droppedFrameCount} capture drops)."
+                    status = "Selected ${selected.frameCount} frames (${selected.droppedFrameCount} capture drops). " +
+                        if (selected.associationEvaluationValid) "Association replay is complete." else {
+                            "Association replay will be flagged incomplete."
+                        }
                 }.onFailure { error ->
                     sessionSelected = false
                     reportReady = false

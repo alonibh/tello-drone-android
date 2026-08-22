@@ -18,19 +18,40 @@ import org.junit.Test
 
 class VisionSessionTest {
     @Test fun `manifest round trip preserves frame and drop accounting`() {
-        val manifest = manifest(listOf(frame(1, 7, 70)), dropped = 3)
+        val manifest = manifest(
+            listOf(frame(1, 7, 70)),
+            dropped = 3,
+            excludedAfterLimit = 9,
+            startReason = VisionCaptureStartReason.TargetSelected,
+        )
         assertEquals(manifest, VisionSessionManifestJson.decode(VisionSessionManifestJson.encode(manifest)))
+    }
+
+    @Test fun `legacy manifest imports conservatively as unanchored capture`() {
+        val current = VisionSessionManifestJson.encode(manifest(listOf(frame(1, 7, 70))))
+        val legacy = current
+            .replace("\"schemaVersion\":2", "\"schemaVersion\":1")
+            .replace(",\"excludedAfterLimitFrameCount\":0", "")
+            .replace(",\"captureStartReason\":\"DetectionStarted\"", "")
+        val decoded = VisionSessionManifestJson.decode(legacy)
+        assertEquals(1, decoded.schemaVersion)
+        assertEquals(VisionCaptureStartReason.Legacy, decoded.captureStartReason)
+        assertEquals(0L, decoded.excludedAfterLimitFrameCount)
     }
 
     @Test fun `capture limiter enforces both frame and duration bounds`() {
         val limiter = VisionCaptureLimiter(maxFrames = 2, maxDurationNanos = 100)
-        assertTrue(limiter.tryReserve(1_000))
-        assertTrue(limiter.tryReserve(1_100))
-        assertFalse(limiter.tryReserve(1_101))
+        assertEquals(VisionCaptureReservation.Accepted, limiter.reserve(1_000))
+        assertEquals(VisionCaptureReservation.Accepted, limiter.reserve(1_100))
+        assertEquals(VisionCaptureReservation.FrameLimitReached, limiter.reserve(1_101))
         assertEquals(2, limiter.acceptedCount())
         limiter.reset()
-        assertTrue(limiter.tryReserve(5_000))
-        assertFalse(limiter.tryReserve(4_999))
+        assertEquals(VisionCaptureReservation.Accepted, limiter.reserve(5_000))
+        assertEquals(VisionCaptureReservation.InvalidTimestamp, limiter.reserve(4_999))
+
+        val durationLimited = VisionCaptureLimiter(maxFrames = 3, maxDurationNanos = 100)
+        assertEquals(VisionCaptureReservation.Accepted, durationLimited.reserve(1_000))
+        assertEquals(VisionCaptureReservation.DurationLimitReached, durationLimited.reserve(1_101))
     }
 
     @Test fun `drop counter restores drops when bounded queue rejects a pair`() {
@@ -85,8 +106,25 @@ class VisionSessionTest {
         assertEquals(10, timing.minNanos)
         assertEquals(20, timing.p50Nanos)
         assertEquals(30, timing.p95Nanos)
-        val json = VisionComparisonReportJson.encode(VisionComparisonReport(sessionFrameCount = 3, sessionDroppedFrameCount = 4, models = listOf(model)))
+        val json = VisionComparisonReportJson.encode(VisionComparisonReport(
+            sessionFrameCount = 3,
+            sessionDroppedFrameCount = 4,
+            sessionExcludedAfterLimitFrameCount = 7,
+            captureStartReason = VisionCaptureStartReason.TargetSelected,
+            associationEvaluationValid = false,
+            associationEvaluationWarning = "capture is incomplete",
+            recordedLiveAssociationFrames = listOf(
+                VisionRecordedAssociationFrame(1, 100, TargetAssociationState.Matched),
+                VisionRecordedAssociationFrame(2, 200, TargetAssociationState.TemporarilyMissing),
+                VisionRecordedAssociationFrame(3, 300, TargetAssociationState.Lost),
+            ),
+            models = listOf(model),
+        ))
         assertTrue(json.contains("\"missingTransitions\":1"))
+        assertTrue(json.contains("\"recordedLiveMissingTransitions\":1"))
+        assertTrue(json.contains("\"recordedLiveLostTransitions\":1"))
+        assertTrue(json.contains("\"associationEvaluationValid\":false"))
+        assertTrue(json.contains("\"sessionExcludedAfterLimitFrameCount\":7"))
         assertTrue(json.contains("\"duplicateDetections\":2"))
         assertTrue(json.contains("\"identitySwitchSafetyViolation\":true"))
         assertTrue(json.contains("\"acceptedDetectionCount\":1"))
@@ -113,6 +151,47 @@ class VisionSessionTest {
         )
     }
 
+    @Test fun `selection before first stored frame is applied before that frame association`() {
+        val replay = VisionReplayAssociation()
+        val selected = trackedTarget(selectedFrame = 1, selectedTimestamp = 1_000_000_000)
+        val firstStored = replay.evaluate(
+            frameSequence = 2,
+            sourceTimestampNanos = 1_100_000_000,
+            detections = emptyList(),
+            recordedSelection = selected,
+        )
+        assertEquals(TargetAssociationState.TemporarilyMissing, firstStored.state)
+    }
+
+    @Test fun `association evaluation requires target anchored complete capture`() {
+        val selected = trackedTarget(selectedFrame = 1, selectedTimestamp = 10)
+        val captured = frame(1, 2, 20)
+        val completeArchive = sessionZip(
+            manifest(
+                listOf(captured),
+                startReason = VisionCaptureStartReason.TargetSelected,
+            ),
+            listOf(trace(captured, selected, TargetAssociationState.Matched)),
+        )
+        val droppedArchive = sessionZip(
+            manifest(
+                listOf(captured),
+                dropped = 1,
+                startReason = VisionCaptureStartReason.TargetSelected,
+            ),
+            listOf(trace(captured, selected, TargetAssociationState.Matched)),
+        )
+        try {
+            assertTrue(VisionSessionArchive.open(completeArchive).associationEvaluation().valid)
+            val incomplete = VisionSessionArchive.open(droppedArchive).associationEvaluation()
+            assertFalse(incomplete.valid)
+            assertTrue(incomplete.warning!!.contains("1 analyzed frame"))
+        } finally {
+            completeArchive.delete()
+            droppedArchive.delete()
+        }
+    }
+
     @Test fun `production detector configuration remains Lite0 CPU point fifty five`() {
         assertEquals(DetectorModel.EfficientDetLite0, DetectorModel.Default)
         assertEquals(DetectorModel.EfficientDetLite0, ProductionPersonDetectorConfiguration.model)
@@ -125,9 +204,16 @@ class VisionSessionTest {
         assertTrue(DEBUG_REPLAY_MODELS.all { it.quantization.startsWith("INT8") })
     }
 
-    private fun manifest(frames: List<VisionSessionFrameEntry>, dropped: Long = 0) = VisionSessionManifest(
+    private fun manifest(
+        frames: List<VisionSessionFrameEntry>,
+        dropped: Long = 0,
+        excludedAfterLimit: Long = 0,
+        startReason: VisionCaptureStartReason = VisionCaptureStartReason.DetectionStarted,
+    ) = VisionSessionManifest(
         capturedFrameCount = frames.size,
         droppedFrameCount = dropped,
+        excludedAfterLimitFrameCount = excludedAfterLimit,
+        captureStartReason = startReason,
         frames = frames,
     )
 
@@ -140,7 +226,11 @@ class VisionSessionTest {
         height = 360,
     )
 
-    private fun trace(frame: VisionSessionFrameEntry): String = VisionTraceJson.encode(
+    private fun trace(
+        frame: VisionSessionFrameEntry,
+        selectedTarget: TrackedTarget? = null,
+        state: TargetAssociationState = TargetAssociationState.None,
+    ): String = VisionTraceJson.encode(
         VisionTraceFrame(
             frameSequence = frame.frameSequence,
             sourceTimestampNanos = frame.sourceTimestampNanos,
@@ -150,9 +240,9 @@ class VisionSessionTest {
             inferenceMillis = 10,
             candidates = emptyList(),
             detections = emptyList(),
-            selectedTargetBefore = null,
-            selectedTargetAfter = null,
-            associationState = TargetAssociationState.None,
+            selectedTargetBefore = selectedTarget,
+            selectedTargetAfter = selectedTarget,
+            associationState = state,
             associationDiagnostics = null,
         ),
         droppedBeforeFrame = 0,

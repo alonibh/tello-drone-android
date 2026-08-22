@@ -30,6 +30,8 @@ interface VisionTraceRecorder {
     val capturesFrames: Boolean
     /** Called while the decoded-frame lease is valid; debug implementations must detach it. */
     fun captureAnalyzedFrame(frameSequence: Long, sourceTimestampNanos: Long, bitmap: Bitmap) = Unit
+    /** Starts a fresh diagnostic epoch at the explicit user-selection boundary. */
+    fun onTargetSelected(target: TrackedTarget) = Unit
     fun record(frame: VisionTraceFrame)
     fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit)
 }

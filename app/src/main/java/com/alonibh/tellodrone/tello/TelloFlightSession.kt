@@ -419,8 +419,10 @@ class TelloFlightSession(
         dryRunPlanner.reset()
         lastPlannerFrameTimestampNanos = detection.sourceTimestampNanos
         val errors = trackingErrors.update(target, targetFresh = true)
+        var selectionAccepted = false
         mutableState.update { state ->
             if (!state.isSelectableRealDetection(detection, latestAcceptedDetectorFrame, nowNanos)) state else {
+                selectionAccepted = true
                 state.copy(
                     tracking = TrackingMode.TargetLocked,
                     authority = ControlAuthority.Manual,
@@ -435,6 +437,7 @@ class TelloFlightSession(
                 )
             }
         }
+        if (selectionAccepted) visionTrace.onTargetSelected(target)
         reconcileYawFollow()
     }
 
