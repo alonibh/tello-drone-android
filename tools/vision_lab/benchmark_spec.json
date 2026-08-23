@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "canonical_fps": 5.0,
   "videos": [
     {
@@ -34,6 +34,40 @@
       "target_description": "shirtless player in dark shorts at the foreground/lower-left at the start",
       "tuning_intervals_s": [[0.0, 8.0], [12.0, 16.0]],
       "held_out_intervals_s": [[8.0, 12.0], [16.0, 19.9]]
+    },
+    {
+      "id": "courtyard_single_a",
+      "filename": "Photos-1-001 (1)/20260823164928.mp4",
+      "sha256": "360276e441244d820e84641d64eecdac87d7716ff0c42b0858068f1c2aa6f334",
+      "selection_time_s": 3.0,
+      "selection_box_norm": [0.35, 0.02, 0.57, 0.96],
+      "manual_invisible_canonical_ranges": [[178, 207]],
+      "target_description": "the only visible person",
+      "tuning_intervals_s": [[3.0, 20.0], [35.0, 45.0]],
+      "held_out_intervals_s": [[20.0, 35.0], [45.0, 59.4]]
+    },
+    {
+      "id": "courtyard_single_b",
+      "filename": "Photos-1-001 (1)/20260823165219.mp4",
+      "sha256": "bef22f0823f65ec001be6dae6c797e7a3ff918306da74fb2a5f06a3010f19e0e",
+      "selection_time_s": 0.0,
+      "selection_box_norm": [0.39, 0.02, 0.57, 0.96],
+      "manual_invisible_canonical_ranges": [],
+      "target_description": "the only visible person",
+      "tuning_intervals_s": [[0.0, 20.0], [35.0, 50.0]],
+      "held_out_intervals_s": [[20.0, 35.0], [50.0, 65.7]]
+    },
+    {
+      "id": "courtyard_competitor",
+      "filename": "Photos-1-001 (1)/20260823165504.mp4",
+      "sha256": "4a1de97ac0e58994921fecee7761a696877fe785e6ccbe0a85cb4a7b4d7a9b59",
+      "selection_time_s": 0.0,
+      "selection_box_norm": [0.56, 0.02, 0.70, 0.96],
+      "manual_invisible_canonical_ranges": [],
+      "manual_fixed_appearance_detection_ranges": [[132, 135], [176, 223], [243, 254], [269, 271]],
+      "target_description": "shirtless man wearing white shorts; the woman is a competitor",
+      "tuning_intervals_s": [[0.0, 18.0], [32.0, 45.0]],
+      "held_out_intervals_s": [[18.0, 32.0], [45.0, 59.0]]
     }
   ]
 }

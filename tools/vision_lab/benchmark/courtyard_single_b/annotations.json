@@ -1,0 +1,5948 @@
+[
+  {
+    "canonical_index": 0,
+    "timestamp_s": 0.0,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4220987319946289,
+      0.17247871822781033,
+      0.5209625244140625,
+      0.7589518229166666
+    ],
+    "bootstrap_confidence": 0.903856,
+    "bootstrap_appearance": 1.0,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 1,
+    "timestamp_s": 0.216469,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4271836280822754,
+      0.16719317966037325,
+      0.5267772674560547,
+      0.7499772813585069
+    ],
+    "bootstrap_confidence": 0.9089,
+    "bootstrap_appearance": 0.987259,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 2,
+    "timestamp_s": 0.389644,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4277641773223877,
+      0.16583726671006943,
+      0.5260862827301025,
+      0.755487569173177
+    ],
+    "bootstrap_confidence": 0.898217,
+    "bootstrap_appearance": 0.976483,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 3,
+    "timestamp_s": 0.606113,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42626705169677737,
+      0.16591915554470485,
+      0.523762321472168,
+      0.7533429463704427
+    ],
+    "bootstrap_confidence": 0.904039,
+    "bootstrap_appearance": 0.962253,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 4,
+    "timestamp_s": 0.779288,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42574367523193357,
+      0.1621030807495117,
+      0.5231332778930664,
+      0.7472127278645834
+    ],
+    "bootstrap_confidence": 0.895101,
+    "bootstrap_appearance": 0.954003,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 5,
+    "timestamp_s": 0.995756,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43191089630126955,
+      0.16487689548068576,
+      0.529079818725586,
+      0.7517549302842882
+    ],
+    "bootstrap_confidence": 0.903344,
+    "bootstrap_appearance": 0.94453,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 6,
+    "timestamp_s": 1.212225,
+    "target_visible": true,
+    "target_box_norm": [
+      0.431611442565918,
+      0.18581839667426214,
+      0.5288761138916016,
+      0.7752397325303819
+    ],
+    "bootstrap_confidence": 0.902882,
+    "bootstrap_appearance": 0.953105,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 7,
+    "timestamp_s": 1.3854,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43136253356933596,
+      0.1850084940592448,
+      0.5300531387329102,
+      0.7710775587293837
+    ],
+    "bootstrap_confidence": 0.898769,
+    "bootstrap_appearance": 0.942701,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 8,
+    "timestamp_s": 1.601869,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4273242950439453,
+      0.17888209025065105,
+      0.5266201019287109,
+      0.7618831210666233
+    ],
+    "bootstrap_confidence": 0.909443,
+    "bootstrap_appearance": 0.949648,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 9,
+    "timestamp_s": 1.818338,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44496307373046873,
+      0.18699425591362848,
+      0.5737595558166504,
+      0.7817938910590277
+    ],
+    "bootstrap_confidence": 0.902689,
+    "bootstrap_appearance": 0.929804,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 10,
+    "timestamp_s": 1.991513,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44969544410705564,
+      0.18675382402208116,
+      0.5738988399505616,
+      0.790087890625
+    ],
+    "bootstrap_confidence": 0.900869,
+    "bootstrap_appearance": 0.921677,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 11,
+    "timestamp_s": 2.207982,
+    "target_visible": true,
+    "target_box_norm": [
+      0.45552492141723633,
+      0.18020915985107422,
+      0.5760926246643067,
+      0.7840457492404513
+    ],
+    "bootstrap_confidence": 0.896919,
+    "bootstrap_appearance": 0.948786,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 12,
+    "timestamp_s": 2.381157,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48231306076049807,
+      0.18130552503797742,
+      0.5972580909729004,
+      0.7861094156901042
+    ],
+    "bootstrap_confidence": 0.895333,
+    "bootstrap_appearance": 0.931011,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 13,
+    "timestamp_s": 2.597625,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5123018264770508,
+      0.19558029174804686,
+      0.6186988830566407,
+      0.821543714735243
+    ],
+    "bootstrap_confidence": 0.891046,
+    "bootstrap_appearance": 0.882945,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 14,
+    "timestamp_s": 2.814094,
+    "target_visible": true,
+    "target_box_norm": [
+      0.537332820892334,
+      0.19453546735975477,
+      0.643988037109375,
+      0.8480887518988716
+    ],
+    "bootstrap_confidence": 0.888199,
+    "bootstrap_appearance": 0.926283,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 15,
+    "timestamp_s": 2.987269,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5594086170196533,
+      0.19003870222303604,
+      0.6608535289764405,
+      0.8469758775499132
+    ],
+    "bootstrap_confidence": 0.886276,
+    "bootstrap_appearance": 0.904905,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 16,
+    "timestamp_s": 3.203738,
+    "target_visible": true,
+    "target_box_norm": [
+      0.569060230255127,
+      0.19276538425021703,
+      0.6718935966491699,
+      0.8469517178005642
+    ],
+    "bootstrap_confidence": 0.890324,
+    "bootstrap_appearance": 0.899035,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 17,
+    "timestamp_s": 3.420207,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5895909786224365,
+      0.1864436467488607,
+      0.7247282505035401,
+      0.845961422390408
+    ],
+    "bootstrap_confidence": 0.887565,
+    "bootstrap_appearance": 0.855754,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 18,
+    "timestamp_s": 3.593382,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7006767272949219,
+      0.20840666029188368,
+      0.8388948440551758,
+      0.8773775736490885
+    ],
+    "bootstrap_confidence": 0.908159,
+    "bootstrap_appearance": 0.895171,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 19,
+    "timestamp_s": 3.80985,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7560090065002442,
+      0.19963319566514756,
+      0.8793238639831543,
+      0.8732473585340712
+    ],
+    "bootstrap_confidence": 0.904845,
+    "bootstrap_appearance": 0.871061,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 20,
+    "timestamp_s": 3.983026,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7830461502075196,
+      0.20610086652967666,
+      0.8915304183959961,
+      0.8888304816351996
+    ],
+    "bootstrap_confidence": 0.899009,
+    "bootstrap_appearance": 0.828128,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 21,
+    "timestamp_s": 4.199494,
+    "target_visible": true,
+    "target_box_norm": [
+      0.8020679473876953,
+      0.2011176215277778,
+      0.9162437438964843,
+      0.9354339599609375
+    ],
+    "bootstrap_confidence": 0.893287,
+    "bootstrap_appearance": 0.849257,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 22,
+    "timestamp_s": 4.415963,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7641363620758057,
+      0.24661259121365017,
+      0.8704763412475586,
+      0.5374590131971572
+    ],
+    "bootstrap_confidence": 0.584756,
+    "bootstrap_appearance": 0.773677,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "small appearance margin"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 23,
+    "timestamp_s": 4.589138,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5398483276367188,
+      0.18350465562608506,
+      0.6544342041015625,
+      0.9074178059895833
+    ],
+    "bootstrap_confidence": 0.890406,
+    "bootstrap_appearance": 0.84153,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 24,
+    "timestamp_s": 4.805607,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5686074733734131,
+      0.17726084391276042,
+      0.6774739742279052,
+      0.881311543782552
+    ],
+    "bootstrap_confidence": 0.884691,
+    "bootstrap_appearance": 0.840869,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 25,
+    "timestamp_s": 4.978782,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5683453559875489,
+      0.17663887871636286,
+      0.7190110206604003,
+      0.8810273064507379
+    ],
+    "bootstrap_confidence": 0.914174,
+    "bootstrap_appearance": 0.797437,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 26,
+    "timestamp_s": 5.195251,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5299641609191894,
+      0.20828482309977214,
+      0.6878809928894043,
+      0.8953486124674479
+    ],
+    "bootstrap_confidence": 0.914252,
+    "bootstrap_appearance": 0.830281,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 27,
+    "timestamp_s": 5.411719,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5485324859619141,
+      0.1793150160047743,
+      0.695180606842041,
+      0.8927566528320312
+    ],
+    "bootstrap_confidence": 0.89857,
+    "bootstrap_appearance": 0.81748,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 28,
+    "timestamp_s": 5.584894,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6088933944702148,
+      0.1707043965657552,
+      0.7170604705810547,
+      0.925799560546875
+    ],
+    "bootstrap_confidence": 0.901986,
+    "bootstrap_appearance": 0.820926,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 29,
+    "timestamp_s": 5.801363,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4940036296844482,
+      0.1899346245659722,
+      0.6205185413360595,
+      0.9362904866536458
+    ],
+    "bootstrap_confidence": 0.899174,
+    "bootstrap_appearance": 0.782251,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 30,
+    "timestamp_s": 6.017832,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5371263504028321,
+      0.18414459228515626,
+      0.6594886779785156,
+      0.9561199612087674
+    ],
+    "bootstrap_confidence": 0.895622,
+    "bootstrap_appearance": 0.774999,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 31,
+    "timestamp_s": 6.191007,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5339113235473633,
+      0.21333431667751737,
+      0.6497453689575196,
+      0.9767474704318576
+    ],
+    "bootstrap_confidence": 0.890076,
+    "bootstrap_appearance": 0.742367,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 32,
+    "timestamp_s": 6.407476,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5602277755737305,
+      0.1867250230577257,
+      0.7022029876708984,
+      0.9670938279893663
+    ],
+    "bootstrap_confidence": 0.90366,
+    "bootstrap_appearance": 0.741034,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 33,
+    "timestamp_s": 6.580651,
+    "target_visible": true,
+    "target_box_norm": [
+      0.37081449031829833,
+      0.1879534403483073,
+      0.524871826171875,
+      0.9760422600640191
+    ],
+    "bootstrap_confidence": 0.904584,
+    "bootstrap_appearance": 0.711344,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 34,
+    "timestamp_s": 6.79712,
+    "target_visible": true,
+    "target_box_norm": [
+      0.36258578300476074,
+      0.23562240600585938,
+      0.4905829906463623,
+      0.994215562608507
+    ],
+    "bootstrap_confidence": 0.899306,
+    "bootstrap_appearance": 0.709599,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 35,
+    "timestamp_s": 7.013588,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3680709362030029,
+      0.2083401150173611,
+      0.49512667655944825,
+      0.9832787407769097
+    ],
+    "bootstrap_confidence": 0.93124,
+    "bootstrap_appearance": 0.697461,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 36,
+    "timestamp_s": 7.186763,
+    "target_visible": true,
+    "target_box_norm": [
+      0.37126133441925047,
+      0.1967389424641927,
+      0.5018198966979981,
+      0.9868914286295573
+    ],
+    "bootstrap_confidence": 0.941685,
+    "bootstrap_appearance": 0.693288,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 37,
+    "timestamp_s": 7.403232,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3915572166442871,
+      0.20498682657877604,
+      0.5275390625,
+      0.9744115193684896
+    ],
+    "bootstrap_confidence": 0.923406,
+    "bootstrap_appearance": 0.700108,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 38,
+    "timestamp_s": 7.619701,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3615618944168091,
+      0.2004649692111545,
+      0.5022494316101074,
+      0.995410664876302
+    ],
+    "bootstrap_confidence": 0.918534,
+    "bootstrap_appearance": 0.723578,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 39,
+    "timestamp_s": 7.792876,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42324371337890626,
+      0.20092748006184896,
+      0.5648483276367188,
+      0.9889483133951823
+    ],
+    "bootstrap_confidence": 0.91042,
+    "bootstrap_appearance": 0.718742,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 40,
+    "timestamp_s": 8.009345,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6128097534179687,
+      0.20731786092122395,
+      0.7578664779663086,
+      0.9929413689507378
+    ],
+    "bootstrap_confidence": 0.906729,
+    "bootstrap_appearance": 0.672179,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 41,
+    "timestamp_s": 8.18252,
+    "target_visible": true,
+    "target_box_norm": [
+      0.609372329711914,
+      0.2243514166937934,
+      0.751920223236084,
+      0.9929185655381945
+    ],
+    "bootstrap_confidence": 0.91229,
+    "bootstrap_appearance": 0.659616,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 42,
+    "timestamp_s": 8.398989,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5433758735656739,
+      0.20568339029947916,
+      0.7157984733581543,
+      0.9970230102539063
+    ],
+    "bootstrap_confidence": 0.890563,
+    "bootstrap_appearance": 0.652287,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 43,
+    "timestamp_s": 8.615457,
+    "target_visible": true,
+    "target_box_norm": [
+      0.558471393585205,
+      0.22842042711046007,
+      0.7065610885620117,
+      0.9965367635091146
+    ],
+    "bootstrap_confidence": 0.890422,
+    "bootstrap_appearance": 0.664142,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 44,
+    "timestamp_s": 8.788632,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6184511184692383,
+      0.2257089402940538,
+      0.7638460159301758,
+      0.9956869337293837
+    ],
+    "bootstrap_confidence": 0.915074,
+    "bootstrap_appearance": 0.687575,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 45,
+    "timestamp_s": 9.005101,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6280992507934571,
+      0.2192109849717882,
+      0.7645267486572266,
+      0.9934452480740017
+    ],
+    "bootstrap_confidence": 0.897362,
+    "bootstrap_appearance": 0.712078,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 46,
+    "timestamp_s": 9.22157,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5416428565979003,
+      0.22043575710720487,
+      0.6768845558166504,
+      0.9952277289496527
+    ],
+    "bootstrap_confidence": 0.921073,
+    "bootstrap_appearance": 0.789829,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 47,
+    "timestamp_s": 9.394745,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4930298328399658,
+      0.14172236124674478,
+      0.6145600795745849,
+      0.9285610622829861
+    ],
+    "bootstrap_confidence": 0.913294,
+    "bootstrap_appearance": 0.767403,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 48,
+    "timestamp_s": 9.611214,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48614015579223635,
+      0.23064049614800347,
+      0.605469799041748,
+      0.9797982109917535
+    ],
+    "bootstrap_confidence": 0.887245,
+    "bootstrap_appearance": 0.780204,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 49,
+    "timestamp_s": 9.784389,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4829228401184082,
+      0.1797331068250868,
+      0.591754150390625,
+      0.9191257900661892
+    ],
+    "bootstrap_confidence": 0.885903,
+    "bootstrap_appearance": 0.793115,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 50,
+    "timestamp_s": 10.000858,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4911831855773926,
+      0.20666450924343532,
+      0.6086213111877441,
+      0.887662590874566
+    ],
+    "bootstrap_confidence": 0.882098,
+    "bootstrap_appearance": 0.799035,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 51,
+    "timestamp_s": 10.217326,
+    "target_visible": true,
+    "target_box_norm": [
+      0.46787052154541015,
+      0.13641153971354167,
+      0.5794633865356446,
+      0.8228019714355469
+    ],
+    "bootstrap_confidence": 0.921913,
+    "bootstrap_appearance": 0.797551,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 52,
+    "timestamp_s": 10.390501,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4568472862243652,
+      0.1584133572048611,
+      0.5523954391479492,
+      0.757843017578125
+    ],
+    "bootstrap_confidence": 0.874896,
+    "bootstrap_appearance": 0.876799,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 53,
+    "timestamp_s": 10.60697,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4539684295654297,
+      0.1758907953898112,
+      0.5385516166687012,
+      0.7536046346028645
+    ],
+    "bootstrap_confidence": 0.851739,
+    "bootstrap_appearance": 0.896768,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 54,
+    "timestamp_s": 10.780145,
+    "target_visible": true,
+    "target_box_norm": [
+      0.411045503616333,
+      0.18091161515977647,
+      0.5143226146697998,
+      0.7330252753363715
+    ],
+    "bootstrap_confidence": 0.909057,
+    "bootstrap_appearance": 0.864438,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 55,
+    "timestamp_s": 10.996614,
+    "target_visible": true,
+    "target_box_norm": [
+      0.40250582695007325,
+      0.18747965494791666,
+      0.5008142948150635,
+      0.7546657138400608
+    ],
+    "bootstrap_confidence": 0.890193,
+    "bootstrap_appearance": 0.863503,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 56,
+    "timestamp_s": 11.213083,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4028800964355469,
+      0.19812342325846355,
+      0.49676990509033203,
+      0.7856847127278646
+    ],
+    "bootstrap_confidence": 0.900221,
+    "bootstrap_appearance": 0.853222,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 57,
+    "timestamp_s": 11.386258,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42426042556762694,
+      0.20486024220784504,
+      0.5283030509948731,
+      0.8331793891059027
+    ],
+    "bootstrap_confidence": 0.90499,
+    "bootstrap_appearance": 0.83462,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 58,
+    "timestamp_s": 11.602726,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42580204010009765,
+      0.19669460720486112,
+      0.5309352874755859,
+      0.8382370842827691
+    ],
+    "bootstrap_confidence": 0.905941,
+    "bootstrap_appearance": 0.845236,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 59,
+    "timestamp_s": 11.819195,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42684526443481446,
+      0.20237221188015408,
+      0.548453426361084,
+      0.8442477756076389
+    ],
+    "bootstrap_confidence": 0.919575,
+    "bootstrap_appearance": 0.834705,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 60,
+    "timestamp_s": 11.99237,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3536945343017578,
+      0.15261128743489583,
+      0.5040555000305176,
+      0.9115207248263889
+    ],
+    "bootstrap_confidence": 0.90212,
+    "bootstrap_appearance": 0.822282,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 61,
+    "timestamp_s": 12.208839,
+    "target_visible": true,
+    "target_box_norm": [
+      0.45585880279541013,
+      0.1753546608818902,
+      0.5393594741821289,
+      0.7635055541992187
+    ],
+    "bootstrap_confidence": 0.854652,
+    "bootstrap_appearance": 0.881396,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 62,
+    "timestamp_s": 12.382014,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42760343551635743,
+      0.2034844504462348,
+      0.5252364158630372,
+      0.7687249077690972
+    ],
+    "bootstrap_confidence": 0.877688,
+    "bootstrap_appearance": 0.88614,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 63,
+    "timestamp_s": 12.598483,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4053192138671875,
+      0.19719738430447048,
+      0.5017959594726562,
+      0.7530999077690972
+    ],
+    "bootstrap_confidence": 0.896231,
+    "bootstrap_appearance": 0.860281,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 64,
+    "timestamp_s": 12.814952,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4019230842590332,
+      0.19060100979275174,
+      0.496339225769043,
+      0.7731513129340277
+    ],
+    "bootstrap_confidence": 0.898814,
+    "bootstrap_appearance": 0.85755,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 65,
+    "timestamp_s": 12.988127,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4252768516540527,
+      0.19690142737494576,
+      0.528170108795166,
+      0.817857191297743
+    ],
+    "bootstrap_confidence": 0.914642,
+    "bootstrap_appearance": 0.839022,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 66,
+    "timestamp_s": 13.204595,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42546939849853516,
+      0.19655659993489583,
+      0.5309592247009277,
+      0.8281080457899306
+    ],
+    "bootstrap_confidence": 0.906628,
+    "bootstrap_appearance": 0.842718,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 67,
+    "timestamp_s": 13.421064,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42709951400756835,
+      0.19816784328884549,
+      0.5359984397888183,
+      0.8421426561143663
+    ],
+    "bootstrap_confidence": 0.908038,
+    "bootstrap_appearance": 0.852592,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 68,
+    "timestamp_s": 13.594239,
+    "target_visible": true,
+    "target_box_norm": [
+      0.37424042224884035,
+      0.17806972927517362,
+      0.5088952064514161,
+      0.9129606458875869
+    ],
+    "bootstrap_confidence": 0.916053,
+    "bootstrap_appearance": 0.819247,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 69,
+    "timestamp_s": 13.810708,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3146674633026123,
+      0.22174063788519965,
+      0.4945183277130127,
+      0.9853351169162327
+    ],
+    "bootstrap_confidence": 0.914051,
+    "bootstrap_appearance": 0.801261,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 70,
+    "timestamp_s": 13.983883,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3133840560913086,
+      0.20892757839626735,
+      0.48743429183959963,
+      0.9757619222005208
+    ],
+    "bootstrap_confidence": 0.922824,
+    "bootstrap_appearance": 0.839407,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 71,
+    "timestamp_s": 14.200352,
+    "target_visible": true,
+    "target_box_norm": [
+      0.29497604370117186,
+      0.19395412868923612,
+      0.43030405044555664,
+      0.9723185221354167
+    ],
+    "bootstrap_confidence": 0.900998,
+    "bootstrap_appearance": 0.845673,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 72,
+    "timestamp_s": 14.416821,
+    "target_visible": true,
+    "target_box_norm": [
+      0.29067244529724123,
+      0.19555748833550346,
+      0.421996021270752,
+      0.9792999267578125
+    ],
+    "bootstrap_confidence": 0.930143,
+    "bootstrap_appearance": 0.793838,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 73,
+    "timestamp_s": 14.589996,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3940676212310791,
+      0.2036037868923611,
+      0.51984543800354,
+      0.9324220445421006
+    ],
+    "bootstrap_confidence": 0.911589,
+    "bootstrap_appearance": 0.812958,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 74,
+    "timestamp_s": 14.806464,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3169294595718384,
+      0.1851162380642361,
+      0.49346370697021485,
+      0.9488222757975261
+    ],
+    "bootstrap_confidence": 0.912825,
+    "bootstrap_appearance": 0.802179,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 75,
+    "timestamp_s": 14.979639,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3131209135055542,
+      0.2290774875217014,
+      0.493135929107666,
+      0.9974397447374131
+    ],
+    "bootstrap_confidence": 0.917668,
+    "bootstrap_appearance": 0.803284,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 76,
+    "timestamp_s": 15.196108,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3060033321380615,
+      0.19507556491427952,
+      0.45793471336364744,
+      0.9767677307128906
+    ],
+    "bootstrap_confidence": 0.917027,
+    "bootstrap_appearance": 0.84796,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 77,
+    "timestamp_s": 15.412577,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2856307506561279,
+      0.18521584404839408,
+      0.4211896419525146,
+      0.9919031778971354
+    ],
+    "bootstrap_confidence": 0.929846,
+    "bootstrap_appearance": 0.817855,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 78,
+    "timestamp_s": 15.585752,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2836461067199707,
+      0.19572677612304687,
+      0.41974358558654784,
+      0.9923019409179688
+    ],
+    "bootstrap_confidence": 0.921162,
+    "bootstrap_appearance": 0.80982,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 79,
+    "timestamp_s": 15.802221,
+    "target_visible": true,
+    "target_box_norm": [
+      0.277858304977417,
+      0.200592041015625,
+      0.41362991333007815,
+      0.9853505452473958
+    ],
+    "bootstrap_confidence": 0.906508,
+    "bootstrap_appearance": 0.848225,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 80,
+    "timestamp_s": 16.01869,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2706614017486572,
+      0.22184278700086807,
+      0.41547436714172364,
+      0.9928699069552951
+    ],
+    "bootstrap_confidence": 0.913711,
+    "bootstrap_appearance": 0.869516,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 81,
+    "timestamp_s": 16.191865,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3391398906707764,
+      0.21109839545355902,
+      0.49170899391174316,
+      0.9954174465603298
+    ],
+    "bootstrap_confidence": 0.904071,
+    "bootstrap_appearance": 0.858272,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 82,
+    "timestamp_s": 16.408333,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3898608684539795,
+      0.2073243882921007,
+      0.5438645839691162,
+      0.9946294148763021
+    ],
+    "bootstrap_confidence": 0.914716,
+    "bootstrap_appearance": 0.846309,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 83,
+    "timestamp_s": 16.581508,
+    "target_visible": true,
+    "target_box_norm": [
+      0.46913795471191405,
+      0.22351981268988716,
+      0.6232694625854492,
+      0.9925137837727864
+    ],
+    "bootstrap_confidence": 0.876093,
+    "bootstrap_appearance": 0.746454,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 84,
+    "timestamp_s": 16.797977,
+    "target_visible": true,
+    "target_box_norm": [
+      0.277858304977417,
+      0.200592041015625,
+      0.41362991333007815,
+      0.9853505452473958
+    ],
+    "bootstrap_confidence": 0.906508,
+    "bootstrap_appearance": 0.848225,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 85,
+    "timestamp_s": 17.014446,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2706614017486572,
+      0.22184278700086807,
+      0.41547436714172364,
+      0.9928699069552951
+    ],
+    "bootstrap_confidence": 0.913711,
+    "bootstrap_appearance": 0.869516,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 86,
+    "timestamp_s": 17.187621,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3391398906707764,
+      0.21109839545355902,
+      0.49170899391174316,
+      0.9954174465603298
+    ],
+    "bootstrap_confidence": 0.904071,
+    "bootstrap_appearance": 0.858272,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 87,
+    "timestamp_s": 17.40409,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3898608684539795,
+      0.2073243882921007,
+      0.5438645839691162,
+      0.9946294148763021
+    ],
+    "bootstrap_confidence": 0.914716,
+    "bootstrap_appearance": 0.846309,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 88,
+    "timestamp_s": 17.620558,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5325343608856201,
+      0.2047971937391493,
+      0.6989882946014404,
+      0.9968151516384549
+    ],
+    "bootstrap_confidence": 0.928838,
+    "bootstrap_appearance": 0.698671,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 89,
+    "timestamp_s": 17.793734,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5487791061401367,
+      0.21154039171006944,
+      0.7007684707641602,
+      0.9959186130099826
+    ],
+    "bootstrap_confidence": 0.903508,
+    "bootstrap_appearance": 0.662836,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 90,
+    "timestamp_s": 18.010202,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5921588897705078,
+      0.19601821899414062,
+      0.7254528045654297,
+      0.9912910461425781
+    ],
+    "bootstrap_confidence": 0.906836,
+    "bootstrap_appearance": 0.679637,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 91,
+    "timestamp_s": 18.183377,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6037874221801758,
+      0.1912762959798177,
+      0.7276677131652832,
+      0.9184280395507812
+    ],
+    "bootstrap_confidence": 0.931744,
+    "bootstrap_appearance": 0.656248,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 92,
+    "timestamp_s": 18.399846,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6079943656921387,
+      0.19161834716796874,
+      0.727285099029541,
+      0.9230056762695312
+    ],
+    "bootstrap_confidence": 0.928254,
+    "bootstrap_appearance": 0.665956,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 93,
+    "timestamp_s": 18.616315,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6047814846038818,
+      0.18968514336480036,
+      0.727313756942749,
+      0.9129939609103732
+    ],
+    "bootstrap_confidence": 0.93659,
+    "bootstrap_appearance": 0.659507,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 94,
+    "timestamp_s": 18.78949,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6104579925537109,
+      0.19357070922851563,
+      0.7300403594970704,
+      0.9058270772298177
+    ],
+    "bootstrap_confidence": 0.941065,
+    "bootstrap_appearance": 0.666395,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 95,
+    "timestamp_s": 19.005959,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5891155242919922,
+      0.18696331448025175,
+      0.687569522857666,
+      0.7602525499131945
+    ],
+    "bootstrap_confidence": 0.897984,
+    "bootstrap_appearance": 0.658703,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 96,
+    "timestamp_s": 19.179134,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5792206764221192,
+      0.18556414710150826,
+      0.6697127342224121,
+      0.7643885294596354
+    ],
+    "bootstrap_confidence": 0.882889,
+    "bootstrap_appearance": 0.701957,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 97,
+    "timestamp_s": 19.395602,
+    "target_visible": true,
+    "target_box_norm": [
+      0.47886085510253906,
+      0.18677522871229385,
+      0.5921932220458984,
+      0.7272315131293403
+    ],
+    "bootstrap_confidence": 0.885004,
+    "bootstrap_appearance": 0.802058,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 98,
+    "timestamp_s": 19.612071,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4519230842590332,
+      0.19609883626302083,
+      0.5619112968444824,
+      0.7307884216308593
+    ],
+    "bootstrap_confidence": 0.872936,
+    "bootstrap_appearance": 0.8172,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 99,
+    "timestamp_s": 19.785246,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4391448974609375,
+      0.1752956814236111,
+      0.525942611694336,
+      0.7005157470703125
+    ],
+    "bootstrap_confidence": 0.871783,
+    "bootstrap_appearance": 0.804978,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 100,
+    "timestamp_s": 20.001715,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3839914560317993,
+      0.23411712646484376,
+      0.4720949172973633,
+      0.7719203525119358
+    ],
+    "bootstrap_confidence": 0.871988,
+    "bootstrap_appearance": 0.853637,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 101,
+    "timestamp_s": 20.218184,
+    "target_visible": true,
+    "target_box_norm": [
+      0.38422627449035646,
+      0.2471311781141493,
+      0.474802827835083,
+      0.7939670138888889
+    ],
+    "bootstrap_confidence": 0.88102,
+    "bootstrap_appearance": 0.864534,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 102,
+    "timestamp_s": 20.391359,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3737801551818848,
+      0.24165115356445313,
+      0.46425809860229494,
+      0.8009914822048612
+    ],
+    "bootstrap_confidence": 0.869859,
+    "bootstrap_appearance": 0.871879,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 103,
+    "timestamp_s": 20.607828,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44153647422790526,
+      0.321624395582411,
+      0.5325062274932861,
+      0.9122865464952257
+    ],
+    "bootstrap_confidence": 0.882711,
+    "bootstrap_appearance": 0.851062,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 104,
+    "timestamp_s": 20.781003,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4464104652404785,
+      0.3347195095486111,
+      0.5395390510559082,
+      0.924723646375868
+    ],
+    "bootstrap_confidence": 0.891056,
+    "bootstrap_appearance": 0.847483,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 105,
+    "timestamp_s": 20.997471,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44941558837890627,
+      0.33786883884006075,
+      0.5416986465454101,
+      0.9313031514485677
+    ],
+    "bootstrap_confidence": 0.899237,
+    "bootstrap_appearance": 0.810163,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 106,
+    "timestamp_s": 21.21394,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4519230842590332,
+      0.19609883626302083,
+      0.5619112968444824,
+      0.7307884216308593
+    ],
+    "bootstrap_confidence": 0.872936,
+    "bootstrap_appearance": 0.8172,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 107,
+    "timestamp_s": 21.387115,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4391448974609375,
+      0.1752956814236111,
+      0.525942611694336,
+      0.7005157470703125
+    ],
+    "bootstrap_confidence": 0.871783,
+    "bootstrap_appearance": 0.804978,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 108,
+    "timestamp_s": 21.603584,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3839914560317993,
+      0.23411712646484376,
+      0.4720949172973633,
+      0.7719203525119358
+    ],
+    "bootstrap_confidence": 0.871988,
+    "bootstrap_appearance": 0.853637,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 109,
+    "timestamp_s": 21.820053,
+    "target_visible": true,
+    "target_box_norm": [
+      0.38422627449035646,
+      0.2471311781141493,
+      0.474802827835083,
+      0.7939670138888889
+    ],
+    "bootstrap_confidence": 0.88102,
+    "bootstrap_appearance": 0.864534,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 110,
+    "timestamp_s": 21.993228,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3737801551818848,
+      0.24165115356445313,
+      0.46425809860229494,
+      0.8009914822048612
+    ],
+    "bootstrap_confidence": 0.869859,
+    "bootstrap_appearance": 0.871879,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 111,
+    "timestamp_s": 22.209697,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44153647422790526,
+      0.321624395582411,
+      0.5325062274932861,
+      0.9122865464952257
+    ],
+    "bootstrap_confidence": 0.882711,
+    "bootstrap_appearance": 0.851062,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 112,
+    "timestamp_s": 22.382872,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4464104652404785,
+      0.3347195095486111,
+      0.5395390510559082,
+      0.924723646375868
+    ],
+    "bootstrap_confidence": 0.891056,
+    "bootstrap_appearance": 0.847483,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 113,
+    "timestamp_s": 22.59934,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44941558837890627,
+      0.33786883884006075,
+      0.5416986465454101,
+      0.9313031514485677
+    ],
+    "bootstrap_confidence": 0.899237,
+    "bootstrap_appearance": 0.810163,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 114,
+    "timestamp_s": 22.815809,
+    "target_visible": true,
+    "target_box_norm": [
+      0.45098586082458497,
+      0.3395920647515191,
+      0.5485534191131591,
+      0.9346297370062934
+    ],
+    "bootstrap_confidence": 0.91145,
+    "bootstrap_appearance": 0.837739,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 115,
+    "timestamp_s": 22.988984,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4501974105834961,
+      0.33701680501302084,
+      0.5470529556274414,
+      0.9257024976942274
+    ],
+    "bootstrap_confidence": 0.912673,
+    "bootstrap_appearance": 0.849788,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 116,
+    "timestamp_s": 23.205453,
+    "target_visible": true,
+    "target_box_norm": [
+      0.45833530426025393,
+      0.33930240207248263,
+      0.5649581909179687,
+      0.9381842719184028
+    ],
+    "bootstrap_confidence": 0.900721,
+    "bootstrap_appearance": 0.841255,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 117,
+    "timestamp_s": 23.378628,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4609395980834961,
+      0.3423437330457899,
+      0.5777109146118165,
+      0.9559328715006511
+    ],
+    "bootstrap_confidence": 0.903347,
+    "bootstrap_appearance": 0.795267,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 118,
+    "timestamp_s": 23.595097,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44941558837890627,
+      0.33786883884006075,
+      0.5416986465454101,
+      0.9313031514485677
+    ],
+    "bootstrap_confidence": 0.899237,
+    "bootstrap_appearance": 0.810163,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 119,
+    "timestamp_s": 23.811566,
+    "target_visible": true,
+    "target_box_norm": [
+      0.45098586082458497,
+      0.3395920647515191,
+      0.5485534191131591,
+      0.9346297370062934
+    ],
+    "bootstrap_confidence": 0.91145,
+    "bootstrap_appearance": 0.837739,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 120,
+    "timestamp_s": 23.984741,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4501974105834961,
+      0.33701680501302084,
+      0.5470529556274414,
+      0.9257024976942274
+    ],
+    "bootstrap_confidence": 0.912673,
+    "bootstrap_appearance": 0.849788,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 121,
+    "timestamp_s": 24.201209,
+    "target_visible": true,
+    "target_box_norm": [
+      0.45833530426025393,
+      0.33930240207248263,
+      0.5649581909179687,
+      0.9381842719184028
+    ],
+    "bootstrap_confidence": 0.900721,
+    "bootstrap_appearance": 0.841255,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 122,
+    "timestamp_s": 24.417678,
+    "target_visible": true,
+    "target_box_norm": [
+      0.46276330947875977,
+      0.3418144226074219,
+      0.579200267791748,
+      0.9642194112141927
+    ],
+    "bootstrap_confidence": 0.905857,
+    "bootstrap_appearance": 0.789424,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 123,
+    "timestamp_s": 24.590853,
+    "target_visible": true,
+    "target_box_norm": [
+      0.47278547286987305,
+      0.3460208468967014,
+      0.5789106369018555,
+      0.965581766764323
+    ],
+    "bootstrap_confidence": 0.896322,
+    "bootstrap_appearance": 0.800405,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 124,
+    "timestamp_s": 24.807322,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48210840225219725,
+      0.348537105984158,
+      0.5885100364685059,
+      0.9658607482910156
+    ],
+    "bootstrap_confidence": 0.901529,
+    "bootstrap_appearance": 0.825524,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 125,
+    "timestamp_s": 24.980497,
+    "target_visible": true,
+    "target_box_norm": [
+      0.49007539749145507,
+      0.35557640923394096,
+      0.5958085060119629,
+      0.970281473795573
+    ],
+    "bootstrap_confidence": 0.904247,
+    "bootstrap_appearance": 0.852326,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 126,
+    "timestamp_s": 25.196966,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48210840225219725,
+      0.348537105984158,
+      0.5885100364685059,
+      0.9658607482910156
+    ],
+    "bootstrap_confidence": 0.901529,
+    "bootstrap_appearance": 0.825524,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 127,
+    "timestamp_s": 25.413434,
+    "target_visible": true,
+    "target_box_norm": [
+      0.49257612228393555,
+      0.35672098795572915,
+      0.5979405403137207,
+      0.9780877007378472
+    ],
+    "bootstrap_confidence": 0.899469,
+    "bootstrap_appearance": 0.845092,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 128,
+    "timestamp_s": 25.586609,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4960134506225586,
+      0.3572382609049479,
+      0.6022016525268554,
+      0.9890921698676215
+    ],
+    "bootstrap_confidence": 0.902311,
+    "bootstrap_appearance": 0.833945,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 129,
+    "timestamp_s": 25.803078,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5034832954406738,
+      0.3658064948187934,
+      0.6118552207946777,
+      0.9833786010742187
+    ],
+    "bootstrap_confidence": 0.902754,
+    "bootstrap_appearance": 0.819018,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 130,
+    "timestamp_s": 26.019547,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5060518264770508,
+      0.44888920254177517,
+      0.6163576126098633,
+      0.9979326036241319
+    ],
+    "bootstrap_confidence": 0.909215,
+    "bootstrap_appearance": 0.828604,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 131,
+    "timestamp_s": 26.192722,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5085209369659424,
+      0.29721800486246747,
+      0.6272851467132569,
+      0.9870193481445313
+    ],
+    "bootstrap_confidence": 0.916397,
+    "bootstrap_appearance": 0.829481,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 132,
+    "timestamp_s": 26.409191,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5220148086547851,
+      0.372304450141059,
+      0.6450693130493164,
+      0.9953316582573785
+    ],
+    "bootstrap_confidence": 0.920603,
+    "bootstrap_appearance": 0.844628,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 133,
+    "timestamp_s": 26.582366,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5300108432769776,
+      0.39468960232204864,
+      0.65502028465271,
+      0.9954615275065104
+    ],
+    "bootstrap_confidence": 0.919793,
+    "bootstrap_appearance": 0.847133,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 134,
+    "timestamp_s": 26.798835,
+    "target_visible": true,
+    "target_box_norm": [
+      0.533786392211914,
+      0.3810496012369792,
+      0.6650787353515625,
+      0.9949713812934028
+    ],
+    "bootstrap_confidence": 0.9251,
+    "bootstrap_appearance": 0.82929,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 135,
+    "timestamp_s": 27.015303,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5292222499847412,
+      0.39037322998046875,
+      0.665671968460083,
+      0.9962558322482639
+    ],
+    "bootstrap_confidence": 0.902022,
+    "bootstrap_appearance": 0.81674,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 136,
+    "timestamp_s": 27.188478,
+    "target_visible": true,
+    "target_box_norm": [
+      0.49285321235656737,
+      0.34927902221679685,
+      0.6320324420928956,
+      0.747908698187934
+    ],
+    "bootstrap_confidence": 0.244959,
+    "bootstrap_appearance": 0.662651,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 137,
+    "timestamp_s": 27.404947,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4809144973754883,
+      0.39360262552897135,
+      0.6270635604858399,
+      0.9945219251844618
+    ],
+    "bootstrap_confidence": 0.915692,
+    "bootstrap_appearance": 0.760312,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 138,
+    "timestamp_s": 27.621416,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4594283103942871,
+      0.43033167521158855,
+      0.6081344604492187,
+      0.9952515496148003
+    ],
+    "bootstrap_confidence": 0.909151,
+    "bootstrap_appearance": 0.749741,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 139,
+    "timestamp_s": 27.794591,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4569854736328125,
+      0.4126973470052083,
+      0.6110944747924805,
+      0.9950475056966146
+    ],
+    "bootstrap_confidence": 0.907239,
+    "bootstrap_appearance": 0.777029,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 140,
+    "timestamp_s": 28.01106,
+    "target_visible": true,
+    "target_box_norm": [
+      0.433370304107666,
+      0.4392140706380208,
+      0.583281421661377,
+      0.9936643812391494
+    ],
+    "bootstrap_confidence": 0.902736,
+    "bootstrap_appearance": 0.727549,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 141,
+    "timestamp_s": 28.184235,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4312067985534668,
+      0.4977023230658637,
+      0.57626314163208,
+      0.9972079806857639
+    ],
+    "bootstrap_confidence": 0.937727,
+    "bootstrap_appearance": 0.717417,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 142,
+    "timestamp_s": 28.400704,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43315582275390624,
+      0.3234953138563368,
+      0.5746726989746094,
+      0.9956058926052518
+    ],
+    "bootstrap_confidence": 0.903588,
+    "bootstrap_appearance": 0.761135,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 143,
+    "timestamp_s": 28.617172,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4213902473449707,
+      0.4097747378879123,
+      0.5585816383361817,
+      0.994303724500868
+    ],
+    "bootstrap_confidence": 0.923257,
+    "bootstrap_appearance": 0.763668,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 144,
+    "timestamp_s": 28.790347,
+    "target_visible": true,
+    "target_box_norm": [
+      0.41675643920898436,
+      0.4963537428114149,
+      0.5519041061401367,
+      0.995706770155165
+    ],
+    "bootstrap_confidence": 0.926337,
+    "bootstrap_appearance": 0.773166,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 145,
+    "timestamp_s": 29.006816,
+    "target_visible": true,
+    "target_box_norm": [
+      0.41856584548950193,
+      0.44142515394422743,
+      0.5404557228088379,
+      1.0
+    ],
+    "bootstrap_confidence": 0.913725,
+    "bootstrap_appearance": 0.737918,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 146,
+    "timestamp_s": 29.179991,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42374401092529296,
+      0.42085236443413626,
+      0.5415119171142578,
+      0.9928066677517361
+    ],
+    "bootstrap_confidence": 0.470059,
+    "bootstrap_appearance": 0.712586,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 147,
+    "timestamp_s": 29.39646,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43604583740234376,
+      0.31881949106852214,
+      0.552119255065918,
+      0.9932378133138021
+    ],
+    "bootstrap_confidence": 0.893298,
+    "bootstrap_appearance": 0.832044,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 148,
+    "timestamp_s": 29.612929,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4409876823425293,
+      0.34388665093315973,
+      0.552646255493164,
+      0.9936815049913195
+    ],
+    "bootstrap_confidence": 0.893539,
+    "bootstrap_appearance": 0.803635,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 149,
+    "timestamp_s": 29.786104,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4427151679992676,
+      0.3654304504394531,
+      0.5549324989318848,
+      0.9949821472167969
+    ],
+    "bootstrap_confidence": 0.905415,
+    "bootstrap_appearance": 0.805112,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 150,
+    "timestamp_s": 30.002573,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43262176513671874,
+      0.39168175591362847,
+      0.539547348022461,
+      0.9966359456380208
+    ],
+    "bootstrap_confidence": 0.924956,
+    "bootstrap_appearance": 0.861088,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 151,
+    "timestamp_s": 30.219041,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42829275131225586,
+      0.3658580780029297,
+      0.5321887016296387,
+      0.9949254353841146
+    ],
+    "bootstrap_confidence": 0.912118,
+    "bootstrap_appearance": 0.857192,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 152,
+    "timestamp_s": 30.392216,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42584590911865233,
+      0.21199669308132596,
+      0.5324398040771484,
+      0.8620477464463976
+    ],
+    "bootstrap_confidence": 0.906228,
+    "bootstrap_appearance": 0.83628,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 153,
+    "timestamp_s": 30.608685,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43384323120117185,
+      0.28962843153211804,
+      0.5353744506835938,
+      0.9469284057617188
+    ],
+    "bootstrap_confidence": 0.891203,
+    "bootstrap_appearance": 0.829166,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 154,
+    "timestamp_s": 30.78186,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4396196365356445,
+      0.3308590359157986,
+      0.5449906349182129,
+      0.9946263631184896
+    ],
+    "bootstrap_confidence": 0.895382,
+    "bootstrap_appearance": 0.825944,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 155,
+    "timestamp_s": 30.998329,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4457516670227051,
+      0.4663468254937066,
+      0.5509842872619629,
+      0.9971982320149739
+    ],
+    "bootstrap_confidence": 0.891726,
+    "bootstrap_appearance": 0.831635,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 156,
+    "timestamp_s": 31.214798,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44633235931396487,
+      0.3581576877170139,
+      0.5517677307128906,
+      0.9698604159884983
+    ],
+    "bootstrap_confidence": 0.721477,
+    "bootstrap_appearance": 0.728399,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 157,
+    "timestamp_s": 31.387973,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4425049304962158,
+      0.2449416266547309,
+      0.5467163562774658,
+      0.9001803927951388
+    ],
+    "bootstrap_confidence": 0.899725,
+    "bootstrap_appearance": 0.837841,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 158,
+    "timestamp_s": 31.604442,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43678979873657225,
+      0.3289574517144097,
+      0.5442225456237793,
+      0.9932345920138889
+    ],
+    "bootstrap_confidence": 0.890378,
+    "bootstrap_appearance": 0.854675,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 159,
+    "timestamp_s": 31.82091,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4360648155212402,
+      0.383535639444987,
+      0.5407254219055175,
+      0.9964458889431423
+    ],
+    "bootstrap_confidence": 0.910663,
+    "bootstrap_appearance": 0.859623,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 160,
+    "timestamp_s": 31.994085,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42864418029785156,
+      0.26381267971462674,
+      0.5316577911376953,
+      0.9116119384765625
+    ],
+    "bootstrap_confidence": 0.902805,
+    "bootstrap_appearance": 0.743305,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 161,
+    "timestamp_s": 32.210554,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43712482452392576,
+      0.33909725613064234,
+      0.5403961181640625,
+      0.981510247124566
+    ],
+    "bootstrap_confidence": 0.884377,
+    "bootstrap_appearance": 0.796174,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 162,
+    "timestamp_s": 32.383729,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4403735637664795,
+      0.3595947265625,
+      0.5443998813629151,
+      0.9882347954644097
+    ],
+    "bootstrap_confidence": 0.899692,
+    "bootstrap_appearance": 0.846345,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 163,
+    "timestamp_s": 32.600198,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44370784759521487,
+      0.35881161159939234,
+      0.54576416015625,
+      0.9916393703884548
+    ],
+    "bootstrap_confidence": 0.902687,
+    "bootstrap_appearance": 0.838996,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 164,
+    "timestamp_s": 32.816667,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43559417724609373,
+      0.36145782470703125,
+      0.5423294067382812,
+      0.9973432752821181
+    ],
+    "bootstrap_confidence": 0.902856,
+    "bootstrap_appearance": 0.831486,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 165,
+    "timestamp_s": 32.989842,
+    "target_visible": true,
+    "target_box_norm": [
+      0.40363521575927735,
+      0.3628170437282986,
+      0.5138612747192383,
+      0.9945607503255208
+    ],
+    "bootstrap_confidence": 0.892441,
+    "bootstrap_appearance": 0.795068,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 166,
+    "timestamp_s": 33.20631,
+    "target_visible": true,
+    "target_box_norm": [
+      0.45728387832641604,
+      0.3713736640082465,
+      0.5635424613952636,
+      0.9977728949652778
+    ],
+    "bootstrap_confidence": 0.907227,
+    "bootstrap_appearance": 0.842312,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 167,
+    "timestamp_s": 33.379485,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4517653465270996,
+      0.3676335228814019,
+      0.5668092727661133,
+      0.9959175957573785
+    ],
+    "bootstrap_confidence": 0.90699,
+    "bootstrap_appearance": 0.824423,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 168,
+    "timestamp_s": 33.595954,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4381080627441406,
+      0.3662403530544705,
+      0.5412811279296875,
+      0.9943372090657552
+    ],
+    "bootstrap_confidence": 0.902698,
+    "bootstrap_appearance": 0.790117,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 169,
+    "timestamp_s": 33.812423,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4133707046508789,
+      0.39234466552734376,
+      0.5140047073364258,
+      0.9961515638563369
+    ],
+    "bootstrap_confidence": 0.907629,
+    "bootstrap_appearance": 0.808299,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 170,
+    "timestamp_s": 33.985598,
+    "target_visible": true,
+    "target_box_norm": [
+      0.40085544586181643,
+      0.38410165574815536,
+      0.5075262069702149,
+      0.9959530300564237
+    ],
+    "bootstrap_confidence": 0.896551,
+    "bootstrap_appearance": 0.826087,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 171,
+    "timestamp_s": 34.202067,
+    "target_visible": true,
+    "target_box_norm": [
+      0.37928698062896726,
+      0.3945321824815538,
+      0.4961856842041016,
+      0.9975047641330295
+    ],
+    "bootstrap_confidence": 0.893337,
+    "bootstrap_appearance": 0.778506,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 172,
+    "timestamp_s": 34.418536,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3584500789642334,
+      0.39157337612575954,
+      0.4594081401824951,
+      0.9947923448350694
+    ],
+    "bootstrap_confidence": 0.871218,
+    "bootstrap_appearance": 0.783567,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 173,
+    "timestamp_s": 34.591711,
+    "target_visible": true,
+    "target_box_norm": [
+      0.35900235176086426,
+      0.39302147759331596,
+      0.46786932945251464,
+      0.998157246907552
+    ],
+    "bootstrap_confidence": 0.882281,
+    "bootstrap_appearance": 0.762156,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 174,
+    "timestamp_s": 34.808179,
+    "target_visible": true,
+    "target_box_norm": [
+      0.30923171043395997,
+      0.3972241719563802,
+      0.4706794261932373,
+      0.9963411966959635
+    ],
+    "bootstrap_confidence": 0.880373,
+    "bootstrap_appearance": 0.8047,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 175,
+    "timestamp_s": 34.981354,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2872431755065918,
+      0.3883107503255208,
+      0.44261989593505857,
+      0.9967132568359375
+    ],
+    "bootstrap_confidence": 0.879116,
+    "bootstrap_appearance": 0.82932,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 176,
+    "timestamp_s": 35.197823,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2627892017364502,
+      0.3836276584201389,
+      0.3780827045440674,
+      0.9967090182834202
+    ],
+    "bootstrap_confidence": 0.880464,
+    "bootstrap_appearance": 0.835035,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 177,
+    "timestamp_s": 35.414292,
+    "target_visible": true,
+    "target_box_norm": [
+      0.24766666889190675,
+      0.3953561570909288,
+      0.36259524822235106,
+      0.9946256001790365
+    ],
+    "bootstrap_confidence": 0.893761,
+    "bootstrap_appearance": 0.865669,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 178,
+    "timestamp_s": 35.587467,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2234734058380127,
+      0.48198907640245225,
+      0.34252281188964845,
+      0.9963411119249131
+    ],
+    "bootstrap_confidence": 0.906833,
+    "bootstrap_appearance": 0.888751,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 179,
+    "timestamp_s": 35.803936,
+    "target_visible": true,
+    "target_box_norm": [
+      0.17469403743743897,
+      0.34208145141601565,
+      0.30963289737701416,
+      0.9947910732693143
+    ],
+    "bootstrap_confidence": 0.881364,
+    "bootstrap_appearance": 0.828048,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 180,
+    "timestamp_s": 36.020405,
+    "target_visible": true,
+    "target_box_norm": [
+      0.16189146041870117,
+      0.39129401312934026,
+      0.2886045932769775,
+      0.9955032348632813
+    ],
+    "bootstrap_confidence": 0.856697,
+    "bootstrap_appearance": 0.880911,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 181,
+    "timestamp_s": 36.19358,
+    "target_visible": true,
+    "target_box_norm": [
+      0.15159232616424562,
+      0.3959727817111545,
+      0.2777811288833618,
+      0.997652096218533
+    ],
+    "bootstrap_confidence": 0.913799,
+    "bootstrap_appearance": 0.863861,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 182,
+    "timestamp_s": 36.410048,
+    "target_visible": true,
+    "target_box_norm": [
+      0.14058635234832764,
+      0.4062682681613498,
+      0.2642899751663208,
+      1.0
+    ],
+    "bootstrap_confidence": 0.897585,
+    "bootstrap_appearance": 0.895186,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 183,
+    "timestamp_s": 36.583223,
+    "target_visible": true,
+    "target_box_norm": [
+      0.12269001007080078,
+      0.4118466271294488,
+      0.2511794090270996,
+      0.9970102945963542
+    ],
+    "bootstrap_confidence": 0.906711,
+    "bootstrap_appearance": 0.875742,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 184,
+    "timestamp_s": 36.799692,
+    "target_visible": true,
+    "target_box_norm": [
+      0.27779974937438967,
+      0.3787356906467014,
+      0.4048779010772705,
+      0.9930779351128473
+    ],
+    "bootstrap_confidence": 0.910883,
+    "bootstrap_appearance": 0.904736,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 185,
+    "timestamp_s": 37.016161,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2902967929840088,
+      0.4495299869113498,
+      0.4117723941802979,
+      0.9968037923177083
+    ],
+    "bootstrap_confidence": 0.906421,
+    "bootstrap_appearance": 0.865292,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 186,
+    "timestamp_s": 37.189336,
+    "target_visible": true,
+    "target_box_norm": [
+      0.29122257232666016,
+      0.43826849195692275,
+      0.41004114151000975,
+      0.9971165974934896
+    ],
+    "bootstrap_confidence": 0.89932,
+    "bootstrap_appearance": 0.875066,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 187,
+    "timestamp_s": 37.405805,
+    "target_visible": true,
+    "target_box_norm": [
+      0.32404274940490724,
+      0.42154824998643664,
+      0.4386013984680176,
+      0.9958897908528646
+    ],
+    "bootstrap_confidence": 0.908527,
+    "bootstrap_appearance": 0.922297,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 188,
+    "timestamp_s": 37.57898,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48610410690307615,
+      0.4240363226996528,
+      0.5994686126708985,
+      0.995989990234375
+    ],
+    "bootstrap_confidence": 0.872385,
+    "bootstrap_appearance": 0.868546,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 189,
+    "timestamp_s": 37.795449,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7176458358764648,
+      0.40031856960720485,
+      0.8366781234741211,
+      0.9954138861762153
+    ],
+    "bootstrap_confidence": 0.928464,
+    "bootstrap_appearance": 0.959043,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 190,
+    "timestamp_s": 38.011917,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7335335731506347,
+      0.4047802395290799,
+      0.8509882926940918,
+      0.9964074028862847
+    ],
+    "bootstrap_confidence": 0.913512,
+    "bootstrap_appearance": 0.962844,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 191,
+    "timestamp_s": 38.185092,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7392687797546387,
+      0.4001050313313802,
+      0.8586060523986816,
+      0.9977119445800782
+    ],
+    "bootstrap_confidence": 0.915532,
+    "bootstrap_appearance": 0.954196,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 192,
+    "timestamp_s": 38.401561,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7549378871917725,
+      0.35687001546223956,
+      0.8723966598510742,
+      0.9941162957085503
+    ],
+    "bootstrap_confidence": 0.908328,
+    "bootstrap_appearance": 0.881077,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 193,
+    "timestamp_s": 38.61803,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7686800956726074,
+      0.210614013671875,
+      0.9029189109802246,
+      0.9118560791015625
+    ],
+    "bootstrap_confidence": 0.909083,
+    "bootstrap_appearance": 0.95166,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 194,
+    "timestamp_s": 38.791205,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7446110248565674,
+      0.1667293972439236,
+      0.8844322204589844,
+      0.8702116224500868
+    ],
+    "bootstrap_confidence": 0.879626,
+    "bootstrap_appearance": 0.933091,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 195,
+    "timestamp_s": 39.007674,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7374894142150878,
+      0.1597733391655816,
+      0.8602175712585449,
+      0.8681193033854167
+    ],
+    "bootstrap_confidence": 0.908035,
+    "bootstrap_appearance": 0.889861,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 196,
+    "timestamp_s": 39.180849,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7257770538330078,
+      0.13636654747856988,
+      0.8445085525512696,
+      0.837398189968533
+    ],
+    "bootstrap_confidence": 0.88651,
+    "bootstrap_appearance": 0.888492,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 197,
+    "timestamp_s": 39.397318,
+    "target_visible": true,
+    "target_box_norm": [
+      0.7100355148315429,
+      0.11858393351236979,
+      0.8282563209533691,
+      0.8407921685112847
+    ],
+    "bootstrap_confidence": 0.906218,
+    "bootstrap_appearance": 0.851703,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 198,
+    "timestamp_s": 39.613786,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6619198799133301,
+      0.13919347127278645,
+      0.7907303810119629,
+      0.8696879069010417
+    ],
+    "bootstrap_confidence": 0.892648,
+    "bootstrap_appearance": 0.858236,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 199,
+    "timestamp_s": 39.786961,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6510368347167969,
+      0.14318728976779513,
+      0.7719852447509765,
+      0.8765224032931858
+    ],
+    "bootstrap_confidence": 0.888876,
+    "bootstrap_appearance": 0.799626,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 200,
+    "timestamp_s": 40.00343,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6426384925842286,
+      0.13675164116753472,
+      0.7616414070129395,
+      0.8758231268988715
+    ],
+    "bootstrap_confidence": 0.889017,
+    "bootstrap_appearance": 0.832744,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 201,
+    "timestamp_s": 40.219899,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5996888637542724,
+      0.13979865180121528,
+      0.751297903060913,
+      0.8803624471028646
+    ],
+    "bootstrap_confidence": 0.900683,
+    "bootstrap_appearance": 0.810323,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 202,
+    "timestamp_s": 40.393074,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5619786262512207,
+      0.13432642618815105,
+      0.7401094436645508,
+      0.8863527933756511
+    ],
+    "bootstrap_confidence": 0.919623,
+    "bootstrap_appearance": 0.8584,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 203,
+    "timestamp_s": 40.609543,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5428092956542969,
+      0.13473315768771701,
+      0.6982398986816406,
+      0.9088122049967448
+    ],
+    "bootstrap_confidence": 0.905506,
+    "bootstrap_appearance": 0.865412,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 204,
+    "timestamp_s": 40.782718,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5431696891784668,
+      0.1394757588704427,
+      0.6656098365783691,
+      0.9131016201443143
+    ],
+    "bootstrap_confidence": 0.890958,
+    "bootstrap_appearance": 0.831482,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 205,
+    "timestamp_s": 40.999186,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5159226417541504,
+      0.1340577867296007,
+      0.6484217643737793,
+      0.9685548570421006
+    ],
+    "bootstrap_confidence": 0.868985,
+    "bootstrap_appearance": 0.807419,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 206,
+    "timestamp_s": 41.215655,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4965670585632324,
+      0.1440489027235243,
+      0.631525707244873,
+      0.989949968126085
+    ],
+    "bootstrap_confidence": 0.914463,
+    "bootstrap_appearance": 0.838324,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 207,
+    "timestamp_s": 41.38883,
+    "target_visible": true,
+    "target_box_norm": [
+      0.46614713668823243,
+      0.1293123033311632,
+      0.6132796287536622,
+      0.9651844448513455
+    ],
+    "bootstrap_confidence": 0.893927,
+    "bootstrap_appearance": 0.907888,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 208,
+    "timestamp_s": 41.605299,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4479524612426758,
+      0.12953575981987847,
+      0.6026826858520508,
+      0.9960174560546875
+    ],
+    "bootstrap_confidence": 0.900757,
+    "bootstrap_appearance": 0.881787,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 209,
+    "timestamp_s": 41.778474,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43486642837524414,
+      0.13531494140625,
+      0.5848593711853027,
+      0.9949227227105035
+    ],
+    "bootstrap_confidence": 0.912261,
+    "bootstrap_appearance": 0.874692,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 210,
+    "timestamp_s": 41.994943,
+    "target_visible": true,
+    "target_box_norm": [
+      0.41356287002563474,
+      0.14332622951931423,
+      0.5675055503845214,
+      0.9955821567111545
+    ],
+    "bootstrap_confidence": 0.916276,
+    "bootstrap_appearance": 0.894286,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 211,
+    "timestamp_s": 42.211412,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3867668390274048,
+      0.12245432535807292,
+      0.5497432708740234,
+      0.9948689778645833
+    ],
+    "bootstrap_confidence": 0.918331,
+    "bootstrap_appearance": 0.905957,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 212,
+    "timestamp_s": 42.384587,
+    "target_visible": true,
+    "target_box_norm": [
+      0.37561922073364257,
+      0.1291460673014323,
+      0.5426597595214844,
+      0.9924060397677952
+    ],
+    "bootstrap_confidence": 0.9273,
+    "bootstrap_appearance": 0.888528,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 213,
+    "timestamp_s": 42.601055,
+    "target_visible": true,
+    "target_box_norm": [
+      0.373295259475708,
+      0.13610441419813368,
+      0.5432872295379638,
+      0.9923138936360677
+    ],
+    "bootstrap_confidence": 0.923721,
+    "bootstrap_appearance": 0.900826,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 214,
+    "timestamp_s": 42.817524,
+    "target_visible": true,
+    "target_box_norm": [
+      0.37094292640686033,
+      0.1283908420138889,
+      0.5455959796905517,
+      0.994806416829427
+    ],
+    "bootstrap_confidence": 0.926972,
+    "bootstrap_appearance": 0.830755,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 215,
+    "timestamp_s": 42.990699,
+    "target_visible": true,
+    "target_box_norm": [
+      0.36878581047058107,
+      0.13354297214084201,
+      0.5421657085418701,
+      0.9939359029134115
+    ],
+    "bootstrap_confidence": 0.932411,
+    "bootstrap_appearance": 0.82929,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 216,
+    "timestamp_s": 43.207168,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3638617515563965,
+      0.13541480170355902,
+      0.5327857971191406,
+      0.9934063381618924
+    ],
+    "bootstrap_confidence": 0.924034,
+    "bootstrap_appearance": 0.820825,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 217,
+    "timestamp_s": 43.380343,
+    "target_visible": true,
+    "target_box_norm": [
+      0.38212735652923585,
+      0.11611192491319444,
+      0.5576614379882813,
+      0.9956787109375
+    ],
+    "bootstrap_confidence": 0.924823,
+    "bootstrap_appearance": 0.833262,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 218,
+    "timestamp_s": 43.596812,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3903087615966797,
+      0.16577199300130208,
+      0.5746856689453125,
+      0.9945978800455729
+    ],
+    "bootstrap_confidence": 0.877766,
+    "bootstrap_appearance": 0.870581,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 219,
+    "timestamp_s": 43.813281,
+    "target_visible": true,
+    "target_box_norm": [
+      0.37487311363220216,
+      0.1306491427951389,
+      0.5634117603302002,
+      0.995731692843967
+    ],
+    "bootstrap_confidence": 0.89763,
+    "bootstrap_appearance": 0.858972,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 220,
+    "timestamp_s": 43.986456,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3907619953155518,
+      0.13440797593858506,
+      0.5715076923370361,
+      0.9914949205186632
+    ],
+    "bootstrap_confidence": 0.887788,
+    "bootstrap_appearance": 0.819878,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 221,
+    "timestamp_s": 44.202924,
+    "target_visible": true,
+    "target_box_norm": [
+      0.39402821063995364,
+      0.13741268581814237,
+      0.5613863945007325,
+      0.9936160617404514
+    ],
+    "bootstrap_confidence": 0.891494,
+    "bootstrap_appearance": 0.828318,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 222,
+    "timestamp_s": 44.419393,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3479496955871582,
+      0.12021713256835938,
+      0.5556400299072266,
+      0.9935335795084635
+    ],
+    "bootstrap_confidence": 0.890437,
+    "bootstrap_appearance": 0.777608,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 223,
+    "timestamp_s": 44.592568,
+    "target_visible": true,
+    "target_box_norm": [
+      0.31144161224365235,
+      0.14456244574652777,
+      0.5146739959716797,
+      0.9952341715494791
+    ],
+    "bootstrap_confidence": 0.897026,
+    "bootstrap_appearance": 0.761937,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 224,
+    "timestamp_s": 44.809037,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3668685436248779,
+      0.14484371609157987,
+      0.5377048015594482,
+      0.991776360405816
+    ],
+    "bootstrap_confidence": 0.890409,
+    "bootstrap_appearance": 0.786959,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 225,
+    "timestamp_s": 44.982212,
+    "target_visible": true,
+    "target_box_norm": [
+      0.39502041339874266,
+      0.13970260620117186,
+      0.5548945426940918,
+      0.9917222764756944
+    ],
+    "bootstrap_confidence": 0.899761,
+    "bootstrap_appearance": 0.780262,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 226,
+    "timestamp_s": 45.198681,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4413755416870117,
+      0.13492355346679688,
+      0.6156597137451172,
+      0.9990685356987847
+    ],
+    "bootstrap_confidence": 0.881705,
+    "bootstrap_appearance": 0.773411,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 227,
+    "timestamp_s": 45.41515,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48759050369262696,
+      0.13720041910807293,
+      0.6325741767883301,
+      0.9938922458224826
+    ],
+    "bootstrap_confidence": 0.902269,
+    "bootstrap_appearance": 0.836286,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 228,
+    "timestamp_s": 45.588325,
+    "target_visible": true,
+    "target_box_norm": [
+      0.49904565811157225,
+      0.13923255072699653,
+      0.6430264472961426,
+      0.9967436048719618
+    ],
+    "bootstrap_confidence": 0.915016,
+    "bootstrap_appearance": 0.789574,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 229,
+    "timestamp_s": 45.804793,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5257181167602539,
+      0.15798305935329862,
+      0.6680122375488281,
+      0.9953416612413194
+    ],
+    "bootstrap_confidence": 0.897315,
+    "bootstrap_appearance": 0.810872,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 230,
+    "timestamp_s": 46.021262,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5351043701171875,
+      0.14701851738823785,
+      0.6802699089050293,
+      0.9915801154242622
+    ],
+    "bootstrap_confidence": 0.886484,
+    "bootstrap_appearance": 0.807046,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 231,
+    "timestamp_s": 46.194437,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5823770523071289,
+      0.1480533175998264,
+      0.709689712524414,
+      0.9500715467664931
+    ],
+    "bootstrap_confidence": 0.915165,
+    "bootstrap_appearance": 0.843669,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 232,
+    "timestamp_s": 46.410906,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6089240074157715,
+      0.1448820326063368,
+      0.7343350410461426,
+      0.9381217956542969
+    ],
+    "bootstrap_confidence": 0.922835,
+    "bootstrap_appearance": 0.815518,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 233,
+    "timestamp_s": 46.584081,
+    "target_visible": true,
+    "target_box_norm": [
+      0.586513900756836,
+      0.1327803717719184,
+      0.7097972869873047,
+      0.8904837714301215
+    ],
+    "bootstrap_confidence": 0.903157,
+    "bootstrap_appearance": 0.829425,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 234,
+    "timestamp_s": 46.80055,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5276237487792969,
+      0.12869898478190103,
+      0.6423757553100586,
+      0.8575286865234375
+    ],
+    "bootstrap_confidence": 0.903165,
+    "bootstrap_appearance": 0.820344,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 235,
+    "timestamp_s": 47.017018,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5452757835388183,
+      0.1351164076063368,
+      0.6666216850280762,
+      0.8565775553385416
+    ],
+    "bootstrap_confidence": 0.903948,
+    "bootstrap_appearance": 0.827591,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 236,
+    "timestamp_s": 47.190193,
+    "target_visible": true,
+    "target_box_norm": [
+      0.549650764465332,
+      0.11133041381835937,
+      0.6582096099853516,
+      0.7875478956434462
+    ],
+    "bootstrap_confidence": 0.844673,
+    "bootstrap_appearance": 0.748116,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 237,
+    "timestamp_s": 47.406662,
+    "target_visible": true,
+    "target_box_norm": [
+      0.35607936382293703,
+      0.12468100653754341,
+      0.4633183479309082,
+      0.7883077833387587
+    ],
+    "bootstrap_confidence": 0.877552,
+    "bootstrap_appearance": 0.797743,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 238,
+    "timestamp_s": 47.579837,
+    "target_visible": true,
+    "target_box_norm": [
+      0.33315310478210447,
+      0.11647271050347222,
+      0.440370512008667,
+      0.7881588406032987
+    ],
+    "bootstrap_confidence": 0.880497,
+    "bootstrap_appearance": 0.818594,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 239,
+    "timestamp_s": 47.796306,
+    "target_visible": true,
+    "target_box_norm": [
+      0.31787714958190916,
+      0.12907045152452257,
+      0.4470211029052734,
+      0.7890595330132378
+    ],
+    "bootstrap_confidence": 0.907866,
+    "bootstrap_appearance": 0.840136,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 240,
+    "timestamp_s": 48.012775,
+    "target_visible": true,
+    "target_box_norm": [
+      0.305082893371582,
+      0.15793109469943575,
+      0.43703737258911135,
+      0.794447496202257
+    ],
+    "bootstrap_confidence": 0.910614,
+    "bootstrap_appearance": 0.873539,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 241,
+    "timestamp_s": 48.18595,
+    "target_visible": true,
+    "target_box_norm": [
+      0.37553834915161133,
+      0.13164988623725044,
+      0.48163766860961915,
+      0.7579136318630643
+    ],
+    "bootstrap_confidence": 0.886706,
+    "bootstrap_appearance": 0.876024,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 242,
+    "timestamp_s": 48.402419,
+    "target_visible": true,
+    "target_box_norm": [
+      0.32862377166748047,
+      0.14436221652560763,
+      0.47203960418701174,
+      0.7628556993272569
+    ],
+    "bootstrap_confidence": 0.899818,
+    "bootstrap_appearance": 0.858419,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 243,
+    "timestamp_s": 48.618887,
+    "target_visible": true,
+    "target_box_norm": [
+      0.33778131008148193,
+      0.1407179938422309,
+      0.4756824493408203,
+      0.7584648980034723
+    ],
+    "bootstrap_confidence": 0.91691,
+    "bootstrap_appearance": 0.875877,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 244,
+    "timestamp_s": 48.792062,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3771716356277466,
+      0.12381354437934028,
+      0.48789472579956056,
+      0.750191158718533
+    ],
+    "bootstrap_confidence": 0.861722,
+    "bootstrap_appearance": 0.855174,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 245,
+    "timestamp_s": 49.008531,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3957495927810669,
+      0.12754497528076172,
+      0.5045760154724122,
+      0.7544803195529514
+    ],
+    "bootstrap_confidence": 0.881853,
+    "bootstrap_appearance": 0.867801,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 246,
+    "timestamp_s": 49.181706,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4177088737487793,
+      0.11359447903103298,
+      0.5326375007629395,
+      0.7568987528483073
+    ],
+    "bootstrap_confidence": 0.882294,
+    "bootstrap_appearance": 0.882304,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 247,
+    "timestamp_s": 49.398175,
+    "target_visible": true,
+    "target_box_norm": [
+      0.44411025047302244,
+      0.11085459391276041,
+      0.5517673015594482,
+      0.7485675387912326
+    ],
+    "bootstrap_confidence": 0.889948,
+    "bootstrap_appearance": 0.881192,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 248,
+    "timestamp_s": 49.614644,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4476814270019531,
+      0.09190224541558159,
+      0.5605947494506835,
+      0.7183232625325521
+    ],
+    "bootstrap_confidence": 0.883595,
+    "bootstrap_appearance": 0.895554,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 249,
+    "timestamp_s": 49.787819,
+    "target_visible": true,
+    "target_box_norm": [
+      0.455537223815918,
+      0.051640489366319445,
+      0.5624495506286621,
+      0.6881979200575087
+    ],
+    "bootstrap_confidence": 0.883124,
+    "bootstrap_appearance": 0.870815,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 250,
+    "timestamp_s": 50.004288,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4616101264953613,
+      0.021689711676703558,
+      0.5626663208007813,
+      0.6573888142903646
+    ],
+    "bootstrap_confidence": 0.888228,
+    "bootstrap_appearance": 0.8104,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 251,
+    "timestamp_s": 50.220756,
+    "target_visible": true,
+    "target_box_norm": [
+      0.47374734878540037,
+      0.0024720085991753473,
+      0.5749920845031739,
+      0.5804308997260199
+    ],
+    "bootstrap_confidence": 0.904017,
+    "bootstrap_appearance": 0.839741,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 252,
+    "timestamp_s": 50.393931,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4762709140777588,
+      0.003363164265950521,
+      0.5790607929229736,
+      0.563440450032552
+    ],
+    "bootstrap_confidence": 0.906071,
+    "bootstrap_appearance": 0.865238,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 253,
+    "timestamp_s": 50.6104,
+    "target_visible": true,
+    "target_box_norm": [
+      0.49112515449523925,
+      0.003115293714735243,
+      0.5872996807098388,
+      0.5609124925401475
+    ],
+    "bootstrap_confidence": 0.891571,
+    "bootstrap_appearance": 0.872945,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 254,
+    "timestamp_s": 50.783575,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4941867828369141,
+      0.004040103488498264,
+      0.5965078353881836,
+      0.559310319688585
+    ],
+    "bootstrap_confidence": 0.88541,
+    "bootstrap_appearance": 0.875784,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 255,
+    "timestamp_s": 51.000044,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5036357879638672,
+      0.02334526909722222,
+      0.6015501022338867,
+      0.6087700737847223
+    ],
+    "bootstrap_confidence": 0.886981,
+    "bootstrap_appearance": 0.8643,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 256,
+    "timestamp_s": 51.216513,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5033365726470947,
+      0.06856443617078993,
+      0.5997129917144776,
+      0.6185132344563802
+    ],
+    "bootstrap_confidence": 0.874116,
+    "bootstrap_appearance": 0.875979,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 257,
+    "timestamp_s": 51.389688,
+    "target_visible": true,
+    "target_box_norm": [
+      0.501251220703125,
+      0.004659822252061632,
+      0.5983805656433105,
+      0.5553454505072699
+    ],
+    "bootstrap_confidence": 0.88856,
+    "bootstrap_appearance": 0.807079,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 258,
+    "timestamp_s": 51.606157,
+    "target_visible": true,
+    "target_box_norm": [
+      0.49623537063598633,
+      0.0016447703043619792,
+      0.5925469398498535,
+      0.5500517951117622
+    ],
+    "bootstrap_confidence": 0.903783,
+    "bootstrap_appearance": 0.859106,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 259,
+    "timestamp_s": 51.779332,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4926288604736328,
+      0.004086134168836806,
+      0.5882453918457031,
+      0.5597911410861545
+    ],
+    "bootstrap_confidence": 0.892974,
+    "bootstrap_appearance": 0.861666,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 260,
+    "timestamp_s": 51.9958,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48007354736328123,
+      0.003008906046549479,
+      0.5810384750366211,
+      0.5821607801649306
+    ],
+    "bootstrap_confidence": 0.900323,
+    "bootstrap_appearance": 0.907964,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 261,
+    "timestamp_s": 52.212269,
+    "target_visible": true,
+    "target_box_norm": [
+      0.47304716110229494,
+      0.004343371921115452,
+      0.5801873207092285,
+      0.4954572041829427
+    ],
+    "bootstrap_confidence": 0.898666,
+    "bootstrap_appearance": 0.846956,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 262,
+    "timestamp_s": 52.385444,
+    "target_visible": true,
+    "target_box_norm": [
+      0.47541465759277346,
+      0.003175693088107639,
+      0.5868182182312012,
+      0.5778773837619358
+    ],
+    "bootstrap_confidence": 0.884842,
+    "bootstrap_appearance": 0.894143,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 263,
+    "timestamp_s": 52.601913,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4832124710083008,
+      0.0034219529893663196,
+      0.5945306777954101,
+      0.6142935858832466
+    ],
+    "bootstrap_confidence": 0.887643,
+    "bootstrap_appearance": 0.875157,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 264,
+    "timestamp_s": 52.818382,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4874263763427734,
+      0.004983753628200955,
+      0.6055415153503418,
+      0.6465163336859809
+    ],
+    "bootstrap_confidence": 0.901454,
+    "bootstrap_appearance": 0.866434,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 265,
+    "timestamp_s": 52.991557,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4801050662994385,
+      0.017540995279947916,
+      0.6107522487640381,
+      0.7890972561306424
+    ],
+    "bootstrap_confidence": 0.876758,
+    "bootstrap_appearance": 0.835413,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 266,
+    "timestamp_s": 53.208026,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4631092071533203,
+      0.07227935791015624,
+      0.6018070220947266,
+      0.8704444037543403
+    ],
+    "bootstrap_confidence": 0.891975,
+    "bootstrap_appearance": 0.822277,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 267,
+    "timestamp_s": 53.381201,
+    "target_visible": true,
+    "target_box_norm": [
+      0.45862855911254885,
+      0.06171400282118056,
+      0.5990202903747559,
+      0.8774299621582031
+    ],
+    "bootstrap_confidence": 0.889616,
+    "bootstrap_appearance": 0.817891,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 268,
+    "timestamp_s": 53.597669,
+    "target_visible": true,
+    "target_box_norm": [
+      0.43348183631896975,
+      0.033439721001519096,
+      0.6088807582855225,
+      0.9945449829101562
+    ],
+    "bootstrap_confidence": 0.915255,
+    "bootstrap_appearance": 0.799754,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 269,
+    "timestamp_s": 53.814138,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4281111717224121,
+      0.025396050347222223,
+      0.6125065803527832,
+      0.9937566969129774
+    ],
+    "bootstrap_confidence": 0.918472,
+    "bootstrap_appearance": 0.888834,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 270,
+    "timestamp_s": 53.987313,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42635512351989746,
+      0.007768758138020833,
+      0.6182576656341553,
+      0.9925147162543403
+    ],
+    "bootstrap_confidence": 0.915291,
+    "bootstrap_appearance": 0.888548,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 271,
+    "timestamp_s": 54.203782,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4220717906951904,
+      0.006972673204210069,
+      0.6187948703765869,
+      0.9919202168782552
+    ],
+    "bootstrap_confidence": 0.918245,
+    "bootstrap_appearance": 0.89034,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 272,
+    "timestamp_s": 54.420251,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42223167419433594,
+      0.006183030870225694,
+      0.6209434509277344,
+      0.9916349622938369
+    ],
+    "bootstrap_confidence": 0.912369,
+    "bootstrap_appearance": 0.886155,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 273,
+    "timestamp_s": 54.593426,
+    "target_visible": true,
+    "target_box_norm": [
+      0.41733522415161134,
+      0.007281324598524305,
+      0.6195542335510253,
+      0.9916827731662327
+    ],
+    "bootstrap_confidence": 0.91309,
+    "bootstrap_appearance": 0.849586,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 274,
+    "timestamp_s": 54.809894,
+    "target_visible": true,
+    "target_box_norm": [
+      0.40671892166137696,
+      0.00556793212890625,
+      0.6121747016906738,
+      0.9920259263780382
+    ],
+    "bootstrap_confidence": 0.931933,
+    "bootstrap_appearance": 0.830051,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 275,
+    "timestamp_s": 54.983069,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3965984106063843,
+      0.00874845716688368,
+      0.6066352844238281,
+      0.9944769965277778
+    ],
+    "bootstrap_confidence": 0.94002,
+    "bootstrap_appearance": 0.791082,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 276,
+    "timestamp_s": 55.199538,
+    "target_visible": true,
+    "target_box_norm": [
+      0.406392765045166,
+      0.04774517483181424,
+      0.612364673614502,
+      0.9933010525173611
+    ],
+    "bootstrap_confidence": 0.920691,
+    "bootstrap_appearance": 0.687267,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 277,
+    "timestamp_s": 55.416007,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42208571434020997,
+      0.0072939554850260414,
+      0.621530294418335,
+      0.9926028781467013
+    ],
+    "bootstrap_confidence": 0.91427,
+    "bootstrap_appearance": 0.892747,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 278,
+    "timestamp_s": 55.589182,
+    "target_visible": true,
+    "target_box_norm": [
+      0.419434642791748,
+      0.009531063503689235,
+      0.6197566032409668,
+      0.9912701076931424
+    ],
+    "bootstrap_confidence": 0.918778,
+    "bootstrap_appearance": 0.872377,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 279,
+    "timestamp_s": 55.805651,
+    "target_visible": true,
+    "target_box_norm": [
+      0.411771297454834,
+      0.006906297471788194,
+      0.6148167610168457,
+      0.9915863037109375
+    ],
+    "bootstrap_confidence": 0.920783,
+    "bootstrap_appearance": 0.840944,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 280,
+    "timestamp_s": 55.978826,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4018540382385254,
+      0.007377115885416666,
+      0.6096070289611817,
+      0.9931116739908854
+    ],
+    "bootstrap_confidence": 0.937276,
+    "bootstrap_appearance": 0.801559,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 281,
+    "timestamp_s": 56.195295,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3996885776519775,
+      0.03444892035590278,
+      0.6121697902679444,
+      0.9927797105577257
+    ],
+    "bootstrap_confidence": 0.929605,
+    "bootstrap_appearance": 0.704031,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 282,
+    "timestamp_s": 56.411763,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4521048069000244,
+      0.048713429768880205,
+      0.652778959274292,
+      0.9931586371527777
+    ],
+    "bootstrap_confidence": 0.917213,
+    "bootstrap_appearance": 0.647989,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 283,
+    "timestamp_s": 56.584938,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4536733150482178,
+      0.05613208346896702,
+      0.6363816738128663,
+      0.9906326293945312
+    ],
+    "bootstrap_confidence": 0.915564,
+    "bootstrap_appearance": 0.617514,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 284,
+    "timestamp_s": 56.801407,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4351926803588867,
+      0.03630286322699653,
+      0.6207431793212891,
+      0.9923877292209201
+    ],
+    "bootstrap_confidence": 0.919486,
+    "bootstrap_appearance": 0.626496,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 285,
+    "timestamp_s": 57.017876,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5366947650909424,
+      0.050735388861762154,
+      0.7040689945220947,
+      0.9903490702311198
+    ],
+    "bootstrap_confidence": 0.927001,
+    "bootstrap_appearance": 0.598126,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 286,
+    "timestamp_s": 57.191051,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5418313026428223,
+      0.05341830783420139,
+      0.7056106567382813,
+      0.9930530971950955
+    ],
+    "bootstrap_confidence": 0.924861,
+    "bootstrap_appearance": 0.601955,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 287,
+    "timestamp_s": 57.40752,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48360767364501955,
+      0.07080510457356771,
+      0.6487930297851563,
+      0.9934307522243924
+    ],
+    "bootstrap_confidence": 0.921546,
+    "bootstrap_appearance": 0.638811,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 288,
+    "timestamp_s": 57.580695,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4682172775268555,
+      0.07160212198893229,
+      0.6297625541687012,
+      0.9954981486002604
+    ],
+    "bootstrap_confidence": 0.933338,
+    "bootstrap_appearance": 0.65712,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 289,
+    "timestamp_s": 57.797164,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4837017059326172,
+      0.0634478251139323,
+      0.6507152557373047,
+      0.9955703735351562
+    ],
+    "bootstrap_confidence": 0.928582,
+    "bootstrap_appearance": 0.638291,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 290,
+    "timestamp_s": 58.013632,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5552240371704101,
+      0.01735873752170139,
+      0.7212654113769531,
+      0.994842529296875
+    ],
+    "bootstrap_confidence": 0.91665,
+    "bootstrap_appearance": 0.638058,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 291,
+    "timestamp_s": 58.186807,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5849200248718261,
+      0.04913982815212674,
+      0.7503767967224121,
+      0.9949747721354166
+    ],
+    "bootstrap_confidence": 0.928028,
+    "bootstrap_appearance": 0.659438,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 292,
+    "timestamp_s": 58.403276,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6773658752441406,
+      0.06526175604926215,
+      0.8322527885437012,
+      0.9829242282443577
+    ],
+    "bootstrap_confidence": 0.924774,
+    "bootstrap_appearance": 0.666668,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 293,
+    "timestamp_s": 58.619745,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4682172775268555,
+      0.07160212198893229,
+      0.6297625541687012,
+      0.9954981486002604
+    ],
+    "bootstrap_confidence": 0.933338,
+    "bootstrap_appearance": 0.65712,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 294,
+    "timestamp_s": 58.79292,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4826682090759277,
+      0.061524285210503474,
+      0.6501462936401368,
+      0.9957987467447916
+    ],
+    "bootstrap_confidence": 0.929897,
+    "bootstrap_appearance": 0.639398,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 295,
+    "timestamp_s": 59.009389,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5494035720825196,
+      0.012580786810980902,
+      0.7144386291503906,
+      0.9975213792588976
+    ],
+    "bootstrap_confidence": 0.913678,
+    "bootstrap_appearance": 0.635706,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 296,
+    "timestamp_s": 59.182564,
+    "target_visible": true,
+    "target_box_norm": [
+      0.577501630783081,
+      0.050359344482421874,
+      0.7406511783599854,
+      0.9951772901746961
+    ],
+    "bootstrap_confidence": 0.920833,
+    "bootstrap_appearance": 0.6569,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 297,
+    "timestamp_s": 59.399033,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6593210220336914,
+      0.03559078640407986,
+      0.8214767456054688,
+      0.9983778211805555
+    ],
+    "bootstrap_confidence": 0.933019,
+    "bootstrap_appearance": 0.665465,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 298,
+    "timestamp_s": 59.615501,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6815393447875977,
+      0.06966162787543403,
+      0.8346450805664063,
+      0.9948001437717013
+    ],
+    "bootstrap_confidence": 0.930847,
+    "bootstrap_appearance": 0.66357,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 299,
+    "timestamp_s": 59.788676,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6805524826049805,
+      0.07429122924804688,
+      0.8326276779174805,
+      0.9895289103190105
+    ],
+    "bootstrap_confidence": 0.934923,
+    "bootstrap_appearance": 0.656796,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 300,
+    "timestamp_s": 60.005145,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6328686714172364,
+      0.04865688747829861,
+      0.7593268394470215,
+      0.8901592678493924
+    ],
+    "bootstrap_confidence": 0.925242,
+    "bootstrap_appearance": 0.685,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 301,
+    "timestamp_s": 60.221614,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5943979263305664,
+      0.03476350572374132,
+      0.7321537971496582,
+      0.8277698940700955
+    ],
+    "bootstrap_confidence": 0.909444,
+    "bootstrap_appearance": 0.695145,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 302,
+    "timestamp_s": 60.394789,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5603392601013184,
+      0.05527682834201389,
+      0.7264481544494629,
+      0.8231468200683594
+    ],
+    "bootstrap_confidence": 0.932768,
+    "bootstrap_appearance": 0.658082,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 303,
+    "timestamp_s": 60.611258,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5448160171508789,
+      0.09445894029405381,
+      0.7202775955200196,
+      0.8588008456759982
+    ],
+    "bootstrap_confidence": 0.894542,
+    "bootstrap_appearance": 0.673283,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 304,
+    "timestamp_s": 60.784433,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5214497566223144,
+      0.08807339138454862,
+      0.6943378448486328,
+      0.8486690945095486
+    ],
+    "bootstrap_confidence": 0.910468,
+    "bootstrap_appearance": 0.627449,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 305,
+    "timestamp_s": 61.000901,
+    "target_visible": true,
+    "target_box_norm": [
+      0.49863433837890625,
+      0.07017415364583333,
+      0.6285943984985352,
+      0.8305209689670139
+    ],
+    "bootstrap_confidence": 0.921182,
+    "bootstrap_appearance": 0.667966,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 306,
+    "timestamp_s": 61.21737,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4771914005279541,
+      0.05553978814019097,
+      0.6164794445037842,
+      0.8230278015136718
+    ],
+    "bootstrap_confidence": 0.899203,
+    "bootstrap_appearance": 0.733875,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 307,
+    "timestamp_s": 61.390545,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4607399940490723,
+      0.07870390150282118,
+      0.6247977256774903,
+      0.8406277126736111
+    ],
+    "bootstrap_confidence": 0.926727,
+    "bootstrap_appearance": 0.781053,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 308,
+    "timestamp_s": 61.607014,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6460795879364014,
+      0.0783598158094618,
+      0.780424165725708,
+      0.9305928548177084
+    ],
+    "bootstrap_confidence": 0.913841,
+    "bootstrap_appearance": 0.755179,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "large target jump"
+    ],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 309,
+    "timestamp_s": 61.780189,
+    "target_visible": true,
+    "target_box_norm": [
+      0.6255823135375976,
+      0.053597174750434025,
+      0.7525554656982422,
+      0.8825183444552951
+    ],
+    "bootstrap_confidence": 0.907579,
+    "bootstrap_appearance": 0.704403,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 310,
+    "timestamp_s": 61.996658,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5766042709350586,
+      0.05141491360134549,
+      0.734393310546875,
+      0.8306005689832899
+    ],
+    "bootstrap_confidence": 0.920909,
+    "bootstrap_appearance": 0.663642,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 311,
+    "timestamp_s": 62.213127,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5442610740661621,
+      0.06140467325846354,
+      0.714345645904541,
+      0.8449192470974393
+    ],
+    "bootstrap_confidence": 0.909363,
+    "bootstrap_appearance": 0.672927,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 312,
+    "timestamp_s": 62.386302,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5323392868041992,
+      0.07721820407443576,
+      0.7093379974365235,
+      0.8467449612087674
+    ],
+    "bootstrap_confidence": 0.90476,
+    "bootstrap_appearance": 0.650221,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 313,
+    "timestamp_s": 62.60277,
+    "target_visible": true,
+    "target_box_norm": [
+      0.5066256523132324,
+      0.07620502048068577,
+      0.6558015823364258,
+      0.8458360460069444
+    ],
+    "bootstrap_confidence": 0.888477,
+    "bootstrap_appearance": 0.654556,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 314,
+    "timestamp_s": 62.819239,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48791303634643557,
+      0.07590196397569444,
+      0.617709732055664,
+      0.8405709160698784
+    ],
+    "bootstrap_confidence": 0.924615,
+    "bootstrap_appearance": 0.713919,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 315,
+    "timestamp_s": 62.992414,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4615917205810547,
+      0.05798433091905382,
+      0.6217264175415039,
+      0.8233560350206163
+    ],
+    "bootstrap_confidence": 0.93154,
+    "bootstrap_appearance": 0.742906,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 316,
+    "timestamp_s": 63.208883,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4503183841705322,
+      0.06389007568359376,
+      0.62372727394104,
+      0.8279875013563368
+    ],
+    "bootstrap_confidence": 0.909059,
+    "bootstrap_appearance": 0.75934,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 317,
+    "timestamp_s": 63.382058,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4311816215515137,
+      0.07487191094292535,
+      0.5968672752380371,
+      0.8406162685818143
+    ],
+    "bootstrap_confidence": 0.904257,
+    "bootstrap_appearance": 0.769575,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 318,
+    "timestamp_s": 63.598527,
+    "target_visible": true,
+    "target_box_norm": [
+      0.41513452529907224,
+      0.07753863864474826,
+      0.5384459495544434,
+      0.841983879937066
+    ],
+    "bootstrap_confidence": 0.909393,
+    "bootstrap_appearance": 0.805257,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 319,
+    "timestamp_s": 63.814996,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3987802267074585,
+      0.07012888590494791,
+      0.5270076751708984,
+      0.8427537706163194
+    ],
+    "bootstrap_confidence": 0.916253,
+    "bootstrap_appearance": 0.790621,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 320,
+    "timestamp_s": 63.988171,
+    "target_visible": true,
+    "target_box_norm": [
+      0.48287572860717776,
+      0.0703570048014323,
+      0.616064453125,
+      0.8294861687554254
+    ],
+    "bootstrap_confidence": 0.906415,
+    "bootstrap_appearance": 0.734884,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 321,
+    "timestamp_s": 64.204639,
+    "target_visible": true,
+    "target_box_norm": [
+      0.4607399940490723,
+      0.07870390150282118,
+      0.6247977256774903,
+      0.8406277126736111
+    ],
+    "bootstrap_confidence": 0.926727,
+    "bootstrap_appearance": 0.781053,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 322,
+    "timestamp_s": 64.421108,
+    "target_visible": true,
+    "target_box_norm": [
+      0.442215633392334,
+      0.07546022203233507,
+      0.6172310829162597,
+      0.8388988071017796
+    ],
+    "bootstrap_confidence": 0.897586,
+    "bootstrap_appearance": 0.757296,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 323,
+    "timestamp_s": 64.594283,
+    "target_visible": true,
+    "target_box_norm": [
+      0.42421560287475585,
+      0.08112013075086806,
+      0.5763185501098633,
+      0.8312681410047743
+    ],
+    "bootstrap_confidence": 0.902982,
+    "bootstrap_appearance": 0.800554,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 324,
+    "timestamp_s": 64.810752,
+    "target_visible": true,
+    "target_box_norm": [
+      0.40518531799316404,
+      0.08354712592230903,
+      0.529542350769043,
+      0.8514553493923611
+    ],
+    "bootstrap_confidence": 0.926635,
+    "bootstrap_appearance": 0.792104,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 325,
+    "timestamp_s": 64.983927,
+    "target_visible": true,
+    "target_box_norm": [
+      0.3721585750579834,
+      0.08610178629557291,
+      0.5112967014312744,
+      0.8705181545681424
+    ],
+    "bootstrap_confidence": 0.901961,
+    "bootstrap_appearance": 0.804492,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 326,
+    "timestamp_s": 65.200396,
+    "target_visible": true,
+    "target_box_norm": [
+      0.360158634185791,
+      0.09093026055230034,
+      0.4823875427246094,
+      0.858852301703559
+    ],
+    "bootstrap_confidence": 0.926274,
+    "bootstrap_appearance": 0.85842,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 327,
+    "timestamp_s": 65.416865,
+    "target_visible": true,
+    "target_box_norm": [
+      0.34462270736694334,
+      0.07496999104817709,
+      0.4701530456542969,
+      0.8527109781901042
+    ],
+    "bootstrap_confidence": 0.913082,
+    "bootstrap_appearance": 0.864729,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  },
+  {
+    "canonical_index": 328,
+    "timestamp_s": 65.59004,
+    "target_visible": true,
+    "target_box_norm": [
+      0.2986349105834961,
+      0.07143359714084202,
+      0.4559598922729492,
+      0.8754176669650607
+    ],
+    "bootstrap_confidence": 0.890301,
+    "bootstrap_appearance": 0.831272,
+    "reviewed_identity": true,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": null,
+    "annotation_source": "high-resolution proposal with all-frame identity review"
+  }
+]

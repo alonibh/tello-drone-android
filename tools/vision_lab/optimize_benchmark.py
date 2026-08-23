@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a bounded, identity-first search on the fixed two-video benchmark."""
+"""Run a bounded, identity-first search on the fixed offline benchmark."""
 
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ from ultralytics import YOLO  # noqa: E402
 
 YOLO11N_SHA256 = "0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1"
 EFFICIENTDET_SHA256 = "6fd32c84ab1eb0f7e7f3a7a20a20d7df1530daa8378728f7c79571096286bd52"
+MIN_IDENTITY_SAFE_CONTINUITY_PERCENT = 50.0
 
 
 @dataclass(frozen=True)
@@ -302,14 +303,22 @@ def deserialize_detections(items: list[list[dict[str, Any]]]) -> list[list[Detec
 
 
 def detection_cache(
-    videos: list[VideoData], detector: str, model_path: Path, cache_path: Path, threads: int
+    videos: list[VideoData],
+    detector: str,
+    model_path: Path,
+    cache_path: Path,
+    threads: int,
+    benchmark_sha256: str,
 ) -> tuple[dict[str, list[list[Detection]]], dict[str, Any]]:
     expected_hash = EFFICIENTDET_SHA256 if detector == "efficientdet_lite2" else YOLO11N_SHA256
     if sha256(model_path) != expected_hash:
         raise ValueError(f"{detector} model hash mismatch")
     if cache_path.is_file():
         payload = json.loads(cache_path.read_text(encoding="utf-8"))
-        if payload.get("model_sha256") == expected_hash:
+        if (
+            payload.get("model_sha256") == expected_hash
+            and payload.get("benchmark_sha256") == benchmark_sha256
+        ):
             return {key: deserialize_detections(value) for key, value in payload["detections"].items()}, payload["timing"]
     all_detections: dict[str, list[list[Detection]]] = {}
     timings: list[float] = []
@@ -356,7 +365,13 @@ def detection_cache(
         "median_ms": round(statistics.median(timings), 3),
         "p95_ms": round(float(np.percentile(timings, 95)), 3),
     }
-    payload = {"model_sha256": expected_hash, "detector": detector, "timing": timing, "detections": {key: serialize_detections(value) for key, value in all_detections.items()}}
+    payload = {
+        "model_sha256": expected_hash,
+        "benchmark_sha256": benchmark_sha256,
+        "detector": detector,
+        "timing": timing,
+        "detections": {key: serialize_detections(value) for key, value in all_detections.items()},
+    }
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(json.dumps(payload) + "\n", encoding="utf-8")
     return all_detections, timing
@@ -547,6 +562,10 @@ def evaluate_results(video: VideoData, results: list[Result], partition: str) ->
         "identity_safe_continuity_percent": round(100.0 * continuity, 3),
         "mean_iou_when_tracked": round(statistics.mean(ious), 4) if ious else 0.0,
         "jitter_rms_norm": round(math.sqrt(statistics.mean(value * value for value in jitter)), 6) if jitter else 0.0,
+        "iou_sum": float(sum(ious)),
+        "iou_sample_count": len(ious),
+        "jitter_squared_sum": float(sum(value * value for value in jitter)),
+        "jitter_sample_count": len(jitter),
         "wrong_indices": wrong_indices,
     }
 
@@ -566,13 +585,31 @@ def aggregate(per_video: dict[str, dict[str, Any]], tracker_ms: dict[str, float]
             "correctly_localized_target_frames",
             "identity_safe_tracked_frames",
             "tracked_visible_frames",
+            "iou_sample_count",
+            "jitter_sample_count",
         )
     }
+    summed["iou_sum"] = sum(item["iou_sum"] for item in per_video.values())
+    summed["jitter_squared_sum"] = sum(
+        item["jitter_squared_sum"] for item in per_video.values()
+    )
     summed["identity_safe_continuity_percent"] = round(100.0 * summed["identity_safe_tracked_frames"] / max(1, summed["visible_target_frames"]), 3)
-    summed["mean_iou_when_tracked"] = round(statistics.mean(item["mean_iou_when_tracked"] for item in per_video.values()), 4)
-    summed["jitter_rms_norm"] = round(statistics.mean(item["jitter_rms_norm"] for item in per_video.values()), 6)
+    minimum_safe_frames = math.ceil(
+        summed["visible_target_frames"] * MIN_IDENTITY_SAFE_CONTINUITY_PERCENT / 100.0
+    )
+    summed["continuity_shortfall_frames"] = max(
+        0, minimum_safe_frames - summed["identity_safe_tracked_frames"]
+    )
+    summed["mean_iou_when_tracked"] = round(
+        summed["iou_sum"] / max(1, summed["iou_sample_count"]), 4
+    )
+    summed["jitter_rms_norm"] = round(
+        math.sqrt(summed["jitter_squared_sum"] / max(1, summed["jitter_sample_count"])),
+        6,
+    )
     summed["tracker_mean_ms"] = round(statistics.mean(tracker_ms.values()), 3)
     summed["rank_tuple"] = [
+        summed["continuity_shortfall_frames"],
         summed["identity_switch_events"],
         summed["wrong_person_frames"] + summed["false_tracked_while_target_invisible"],
         summed["lost_visible_frames"],
@@ -621,6 +658,26 @@ def evaluate_config(
 
 def seed_configs() -> list[Config]:
     configs = [
+        Config(
+            "previous_winner_9f4ea4a",
+            "previous_winner",
+            "efficientdet_lite2",
+            True,
+            detector_cadence=1,
+            high_confidence=0.45,
+            low_confidence=0.18,
+            iou_gate=0.23,
+            distance_gate=0.17,
+            appearance_gate=0.46,
+            ambiguity_margin=0.06,
+            lk_fb_error=1.1,
+            lk_inlier_ratio=0.70,
+            lk_min_features=10,
+            lk_feature_count=80,
+            motion_alpha=0.0,
+            camera_compensation=True,
+            missing_ttl_s=1.0,
+        ),
         Config("efficientdet_baseline", "efficientdet_baseline", "efficientdet_lite2", False, high_confidence=0.55, low_confidence=0.55, appearance_gate=0.38),
         Config("efficientdet_lk", "efficientdet_lk", "efficientdet_lite2", True, high_confidence=0.55, low_confidence=0.55),
         Config("efficientdet_hilo_lk", "efficientdet_hilo_lk", "efficientdet_lite2", True, detector_cadence=2, high_confidence=0.55, low_confidence=0.18),
@@ -659,13 +716,19 @@ def local_variants(best: Config, iteration: int) -> list[Config]:
     variants: list[Config] = []
     changes: list[tuple[str, Sequence[Any]]] = [
         ("detector_cadence", [1, 2, 3]),
-        ("low_confidence", [max(0.03, best.low_confidence - 0.05), best.low_confidence + 0.05]),
+        ("high_confidence", [max(best.low_confidence + 0.05, best.high_confidence - 0.08), min(0.75, best.high_confidence + 0.08)]),
+        ("low_confidence", [max(0.03, best.low_confidence - 0.05), min(best.high_confidence, best.low_confidence + 0.05)]),
+        ("iou_gate", [max(0.04, best.iou_gate - 0.05), min(0.35, best.iou_gate + 0.05)]),
+        ("distance_gate", [max(0.05, best.distance_gate - 0.04), min(0.24, best.distance_gate + 0.04)]),
         ("appearance_gate", [max(0.30, best.appearance_gate - 0.05), min(0.65, best.appearance_gate + 0.05)]),
         ("ambiguity_margin", [max(0.04, best.ambiguity_margin - 0.03), min(0.20, best.ambiguity_margin + 0.03)]),
         ("lk_fb_error", [max(0.6, best.lk_fb_error - 0.3), min(2.2, best.lk_fb_error + 0.3)]),
         ("lk_inlier_ratio", [max(0.45, best.lk_inlier_ratio - 0.05), min(0.78, best.lk_inlier_ratio + 0.05)]),
+        ("lk_min_features", [8, 10, 14, 18]),
+        ("lk_feature_count", [60, 80, 120, 180]),
         ("motion_alpha", [0.0, 0.35, 0.65]),
         ("camera_compensation", [not best.camera_compensation]),
+        ("missing_ttl_s", [0.4, 0.6, 0.8, 1.0, 1.2]),
     ]
     counter = 0
     for field_name, values in changes:
@@ -688,6 +751,7 @@ def meaningful_improvement(current: dict[str, Any], candidate: dict[str, Any]) -
     if tuple(after["rank_tuple"]) >= tuple(before["rank_tuple"]):
         return False
     integer_priorities = (
+        "continuity_shortfall_frames",
         "identity_switch_events",
         "wrong_person_frames",
         "false_tracked_while_target_invisible",
@@ -743,11 +807,11 @@ def render_comparison(
     video: VideoData,
     named_results: Sequence[tuple[str, list[Result], list[list[Detection]]]],
 ) -> None:
-    writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 5.0, (1280, 720))
+    writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 5.0, (960, 540))
     if not writer.isOpened():
         raise RuntimeError(f"could not write {path}")
     for index in range(len(video.frames)):
-        cells = [render_cell(video, index, results[index], name, detections[index], (640, 360)) for name, results, detections in named_results]
+        cells = [render_cell(video, index, results[index], name, detections[index], (480, 270)) for name, results, detections in named_results]
         writer.write(cv2.vconcat([cv2.hconcat(cells[:2]), cv2.hconcat(cells[2:4])]))
     writer.release()
 
@@ -789,33 +853,40 @@ def write_outputs(
         winner_detector = detector_data[winner["config"]["detector"]][video.id]
         render_video(output_dir / f"winner_{video.id}.mp4", video, winner_results[video.id], winner_detector, f"WINNER: {winner['config']['name']}")
         comparison: list[tuple[str, list[Result], list[list[Detection]]]] = []
-        for name in ("efficientdet_baseline", "efficientdet_lk", "yolo11n_detector"):
+        for name in ("efficientdet_baseline", "previous_winner_9f4ea4a", "yolo11n_detector"):
             config = next(entry["config"] for entry in history if entry["config"]["name"] == name)
             detector = config["detector"]
             comparison.append((name, fixed_results[name][video.id], detector_data[detector][video.id]))
         comparison.append(("winner", winner_results[video.id], winner_detector))
         render_comparison(output_dir / f"comparison_{video.id}.mp4", video, comparison)
     held = winner["aggregate"]
+    previous_winner = next(
+        item for item in finalists if item["config"]["name"] == "previous_winner_9f4ea4a"
+    )
+    previous = previous_winner["aggregate"]
     report = [
         "# Offline identity-first tracker optimization",
         "",
         "## Benchmark integrity",
         "",
-        f"- Canonical data: {sum(len(video.frames) for video in videos)} frames at 5 Hz from two SHA-256-pinned source videos.",
-        "- Identity ground truth was frozen before search. A 960 px proposal pass bootstrapped boxes; every canonical frame was rendered to review sheets, the exact person identity was visually checked, and false-visible ranges were manually corrected.",
+        f"- Canonical data: {sum(len(video.frames) for video in videos)} frames at 5 Hz from {len(videos)} SHA-256-pinned source videos.",
+        "- Identity ground truth was frozen before search. A bootstrap proposal pass supplied candidate boxes; every canonical frame was rendered at review resolution, the exact person identity and visibility were independently checked, and corrections were applied before candidate evaluation.",
         "- Candidate detections are not accepted as runtime ground truth. Annotation hashes are stored in the canonical manifest and verified before evaluation.",
-        "- Tuning and held-out time intervals are fixed in `benchmark_spec.json`; held-out results are evaluated only for architecture finalists.",
+        "- Tuning and held-out time intervals are fixed in `benchmark_spec.json`. The winning configuration is frozen from tuning rank before any held-out metric is used; held-out evaluation is validation only.",
+        f"- A configuration must reach {MIN_IDENTITY_SAFE_CONTINUITY_PERCENT:.0f}% aggregate identity-safe continuity on tuning data to be eligible. This rejects the degenerate never-track solution before identity-first ranking.",
         "",
         "## Winner",
         "",
         f"`{winner['config']['name']}`: `{winner['config']['detector']}` + {'fail-closed LK' if winner['config']['use_lk'] else 'detector-only'}.",
         "",
-        f"Held-out: **{held['identity_switch_events']} identity switches**, **{held['wrong_person_frames']} wrong-person frames**, {held['false_tracked_while_target_invisible']} false-track frames, {held['lost_visible_frames']} Lost frames, {held['missing_visible_frames']} Missing frames, **{held['identity_safe_continuity_percent']:.3f}% identity-safe continuity**, {held['localization_drift_frames']} localization-drift frames, mean tracked IoU {held['mean_iou_when_tracked']:.4f}.",
+        f"Held-out: **{held['identity_switch_events']} identity-switch events**, **{held['wrong_person_frames']} wrong-person frames**, {held['false_tracked_while_target_invisible']} false-track frames, {held['lost_visible_frames']} Lost frames, {held['missing_visible_frames']} Missing frames, **{held['identity_safe_continuity_percent']:.3f}% identity-safe continuity**, {held['localization_drift_frames']} localization-drift frames, mean tracked IoU {held['mean_iou_when_tracked']:.4f}.",
+        f"Previous winner on the enlarged held-out set: {previous['identity_switch_events']} switches, {previous['wrong_person_frames']} wrong-person frames, {previous['lost_visible_frames']} Lost, {previous['missing_visible_frames']} Missing, {previous['identity_safe_continuity_percent']:.3f}% identity-safe continuity, {previous['localization_drift_frames']} drift frames, mean IoU {previous['mean_iou_when_tracked']:.4f}.",
         "",
         "## Search and rejection reasons",
         "",
         f"- {len(history)} tuning experiments were recorded. Search stopped because: {stop_reason}",
-        "- Ranking is strict lexicographic priority: identity switches, wrong-person/false-track frames, Lost, Missing, identity-safe continuity, localization drift, IoU, jitter, then compute. Therefore no continuity gain can compensate for an identity switch.",
+        "- The winner was selected only by tuning rank. Held-out outcomes did not alter parameters, architecture, or winner selection.",
+        f"- After the {MIN_IDENTITY_SAFE_CONTINUITY_PERCENT:.0f}% tuning eligibility floor, ranking is strict lexicographic priority: identity switches, wrong-person/false-track frames, Lost, Missing, identity-safe continuity, localization drift, IoU, jitter, then compute. Therefore no further continuity gain can compensate for an identity switch among eligible configurations.",
         "- Rejected candidates rank lower for the first differing item in that tuple; detailed configurations and per-video metrics are in `experiment_history.jsonl` and `ranked_candidates.json`.",
         "",
         "## Desktop cost",
@@ -830,6 +901,60 @@ def write_outputs(
         "The evidence in this report determines the detector/LK/low-confidence/camera-motion recommendation; see `recommendation.md` for the concise port decision and deployment blockers.",
     ]
     (output_dir / "report.md").write_text("\n".join(report) + "\n", encoding="utf-8")
+    ready_for_android = (
+        held["identity_switch_events"] == 0
+        and held["wrong_person_frames"] == 0
+        and held["false_tracked_while_target_invisible"] == 0
+        and held["identity_safe_continuity_percent"] >= 90.0
+    )
+    if held["identity_switch_events"] or held["wrong_person_frames"]:
+        worst_video_id, worst_video = max(
+            winner["per_video"].items(),
+            key=lambda item: (
+                item[1]["identity_switch_events"],
+                item[1]["wrong_person_frames"],
+            ),
+        )
+        blocker = (
+            f"The `{worst_video_id}` held-out partition still has "
+            f"{worst_video['identity_switch_events']} identity-switch event(s) and "
+            f"{worst_video['wrong_person_frames']} wrong-person frame(s) at canonical "
+            f"indices {worst_video['wrong_indices']}."
+        )
+    else:
+        blocker = "Held-out identity-safe continuity remains below the 90% port-readiness gate."
+    recommendation = [
+        "# Android port decision",
+        "",
+        "**READY**" if ready_for_android else "**NOT READY**",
+        "",
+        f"Winning offline pipeline: `{winner['config']['name']}` (`{winner['config']['detector']}`, "
+        f"{'LK enabled' if winner['config']['use_lk'] else 'detector-only'}, cadence {winner['config']['detector_cadence']}).",
+        "",
+        f"Held-out: {held['identity_switch_events']} switch event(s), {held['wrong_person_frames']} wrong-person frames, "
+        f"{held['identity_safe_continuity_percent']:.3f}% identity-safe continuity, {held['lost_visible_frames']} Lost, "
+        f"{held['missing_visible_frames']} Missing.",
+        "",
+        f"Largest blocker: {blocker}",
+        "",
+        "No Android production code was changed by this offline decision.",
+    ]
+    (output_dir / "recommendation.md").write_text(
+        "\n".join(recommendation) + "\n", encoding="utf-8"
+    )
+    rejection = [
+        "# Rejection reasons",
+        "",
+        f"- The previous winner was rejected on the enlarged held-out set: {previous['identity_switch_events']} switches, "
+        f"{previous['wrong_person_frames']} wrong-person frames, and {previous['identity_safe_continuity_percent']:.3f}% continuity, "
+        f"versus {held['identity_switch_events']}, {held['wrong_person_frames']}, and {held['identity_safe_continuity_percent']:.3f}% for the frozen tuning winner.",
+        f"- Configurations below {MIN_IDENTITY_SAFE_CONTINUITY_PERCENT:.0f}% tuning continuity were ineligible, preventing a never-track configuration from winning by suppressing identity exposure.",
+        "- Among eligible configurations, the first differing strict rank item rejects a candidate: switches, wrong/false-track frames, Lost, Missing, safe continuity, drift, IoU, jitter, then compute.",
+        "- Full configurations and metrics for all tuning experiments and held-out architecture controls are retained in `experiment_history.jsonl` and `ranked_candidates.json`.",
+    ]
+    (output_dir / "rejection_reasons.md").write_text(
+        "\n".join(rejection) + "\n", encoding="utf-8"
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -839,34 +964,86 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--baseline-model", type=Path, default=Path("app/src/main/assets/efficientdet_lite2_metadata_v1_int8.tflite"))
     parser.add_argument("--yolo-model", type=Path, default=CACHE_DIR / "yolo11n.pt")
     parser.add_argument("--threads", type=int, default=4)
+    parser.add_argument(
+        "--resume-tuning",
+        action="store_true",
+        help="resume tuning-only refinement from experiment_history.jsonl in the output directory",
+    )
+    parser.add_argument(
+        "--validation-only",
+        action="store_true",
+        help="with --resume-tuning, keep the converged tuning winner and regenerate held-out artifacts",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if args.validation_only and not args.resume_tuning:
+        raise ValueError("--validation-only requires --resume-tuning")
+    print("loading and verifying frozen benchmark", flush=True)
     manifest, videos = load_benchmark(args.benchmark_dir)
+    benchmark_sha256 = sha256(args.benchmark_dir / "manifest.json")
     detector_data: dict[str, dict[str, list[list[Detection]]]] = {}
     detector_timing: dict[str, Any] = {}
     for detector, model in (("efficientdet_lite2", args.baseline_model), ("yolo11n", args.yolo_model)):
-        data, timing = detection_cache(videos, detector, model, args.benchmark_dir / "cache" / f"{detector}.json", args.threads)
+        print(f"preparing {detector} detections", flush=True)
+        data, timing = detection_cache(
+            videos,
+            detector,
+            model,
+            args.benchmark_dir / "cache" / f"{detector}.json",
+            args.threads,
+            benchmark_sha256,
+        )
         detector_data[detector] = data
         detector_timing[detector] = timing
+    print("estimating per-frame camera motion", flush=True)
     camera_motion = {
         video.id: [None] + [estimate_camera_motion(video.frames[index - 1], video.frames[index]) for index in range(1, len(video.frames))]
         for video in videos
     }
-    history: list[dict[str, Any]] = []
-    tune_results: list[dict[str, Any]] = []
     seeds = seed_configs()
-    for config in seeds:
-        metrics, results = evaluate_config(config, videos, detector_data, camera_motion, "tuning")
-        metrics["iteration"] = 0
-        history.append(metrics)
-        tune_results.append(metrics)
+    history_path = args.output_dir / "experiment_history.jsonl"
+    if args.resume_tuning:
+        if not history_path.is_file():
+            raise ValueError("--resume-tuning requires an existing experiment_history.jsonl")
+        history = [
+            json.loads(line)
+            for line in history_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        tune_results = [item for item in history if item["partition"] == "tuning"]
+        seed_names = {config.name for config in seeds}
+        history_seed_names = {
+            item["config"]["name"] for item in tune_results if item["iteration"] == 0
+        }
+        if history_seed_names != seed_names:
+            raise ValueError("resume history does not contain the exact current seed set")
+        start_iteration = max(item["iteration"] for item in tune_results) + 1
+        print(
+            f"resuming {len(tune_results)} tuning experiments at refinement {start_iteration}",
+            flush=True,
+        )
+    else:
+        history = []
+        tune_results = []
+        start_iteration = 1
+        for index, config in enumerate(seeds, 1):
+            print(f"tuning seed {index}/{len(seeds)}: {config.name}", flush=True)
+            metrics, _ = evaluate_config(
+                config, videos, detector_data, camera_motion, "tuning"
+            )
+            metrics["iteration"] = 0
+            history.append(metrics)
+            tune_results.append(metrics)
     best_tuning = min(tune_results, key=lambda item: tuple(item["aggregate"]["rank_tuple"]))
     seen = {config_signature(Config(**item["config"])) for item in tune_results}
     stop_reason = ""
-    for iteration in range(1, 5):
+    refinement_iterations: Sequence[int] = (
+        () if args.validation_only else range(start_iteration, 21)
+    )
+    for iteration in refinement_iterations:
         variants = [
             config
             for config in local_variants(Config(**best_tuning["config"]), iteration)
@@ -876,7 +1053,11 @@ def main() -> int:
             stop_reason = f"refinement round {iteration} had no unseen neighboring configurations"
             break
         refinement_results: list[dict[str, Any]] = []
-        for config in variants:
+        for index, config in enumerate(variants, 1):
+            print(
+                f"tuning refinement {iteration} {index}/{len(variants)}: {config.name}",
+                flush=True,
+            )
             seen.add(config_signature(config))
             metrics, _ = evaluate_config(config, videos, detector_data, camera_motion, "tuning")
             metrics["iteration"] = iteration
@@ -889,33 +1070,47 @@ def main() -> int:
             break
         best_tuning = candidate
     else:
-        stop_reason = "four focused refinement rounds produced meaningful gains; the documented bounded refinement limit was reached"
+        stop_reason = "twenty focused refinement rounds produced meaningful gains; the documented safety limit was reached"
+    if args.validation_only:
+        final_iteration = max(item["iteration"] for item in tune_results)
+        stop_reason = (
+            f"loaded converged tuning history; refinement round {final_iteration} "
+            "had produced no meaningful tuning improvement"
+        )
     finalists_by_family: dict[str, list[dict[str, Any]]] = {}
     for item in sorted(tune_results, key=lambda value: tuple(value["aggregate"]["rank_tuple"])):
         family = item["config"]["family"]
         if len(finalists_by_family.setdefault(family, [])) < 2:
             finalists_by_family[family].append(item)
     heldout: list[dict[str, Any]] = []
-    for tuning_item in [item for values in finalists_by_family.values() for item in values]:
+    heldout_results: dict[tuple[Any, ...], dict[str, list[Result]]] = {}
+    tuning_finalists = [item for values in finalists_by_family.values() for item in values]
+    for index, tuning_item in enumerate(tuning_finalists, 1):
         config = Config(**tuning_item["config"])
+        print(
+            f"held-out validation {index}/{len(tuning_finalists)}: {config.name}",
+            flush=True,
+        )
         metrics, results = evaluate_config(config, videos, detector_data, camera_motion, "held_out")
         metrics["selected_from_tuning_rank_tuple"] = tuning_item["aggregate"]["rank_tuple"]
         heldout.append(metrics)
+        heldout_results[config_signature(config)] = results
     heldout.sort(key=lambda item: tuple(item["aggregate"]["rank_tuple"]))
-    winner = heldout[0]
+    winning_signature = config_signature(Config(**best_tuning["config"]))
+    winner = next(
+        item
+        for item in heldout
+        if config_signature(Config(**item["config"])) == winning_signature
+    )
     named_seed_configs = {config.name: config for config in seeds}
     fixed_results: dict[str, dict[str, list[Result]]] = {}
-    for name in ("efficientdet_baseline", "efficientdet_lk", "yolo11n_detector"):
+    for name in ("efficientdet_baseline", "previous_winner_9f4ea4a", "yolo11n_detector"):
         config = named_seed_configs[name]
-        fixed_results[name] = {
-            video.id: run_pipeline(video, detector_data[config.detector][video.id], camera_motion[video.id], config)[0]
-            for video in videos
-        }
+        fixed_results[name] = heldout_results.get(config_signature(config)) or evaluate_config(
+            config, videos, detector_data, camera_motion, "held_out"
+        )[1]
     winning_config = Config(**winner["config"])
-    winner_results = {
-        video.id: run_pipeline(video, detector_data[winning_config.detector][video.id], camera_motion[video.id], winning_config)[0]
-        for video in videos
-    }
+    winner_results = heldout_results[config_signature(winning_config)]
     output_dir = args.output_dir.resolve()
     write_outputs(output_dir, manifest, videos, history, heldout, winner, winner_results, fixed_results, detector_data, detector_timing, stop_reason)
     print(json.dumps({"output_dir": str(output_dir), "experiments": len(history), "finalists": len(heldout), "winner": winner}, indent=2))

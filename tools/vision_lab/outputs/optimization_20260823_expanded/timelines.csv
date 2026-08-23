@@ -1,0 +1,1366 @@
+video,canonical_index,timestamp_s,partition,target_visible,state,source,note
+single_person,0,0.0,outside,False,Unselected,none,outside evaluated section
+single_person,1,0.217644,outside,False,Unselected,none,outside evaluated section
+single_person,2,0.399014,outside,False,Unselected,none,outside evaluated section
+single_person,3,0.616658,outside,False,Unselected,none,outside evaluated section
+single_person,4,0.798028,outside,False,Unselected,none,outside evaluated section
+single_person,5,1.015672,outside,False,Unselected,none,outside evaluated section
+single_person,6,1.197042,outside,False,Unselected,none,outside evaluated section
+single_person,7,1.414686,outside,False,Unselected,none,outside evaluated section
+single_person,8,1.596056,outside,False,Unselected,none,outside evaluated section
+single_person,9,1.8137,outside,False,Unselected,none,outside evaluated section
+single_person,10,1.99507,outside,False,Unselected,none,outside evaluated section
+single_person,11,2.212714,outside,False,Unselected,none,outside evaluated section
+single_person,12,2.394083,outside,False,Unselected,none,outside evaluated section
+single_person,13,2.611727,outside,False,Unselected,none,outside evaluated section
+single_person,14,2.793097,outside,False,Unselected,none,outside evaluated section
+single_person,15,3.010741,outside,True,Unselected,none,outside evaluated section
+single_person,16,3.192111,outside,True,Unselected,none,outside evaluated section
+single_person,17,3.409755,outside,True,Unselected,none,outside evaluated section
+single_person,18,3.591125,outside,True,Unselected,none,outside evaluated section
+single_person,19,3.808769,outside,True,Unselected,none,outside evaluated section
+single_person,20,3.990139,outside,True,Unselected,none,outside evaluated section
+single_person,21,4.207783,outside,True,Unselected,none,outside evaluated section
+single_person,22,4.389153,outside,True,Unselected,none,outside evaluated section
+single_person,23,4.606797,outside,True,Unselected,none,outside evaluated section
+single_person,24,4.788167,outside,True,Unselected,none,outside evaluated section
+single_person,25,5.005811,tuning,True,Unselected,none,outside evaluated section
+single_person,26,5.187181,tuning,True,Unselected,none,outside evaluated section
+single_person,27,5.404825,tuning,True,Unselected,none,outside evaluated section
+single_person,28,5.586195,tuning,True,Unselected,none,outside evaluated section
+single_person,29,5.803839,tuning,True,Unselected,none,outside evaluated section
+single_person,30,5.985209,tuning,True,Unselected,none,outside evaluated section
+single_person,31,6.202853,tuning,True,Unselected,none,outside evaluated section
+single_person,32,6.384223,tuning,True,Unselected,none,outside evaluated section
+single_person,33,6.601867,tuning,True,Unselected,none,outside evaluated section
+single_person,34,6.783236,tuning,True,Unselected,none,outside evaluated section
+single_person,35,7.00088,tuning,True,Unselected,none,outside evaluated section
+single_person,36,7.18225,tuning,True,Unselected,none,outside evaluated section
+single_person,37,7.399894,tuning,True,Unselected,none,outside evaluated section
+single_person,38,7.617538,tuning,True,Unselected,none,outside evaluated section
+single_person,39,7.798908,tuning,True,Unselected,none,outside evaluated section
+single_person,40,8.016552,tuning,True,Unselected,none,outside evaluated section
+single_person,41,8.197922,tuning,True,Unselected,none,outside evaluated section
+single_person,42,8.415566,tuning,True,Unselected,none,outside evaluated section
+single_person,43,8.596936,tuning,True,Unselected,none,outside evaluated section
+single_person,44,8.81458,tuning,True,Unselected,none,outside evaluated section
+single_person,45,8.99595,tuning,True,Unselected,none,outside evaluated section
+single_person,46,9.213594,tuning,True,Unselected,none,outside evaluated section
+single_person,47,9.394964,tuning,True,Unselected,none,outside evaluated section
+single_person,48,9.612608,tuning,True,Unselected,none,outside evaluated section
+single_person,49,9.793978,tuning,True,Unselected,none,outside evaluated section
+single_person,50,10.011622,tuning,True,Unselected,none,outside evaluated section
+single_person,51,10.192992,tuning,True,Unselected,none,outside evaluated section
+single_person,52,10.410636,tuning,True,Unselected,none,outside evaluated section
+single_person,53,10.592006,tuning,True,Unselected,none,outside evaluated section
+single_person,54,10.80965,tuning,True,Unselected,none,outside evaluated section
+single_person,55,10.99102,tuning,True,Unselected,none,outside evaluated section
+single_person,56,11.208663,tuning,True,Unselected,none,outside evaluated section
+single_person,57,11.390033,tuning,True,Unselected,none,outside evaluated section
+single_person,58,11.607677,tuning,True,Unselected,none,outside evaluated section
+single_person,59,11.789047,tuning,True,Unselected,none,outside evaluated section
+single_person,60,12.006691,tuning,True,Unselected,none,outside evaluated section
+single_person,61,12.188061,tuning,True,Unselected,none,outside evaluated section
+single_person,62,12.405705,tuning,True,Unselected,none,outside evaluated section
+single_person,63,12.587075,tuning,True,Unselected,none,outside evaluated section
+single_person,64,12.804719,tuning,True,Unselected,none,outside evaluated section
+single_person,65,12.986089,tuning,True,Unselected,none,outside evaluated section
+single_person,66,13.203733,tuning,True,Unselected,none,outside evaluated section
+single_person,67,13.385103,tuning,True,Unselected,none,outside evaluated section
+single_person,68,13.602747,tuning,True,Unselected,none,outside evaluated section
+single_person,69,13.784117,tuning,True,Unselected,none,outside evaluated section
+single_person,70,14.001761,tuning,True,Unselected,none,outside evaluated section
+single_person,71,14.183131,tuning,True,Unselected,none,outside evaluated section
+single_person,72,14.400775,tuning,True,Unselected,none,outside evaluated section
+single_person,73,14.582145,tuning,True,Unselected,none,outside evaluated section
+single_person,74,14.799789,tuning,True,Unselected,none,outside evaluated section
+single_person,75,15.017433,tuning,True,Unselected,none,outside evaluated section
+single_person,76,15.198803,tuning,True,Unselected,none,outside evaluated section
+single_person,77,15.416447,tuning,True,Unselected,none,outside evaluated section
+single_person,78,15.597817,tuning,True,Unselected,none,outside evaluated section
+single_person,79,15.81546,tuning,True,Unselected,none,outside evaluated section
+single_person,80,15.99683,tuning,True,Unselected,none,outside evaluated section
+single_person,81,16.214474,tuning,True,Unselected,none,outside evaluated section
+single_person,82,16.395844,tuning,True,Unselected,none,outside evaluated section
+single_person,83,16.613488,tuning,True,Unselected,none,outside evaluated section
+single_person,84,16.794858,tuning,True,Unselected,none,outside evaluated section
+single_person,85,17.012502,tuning,True,Unselected,none,outside evaluated section
+single_person,86,17.193872,tuning,True,Unselected,none,outside evaluated section
+single_person,87,17.411516,tuning,True,Unselected,none,outside evaluated section
+single_person,88,17.592886,tuning,True,Unselected,none,outside evaluated section
+single_person,89,17.81053,tuning,True,Unselected,none,outside evaluated section
+single_person,90,17.9919,tuning,True,Unselected,none,outside evaluated section
+single_person,91,18.209544,tuning,True,Unselected,none,outside evaluated section
+single_person,92,18.390914,tuning,True,Unselected,none,outside evaluated section
+single_person,93,18.608558,tuning,True,Unselected,none,outside evaluated section
+single_person,94,18.789928,tuning,True,Unselected,none,outside evaluated section
+single_person,95,19.007572,tuning,True,Unselected,none,outside evaluated section
+single_person,96,19.188942,tuning,True,Unselected,none,outside evaluated section
+single_person,97,19.406586,tuning,True,Unselected,none,outside evaluated section
+single_person,98,19.587956,tuning,True,Unselected,none,outside evaluated section
+single_person,99,19.8056,tuning,True,Unselected,none,outside evaluated section
+single_person,100,19.98697,tuning,True,Unselected,none,outside evaluated section
+single_person,101,20.204613,held_out,True,Tracked,explicit selection,fixed user selection
+single_person,102,20.385983,held_out,True,Tracked,detector,accepted detector association
+single_person,103,20.603627,held_out,True,Tracked,detector,accepted detector association
+single_person,104,20.784997,held_out,True,Tracked,detector,accepted detector association
+single_person,105,21.002641,held_out,True,Tracked,detector,accepted detector association
+single_person,106,21.184011,held_out,True,Tracked,detector,accepted detector association
+single_person,107,21.401655,held_out,True,Tracked,detector,accepted detector association
+single_person,108,21.583025,held_out,True,Tracked,detector,accepted detector association
+single_person,109,21.800669,held_out,True,Tracked,detector,accepted detector association
+single_person,110,21.982039,held_out,True,Tracked,detector,accepted detector association
+single_person,111,22.199683,held_out,True,Tracked,detector,accepted detector association
+single_person,112,22.417327,held_out,True,Tracked,detector,accepted detector association
+single_person,113,22.598697,held_out,True,Tracked,detector,accepted detector association
+single_person,114,22.816341,held_out,True,Tracked,detector,accepted detector association
+single_person,115,22.997711,held_out,True,Tracked,detector,accepted detector association
+single_person,116,23.215355,held_out,True,Tracked,detector,accepted detector association
+single_person,117,23.396725,held_out,True,Tracked,detector,accepted detector association
+single_person,118,23.614369,held_out,True,Tracked,detector,accepted detector association
+single_person,119,23.795739,held_out,True,Tracked,detector,accepted detector association
+single_person,120,24.013383,held_out,True,Tracked,detector,accepted detector association
+single_person,121,24.194753,held_out,True,Tracked,detector,accepted detector association
+single_person,122,24.412397,held_out,True,Tracked,detector,accepted detector association
+single_person,123,24.593767,held_out,True,Tracked,detector,accepted detector association
+single_person,124,24.81141,held_out,True,Tracked,detector,accepted detector association
+single_person,125,24.99278,held_out,True,Tracked,detector,accepted detector association
+single_person,126,25.210424,held_out,True,Tracked,detector,accepted detector association
+single_person,127,25.391794,held_out,True,Tracked,detector,accepted detector association
+single_person,128,25.609438,held_out,True,Tracked,detector,accepted detector association
+single_person,129,25.790808,held_out,True,Tracked,detector,accepted detector association
+single_person,130,26.008452,held_out,True,Tracked,detector,accepted detector association
+single_person,131,26.189822,held_out,True,Tracked,detector,accepted detector association
+single_person,132,26.407466,held_out,True,Tracked,detector,accepted detector association
+single_person,133,26.588836,held_out,True,Tracked,detector,accepted detector association
+single_person,134,26.80648,held_out,True,Tracked,detector,accepted detector association
+single_person,135,26.98785,held_out,True,Tracked,detector,accepted detector association
+single_person,136,27.205494,held_out,True,Missing,none,no identity-safe association; LK disabled
+single_person,137,27.386864,held_out,True,Missing,none,no identity-safe association; LK disabled
+single_person,138,27.604508,held_out,True,Lost,none,no identity-safe association; Lost latched
+single_person,139,27.785878,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,140,28.003522,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,141,28.184892,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,142,28.402536,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,143,28.583906,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,144,28.80155,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,145,28.98292,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,146,29.200563,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,147,29.381933,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,148,29.599577,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,149,29.817221,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,150,29.998591,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,151,30.216235,tuning,True,Unselected,none,outside evaluated section
+single_person,152,30.397605,tuning,True,Unselected,none,outside evaluated section
+single_person,153,30.615249,tuning,True,Unselected,none,outside evaluated section
+single_person,154,30.796619,tuning,True,Unselected,none,outside evaluated section
+single_person,155,31.014263,tuning,True,Unselected,none,outside evaluated section
+single_person,156,31.195633,tuning,True,Unselected,none,outside evaluated section
+single_person,157,31.413277,tuning,True,Unselected,none,outside evaluated section
+single_person,158,31.594647,tuning,True,Unselected,none,outside evaluated section
+single_person,159,31.812291,tuning,True,Unselected,none,outside evaluated section
+single_person,160,31.993661,tuning,True,Unselected,none,outside evaluated section
+single_person,161,32.211305,tuning,True,Unselected,none,outside evaluated section
+single_person,162,32.392675,tuning,True,Unselected,none,outside evaluated section
+single_person,163,32.610319,tuning,True,Unselected,none,outside evaluated section
+single_person,164,32.791689,tuning,True,Unselected,none,outside evaluated section
+single_person,165,33.009333,tuning,True,Unselected,none,outside evaluated section
+single_person,166,33.190703,tuning,True,Unselected,none,outside evaluated section
+single_person,167,33.408347,tuning,True,Unselected,none,outside evaluated section
+single_person,168,33.589716,tuning,True,Unselected,none,outside evaluated section
+single_person,169,33.80736,tuning,True,Unselected,none,outside evaluated section
+single_person,170,33.98873,tuning,True,Unselected,none,outside evaluated section
+single_person,171,34.206374,tuning,True,Unselected,none,outside evaluated section
+single_person,172,34.387744,tuning,True,Unselected,none,outside evaluated section
+single_person,173,34.605388,tuning,True,Unselected,none,outside evaluated section
+single_person,174,34.786758,tuning,True,Unselected,none,outside evaluated section
+single_person,175,35.004402,tuning,True,Unselected,none,outside evaluated section
+single_person,176,35.185772,tuning,True,Unselected,none,outside evaluated section
+single_person,177,35.403416,tuning,True,Unselected,none,outside evaluated section
+single_person,178,35.584786,tuning,True,Unselected,none,outside evaluated section
+single_person,179,35.80243,tuning,True,Unselected,none,outside evaluated section
+single_person,180,35.9838,tuning,True,Unselected,none,outside evaluated section
+single_person,181,36.201444,tuning,True,Unselected,none,outside evaluated section
+single_person,182,36.382814,tuning,True,Unselected,none,outside evaluated section
+single_person,183,36.600458,tuning,True,Unselected,none,outside evaluated section
+single_person,184,36.818102,tuning,True,Unselected,none,outside evaluated section
+single_person,185,36.999472,tuning,True,Unselected,none,outside evaluated section
+single_person,186,37.217116,tuning,True,Unselected,none,outside evaluated section
+single_person,187,37.398486,tuning,True,Unselected,none,outside evaluated section
+single_person,188,37.61613,tuning,True,Unselected,none,outside evaluated section
+single_person,189,37.7975,tuning,True,Unselected,none,outside evaluated section
+single_person,190,38.015144,tuning,True,Unselected,none,outside evaluated section
+single_person,191,38.196513,tuning,True,Unselected,none,outside evaluated section
+single_person,192,38.414157,tuning,True,Unselected,none,outside evaluated section
+single_person,193,38.595527,tuning,True,Unselected,none,outside evaluated section
+single_person,194,38.813171,tuning,True,Unselected,none,outside evaluated section
+single_person,195,38.994541,tuning,True,Unselected,none,outside evaluated section
+single_person,196,39.212185,tuning,True,Unselected,none,outside evaluated section
+single_person,197,39.393555,tuning,True,Unselected,none,outside evaluated section
+single_person,198,39.611199,tuning,True,Unselected,none,outside evaluated section
+single_person,199,39.792569,tuning,True,Unselected,none,outside evaluated section
+single_person,200,40.010213,tuning,True,Unselected,none,outside evaluated section
+single_person,201,40.191583,tuning,True,Unselected,none,outside evaluated section
+single_person,202,40.409227,tuning,True,Unselected,none,outside evaluated section
+single_person,203,40.590597,tuning,True,Unselected,none,outside evaluated section
+single_person,204,40.808241,tuning,True,Unselected,none,outside evaluated section
+single_person,205,40.989611,tuning,True,Unselected,none,outside evaluated section
+single_person,206,41.207255,tuning,True,Unselected,none,outside evaluated section
+single_person,207,41.388625,tuning,True,Unselected,none,outside evaluated section
+single_person,208,41.606269,tuning,True,Unselected,none,outside evaluated section
+single_person,209,41.787639,tuning,True,Unselected,none,outside evaluated section
+single_person,210,42.005283,tuning,True,Unselected,none,outside evaluated section
+single_person,211,42.186653,tuning,True,Unselected,none,outside evaluated section
+single_person,212,42.404297,tuning,True,Unselected,none,outside evaluated section
+single_person,213,42.585666,tuning,True,Unselected,none,outside evaluated section
+single_person,214,42.80331,tuning,True,Unselected,none,outside evaluated section
+single_person,215,42.98468,tuning,True,Unselected,none,outside evaluated section
+single_person,216,43.202324,tuning,True,Unselected,none,outside evaluated section
+single_person,217,43.383694,tuning,True,Unselected,none,outside evaluated section
+single_person,218,43.601338,tuning,True,Unselected,none,outside evaluated section
+single_person,219,43.782708,tuning,True,Unselected,none,outside evaluated section
+single_person,220,44.000352,tuning,True,Unselected,none,outside evaluated section
+single_person,221,44.217996,tuning,True,Unselected,none,outside evaluated section
+single_person,222,44.399366,tuning,True,Unselected,none,outside evaluated section
+single_person,223,44.61701,tuning,True,Unselected,none,outside evaluated section
+single_person,224,44.79838,tuning,True,Unselected,none,outside evaluated section
+single_person,225,45.016024,held_out,True,Tracked,explicit selection,fixed user selection
+single_person,226,45.197394,held_out,True,Tracked,detector,accepted detector association
+single_person,227,45.415038,held_out,True,Tracked,detector,accepted detector association
+single_person,228,45.596408,held_out,True,Tracked,detector,accepted detector association
+single_person,229,45.814052,held_out,True,Tracked,detector,accepted detector association
+single_person,230,45.995422,held_out,True,Tracked,detector,accepted detector association
+single_person,231,46.213066,held_out,True,Tracked,detector,accepted detector association
+single_person,232,46.394436,held_out,True,Tracked,detector,accepted detector association
+single_person,233,46.61208,held_out,True,Tracked,detector,accepted detector association
+single_person,234,46.79345,held_out,True,Tracked,detector,accepted detector association
+single_person,235,47.011094,held_out,True,Tracked,detector,accepted detector association
+single_person,236,47.192463,held_out,True,Tracked,detector,accepted detector association
+single_person,237,47.410107,held_out,True,Tracked,detector,accepted detector association
+single_person,238,47.591477,held_out,True,Tracked,detector,accepted detector association
+single_person,239,47.809121,held_out,True,Tracked,detector,accepted detector association
+single_person,240,47.990491,held_out,True,Tracked,detector,accepted detector association
+single_person,241,48.208135,held_out,True,Tracked,detector,accepted detector association
+single_person,242,48.389505,held_out,True,Tracked,detector,accepted detector association
+single_person,243,48.607149,held_out,True,Tracked,detector,accepted detector association
+single_person,244,48.788519,held_out,True,Tracked,detector,accepted detector association
+single_person,245,49.006163,held_out,True,Tracked,detector,accepted detector association
+single_person,246,49.187533,held_out,True,Missing,none,no identity-safe association; LK disabled
+single_person,247,49.405177,held_out,True,Missing,none,no identity-safe association; LK disabled
+single_person,248,49.586547,held_out,True,Tracked,detector,accepted detector association
+single_person,249,49.804191,held_out,True,Tracked,detector,accepted detector association
+single_person,250,49.985561,held_out,True,Tracked,detector,accepted detector association
+single_person,251,50.203205,held_out,False,Missing,none,no identity-safe association; LK disabled
+single_person,252,50.384575,held_out,False,Missing,none,no identity-safe association; LK disabled
+single_person,253,50.602219,held_out,False,Lost,none,no identity-safe association; Lost latched
+single_person,254,50.783589,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,255,51.001233,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,256,51.182603,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,257,51.400247,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,258,51.61789,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,259,51.79926,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,260,52.016904,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,261,52.198274,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,262,52.415918,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,263,52.597288,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,264,52.814932,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,265,52.996302,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,266,53.213946,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,267,53.395316,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,268,53.61296,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,269,53.79433,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,270,54.011974,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,271,54.193344,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,272,54.410988,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,273,54.592358,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,274,54.810002,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,275,54.991372,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,276,55.209016,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,277,55.390386,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,278,55.60803,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,279,55.7894,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,280,56.007043,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,281,56.188413,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,282,56.406057,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,283,56.587427,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,284,56.805071,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,285,56.986441,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,286,57.204085,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,287,57.385455,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,288,57.603099,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,289,57.784469,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,290,58.002113,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,291,58.183483,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,292,58.401127,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,293,58.582497,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,294,58.800141,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,295,59.017785,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,296,59.199155,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,297,59.416799,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,298,59.598169,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,299,59.815813,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,300,59.997183,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,301,60.214827,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,302,60.396197,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,303,60.61384,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,304,60.79521,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,305,61.012854,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,306,61.194224,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,307,61.411868,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,308,61.593238,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,309,61.810882,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,310,61.992252,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,311,62.209896,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,312,62.391266,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,313,62.60891,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,314,62.79028,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,315,63.007924,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,316,63.189294,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,317,63.406938,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,318,63.588308,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,319,63.805952,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,320,63.987322,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,321,64.204966,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,322,64.386336,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,323,64.60398,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,324,64.78535,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,325,65.002993,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,326,65.184363,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,327,65.402007,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,328,65.583377,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,329,65.801021,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,330,65.982391,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,331,66.200035,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,332,66.417679,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,333,66.599049,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,334,66.816693,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,335,66.998063,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,336,67.215707,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,337,67.397077,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,338,67.614721,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,339,67.796091,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,340,68.013735,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,341,68.195105,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,342,68.412749,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,343,68.594119,held_out,False,Lost,none,Lost latched; explicit reselection required
+multi_person,0,0.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,1,0.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,2,0.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,3,0.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,4,0.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,5,1.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,6,1.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,7,1.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,8,1.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,9,1.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,10,2.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,11,2.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,12,2.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,13,2.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,14,2.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,15,3.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,16,3.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,17,3.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,18,3.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,19,3.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,20,4.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,21,4.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,22,4.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,23,4.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,24,4.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,25,5.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,26,5.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,27,5.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,28,5.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,29,5.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,30,6.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,31,6.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,32,6.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,33,6.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,34,6.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,35,7.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,36,7.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,37,7.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,38,7.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,39,7.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,40,8.0,held_out,True,Tracked,explicit selection,fixed user selection
+multi_person,41,8.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,42,8.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,43,8.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,44,8.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,45,9.0,held_out,True,Tracked,detector,accepted detector association
+multi_person,46,9.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,47,9.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,48,9.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,49,9.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,50,10.0,held_out,True,Tracked,detector,accepted detector association
+multi_person,51,10.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,52,10.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,53,10.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,54,10.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,55,11.0,held_out,True,Tracked,detector,accepted detector association
+multi_person,56,11.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,57,11.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,58,11.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,59,11.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,60,12.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,61,12.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,62,12.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,63,12.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,64,12.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,65,13.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,66,13.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,67,13.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,68,13.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,69,13.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,70,14.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,71,14.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,72,14.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,73,14.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,74,14.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,75,15.0,tuning,True,Unselected,none,outside evaluated section
+multi_person,76,15.2,tuning,True,Unselected,none,outside evaluated section
+multi_person,77,15.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,78,15.6,tuning,True,Unselected,none,outside evaluated section
+multi_person,79,15.8,tuning,True,Unselected,none,outside evaluated section
+multi_person,80,16.0,held_out,True,Tracked,explicit selection,fixed user selection
+multi_person,81,16.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,82,16.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,83,16.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,84,16.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,85,17.0,held_out,True,Tracked,detector,accepted detector association
+multi_person,86,17.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,87,17.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,88,17.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,89,17.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,90,18.0,held_out,True,Tracked,detector,accepted detector association
+multi_person,91,18.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,92,18.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,93,18.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,94,18.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,95,19.0,held_out,True,Tracked,detector,accepted detector association
+multi_person,96,19.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,97,19.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,98,19.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,99,19.8,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,0,0.0,outside,False,Unselected,none,outside evaluated section
+courtyard_single_a,1,0.203425,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,2,0.406849,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,3,0.610274,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,4,0.813699,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,5,1.017123,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,6,1.179863,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,7,1.383288,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,8,1.586712,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,9,1.790137,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,10,1.993562,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,11,2.196986,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,12,2.400411,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,13,2.603836,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,14,2.80726,outside,True,Unselected,none,outside evaluated section
+courtyard_single_a,15,3.010685,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,16,3.21411,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,17,3.417534,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,18,3.580274,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,19,3.783699,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,20,3.987123,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,21,4.190548,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,22,4.393973,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,23,4.597397,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,24,4.800822,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,25,5.004247,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,26,5.207671,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,27,5.411096,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,28,5.614521,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,29,5.817945,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,30,5.980685,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,31,6.18411,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,32,6.387534,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,33,6.590959,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,34,6.794384,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,35,6.997808,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,36,7.201233,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,37,7.404658,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,38,7.608082,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,39,7.811507,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,40,8.014932,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,41,8.218356,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,42,8.381096,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,43,8.584521,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,44,8.787945,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,45,8.99137,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,46,9.194795,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,47,9.398219,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,48,9.601644,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,49,9.805068,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,50,10.008493,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,51,10.211918,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,52,10.415342,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,53,10.618767,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,54,10.781507,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,55,10.984932,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,56,11.188356,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,57,11.391781,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,58,11.595205,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,59,11.79863,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,60,12.002055,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,61,12.205479,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,62,12.408904,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,63,12.612329,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,64,12.815753,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,65,13.019178,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,66,13.181918,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,67,13.385342,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,68,13.588767,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,69,13.792192,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,70,13.995616,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,71,14.199041,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,72,14.402466,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,73,14.60589,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,74,14.809315,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,75,15.01274,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,76,15.216164,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,77,15.419589,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,78,15.582329,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,79,15.785753,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,80,15.989178,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,81,16.192603,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,82,16.396027,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,83,16.599452,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,84,16.802877,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,85,17.006301,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,86,17.209726,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,87,17.413151,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,88,17.616575,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,89,17.82,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,90,17.98274,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,91,18.186164,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,92,18.389589,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,93,18.593014,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,94,18.796438,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,95,18.999863,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,96,19.203288,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,97,19.406712,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,98,19.610137,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,99,19.813562,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,100,20.016986,held_out,True,Tracked,explicit selection,fixed user selection
+courtyard_single_a,101,20.179726,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,102,20.383151,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,103,20.586575,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,104,20.79,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,105,20.993425,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,106,21.196849,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,107,21.400274,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,108,21.603699,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,109,21.807123,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,110,22.010548,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,111,22.213973,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,112,22.417397,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,113,22.580137,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,114,22.783562,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,115,22.986986,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,116,23.190411,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,117,23.393836,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,118,23.59726,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,119,23.800685,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,120,24.00411,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,121,24.207534,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,122,24.410959,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,123,24.614384,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,124,24.817808,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,125,24.980548,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,126,25.183973,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,127,25.387397,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,128,25.590822,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,129,25.794247,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,130,25.997671,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,131,26.201096,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,132,26.404521,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,133,26.607945,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,134,26.81137,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,135,27.014795,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,136,27.218219,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,137,27.380959,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,138,27.584384,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,139,27.787808,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,140,27.991233,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,141,28.194658,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,142,28.398082,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,143,28.601507,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,144,28.804932,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,145,29.008356,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,146,29.211781,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,147,29.415205,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,148,29.61863,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,149,29.78137,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,150,29.984795,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,151,30.188219,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,152,30.391644,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,153,30.595068,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,154,30.798493,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,155,31.001918,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,156,31.205342,held_out,True,Missing,none,competitor ambiguity; LK disabled
+courtyard_single_a,157,31.408767,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,158,31.612192,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,159,31.815616,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,160,32.019041,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,161,32.181781,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,162,32.385205,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,163,32.58863,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,164,32.792055,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,165,32.995479,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,166,33.198904,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,167,33.402329,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,168,33.605753,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,169,33.809178,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,170,34.012603,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,171,34.216027,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,172,34.419452,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,173,34.582192,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,174,34.785616,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,175,34.989041,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,176,35.192466,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,177,35.39589,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,178,35.599315,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,179,35.80274,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,180,36.006164,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,181,36.209589,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,182,36.413014,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,183,36.616438,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,184,36.819863,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,185,36.982603,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,186,37.186027,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,187,37.389452,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,188,37.592877,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,189,37.796301,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,190,37.999726,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,191,38.203151,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,192,38.406575,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,193,38.61,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,194,38.813425,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,195,39.016849,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,196,39.220274,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,197,39.383014,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,198,39.586438,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,199,39.789863,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,200,39.993288,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,201,40.196712,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,202,40.400137,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,203,40.603562,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,204,40.806986,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,205,41.010411,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,206,41.213836,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,207,41.41726,tuning,False,Unselected,none,outside evaluated section
+courtyard_single_a,208,41.58,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,209,41.783425,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,210,41.986849,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,211,42.190274,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,212,42.393699,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,213,42.597123,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,214,42.800548,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,215,43.003973,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,216,43.207397,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,217,43.410822,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,218,43.614247,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,219,43.817671,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,220,43.980411,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,221,44.183836,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,222,44.38726,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,223,44.590685,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,224,44.79411,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,225,44.997534,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_a,226,45.200959,held_out,True,Tracked,explicit selection,fixed user selection
+courtyard_single_a,227,45.404384,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,228,45.607808,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,229,45.811233,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,230,46.014658,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,231,46.218082,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,232,46.380822,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,233,46.584247,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,234,46.787671,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,235,46.991096,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,236,47.194521,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,237,47.397945,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,238,47.60137,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,239,47.804795,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,240,48.008219,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,241,48.211644,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,242,48.415068,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,243,48.618493,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,244,48.781233,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,245,48.984658,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,246,49.188082,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,247,49.391507,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,248,49.594932,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,249,49.798356,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,250,50.001781,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,251,50.205205,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,252,50.40863,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,253,50.612055,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,254,50.815479,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,255,51.018904,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,256,51.181644,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,257,51.385068,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,258,51.588493,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,259,51.791918,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,260,51.995342,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,261,52.198767,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,262,52.402192,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,263,52.605616,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,264,52.809041,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,265,53.012466,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,266,53.21589,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,267,53.419315,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,268,53.582055,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,269,53.785479,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,270,53.988904,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,271,54.192329,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,272,54.395753,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,273,54.599178,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,274,54.802603,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,275,55.006027,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,276,55.209452,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,277,55.412877,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,278,55.616301,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,279,55.819726,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,280,55.982466,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,281,56.18589,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,282,56.389315,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,283,56.59274,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,284,56.796164,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,285,56.999589,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,286,57.203014,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,287,57.406438,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,288,57.609863,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,289,57.813288,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,290,58.016712,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,291,58.220137,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,292,58.382877,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,293,58.586301,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,294,58.789726,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,295,58.993151,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,296,59.196575,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,0,0.0,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,1,0.216469,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,2,0.389644,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,3,0.606113,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,4,0.779288,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,5,0.995756,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,6,1.212225,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,7,1.3854,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,8,1.601869,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,9,1.818338,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,10,1.991513,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,11,2.207982,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,12,2.381157,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,13,2.597625,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,14,2.814094,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,15,2.987269,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,16,3.203738,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,17,3.420207,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,18,3.593382,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,19,3.80985,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,20,3.983026,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,21,4.199494,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,22,4.415963,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,23,4.589138,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,24,4.805607,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,25,4.978782,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,26,5.195251,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,27,5.411719,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,28,5.584894,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,29,5.801363,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,30,6.017832,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,31,6.191007,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,32,6.407476,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,33,6.580651,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,34,6.79712,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,35,7.013588,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,36,7.186763,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,37,7.403232,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,38,7.619701,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,39,7.792876,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,40,8.009345,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,41,8.18252,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,42,8.398989,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,43,8.615457,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,44,8.788632,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,45,9.005101,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,46,9.22157,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,47,9.394745,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,48,9.611214,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,49,9.784389,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,50,10.000858,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,51,10.217326,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,52,10.390501,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,53,10.60697,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,54,10.780145,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,55,10.996614,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,56,11.213083,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,57,11.386258,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,58,11.602726,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,59,11.819195,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,60,11.99237,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,61,12.208839,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,62,12.382014,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,63,12.598483,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,64,12.814952,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,65,12.988127,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,66,13.204595,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,67,13.421064,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,68,13.594239,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,69,13.810708,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,70,13.983883,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,71,14.200352,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,72,14.416821,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,73,14.589996,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,74,14.806464,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,75,14.979639,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,76,15.196108,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,77,15.412577,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,78,15.585752,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,79,15.802221,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,80,16.01869,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,81,16.191865,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,82,16.408333,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,83,16.581508,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,84,16.797977,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,85,17.014446,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,86,17.187621,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,87,17.40409,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,88,17.620558,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,89,17.793734,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,90,18.010202,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,91,18.183377,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,92,18.399846,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,93,18.616315,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,94,18.78949,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,95,19.005959,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,96,19.179134,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,97,19.395602,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,98,19.612071,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,99,19.785246,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,100,20.001715,held_out,True,Tracked,explicit selection,fixed user selection
+courtyard_single_b,101,20.218184,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,102,20.391359,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,103,20.607828,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,104,20.781003,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,105,20.997471,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,106,21.21394,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,107,21.387115,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,108,21.603584,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,109,21.820053,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,110,21.993228,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,111,22.209697,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,112,22.382872,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,113,22.59934,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,114,22.815809,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,115,22.988984,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,116,23.205453,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,117,23.378628,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,118,23.595097,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,119,23.811566,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,120,23.984741,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,121,24.201209,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,122,24.417678,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,123,24.590853,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,124,24.807322,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,125,24.980497,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,126,25.196966,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,127,25.413434,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,128,25.586609,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,129,25.803078,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,130,26.019547,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,131,26.192722,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,132,26.409191,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,133,26.582366,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,134,26.798835,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,135,27.015303,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,136,27.188478,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,137,27.404947,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,138,27.621416,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,139,27.794591,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,140,28.01106,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,141,28.184235,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,142,28.400704,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,143,28.617172,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,144,28.790347,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,145,29.006816,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,146,29.179991,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,147,29.39646,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,148,29.612929,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,149,29.786104,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,150,30.002573,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,151,30.219041,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,152,30.392216,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,153,30.608685,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,154,30.78186,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,155,30.998329,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,156,31.214798,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,157,31.387973,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,158,31.604442,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,159,31.82091,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,160,31.994085,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,161,32.210554,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,162,32.383729,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,163,32.600198,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,164,32.816667,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,165,32.989842,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,166,33.20631,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,167,33.379485,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,168,33.595954,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,169,33.812423,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,170,33.985598,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,171,34.202067,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,172,34.418536,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,173,34.591711,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,174,34.808179,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,175,34.981354,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,176,35.197823,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,177,35.414292,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,178,35.587467,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,179,35.803936,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,180,36.020405,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,181,36.19358,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,182,36.410048,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,183,36.583223,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,184,36.799692,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,185,37.016161,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,186,37.189336,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,187,37.405805,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,188,37.57898,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,189,37.795449,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,190,38.011917,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,191,38.185092,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,192,38.401561,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,193,38.61803,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,194,38.791205,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,195,39.007674,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,196,39.180849,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,197,39.397318,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,198,39.613786,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,199,39.786961,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,200,40.00343,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,201,40.219899,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,202,40.393074,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,203,40.609543,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,204,40.782718,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,205,40.999186,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,206,41.215655,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,207,41.38883,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,208,41.605299,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,209,41.778474,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,210,41.994943,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,211,42.211412,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,212,42.384587,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,213,42.601055,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,214,42.817524,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,215,42.990699,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,216,43.207168,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,217,43.380343,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,218,43.596812,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,219,43.813281,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,220,43.986456,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,221,44.202924,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,222,44.419393,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,223,44.592568,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,224,44.809037,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,225,44.982212,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,226,45.198681,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,227,45.41515,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,228,45.588325,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,229,45.804793,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,230,46.021262,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,231,46.194437,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,232,46.410906,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,233,46.584081,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,234,46.80055,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,235,47.017018,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,236,47.190193,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,237,47.406662,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,238,47.579837,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,239,47.796306,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,240,48.012775,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,241,48.18595,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,242,48.402419,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,243,48.618887,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,244,48.792062,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,245,49.008531,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,246,49.181706,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,247,49.398175,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,248,49.614644,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,249,49.787819,tuning,True,Unselected,none,outside evaluated section
+courtyard_single_b,250,50.004288,held_out,True,Tracked,explicit selection,fixed user selection
+courtyard_single_b,251,50.220756,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,252,50.393931,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,253,50.6104,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,254,50.783575,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,255,51.000044,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,256,51.216513,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,257,51.389688,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,258,51.606157,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,259,51.779332,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,260,51.9958,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,261,52.212269,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,262,52.385444,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,263,52.601913,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,264,52.818382,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,265,52.991557,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,266,53.208026,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,267,53.381201,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,268,53.597669,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,269,53.814138,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,270,53.987313,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,271,54.203782,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,272,54.420251,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,273,54.593426,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,274,54.809894,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,275,54.983069,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,276,55.199538,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,277,55.416007,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,278,55.589182,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,279,55.805651,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,280,55.978826,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,281,56.195295,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,282,56.411763,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,283,56.584938,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,284,56.801407,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,285,57.017876,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,286,57.191051,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,287,57.40752,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,288,57.580695,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,289,57.797164,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,290,58.013632,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,291,58.186807,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,292,58.403276,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,293,58.619745,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,294,58.79292,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,295,59.009389,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,296,59.182564,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,297,59.399033,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,298,59.615501,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,299,59.788676,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,300,60.005145,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,301,60.221614,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,302,60.394789,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,303,60.611258,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,304,60.784433,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,305,61.000901,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,306,61.21737,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,307,61.390545,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,308,61.607014,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,309,61.780189,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,310,61.996658,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,311,62.213127,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,312,62.386302,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,313,62.60277,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,314,62.819239,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,315,62.992414,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,316,63.208883,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,317,63.382058,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,318,63.598527,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,319,63.814996,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,320,63.988171,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,321,64.204639,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,322,64.421108,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,323,64.594283,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,324,64.810752,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,325,64.983927,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,326,65.200396,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,327,65.416865,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_b,328,65.59004,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,0,0.0,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,1,0.203781,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,2,0.407561,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,3,0.611342,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,4,0.815122,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,5,1.018903,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,6,1.181927,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,7,1.385708,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,8,1.589488,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,9,1.793269,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,10,1.997049,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,11,2.20083,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,12,2.40461,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,13,2.608391,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,14,2.812172,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,15,3.015952,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,16,3.219733,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,17,3.382757,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,18,3.586538,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,19,3.790318,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,20,3.994099,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,21,4.197879,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,22,4.40166,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,23,4.60544,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,24,4.809221,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,25,5.013001,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,26,5.216782,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,27,5.379806,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,28,5.583587,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,29,5.787367,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,30,5.991148,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,31,6.194929,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,32,6.398709,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,33,6.60249,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,34,6.80627,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,35,7.010051,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,36,7.213831,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,37,7.417612,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,38,7.580636,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,39,7.784417,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,40,7.988197,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,41,8.191978,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,42,8.395758,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,43,8.599539,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,44,8.80332,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,45,9.0071,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,46,9.210881,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,47,9.414661,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,48,9.618442,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,49,9.781466,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,50,9.985247,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,51,10.189027,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,52,10.392808,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,53,10.596588,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,54,10.800369,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,55,11.004149,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,56,11.20793,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,57,11.41171,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,58,11.615491,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,59,11.819272,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,60,11.982296,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,61,12.186077,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,62,12.389857,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,63,12.593638,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,64,12.797418,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,65,13.001199,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,66,13.204979,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,67,13.40876,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,68,13.61254,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,69,13.816321,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,70,14.020101,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,71,14.183126,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,72,14.386906,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,73,14.590687,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,74,14.794467,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,75,14.998248,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,76,15.202029,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,77,15.405809,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,78,15.60959,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,79,15.81337,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,80,16.017151,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,81,16.180175,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,82,16.383956,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,83,16.587736,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,84,16.791517,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,85,16.995297,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,86,17.199078,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,87,17.402858,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,88,17.606639,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,89,17.81042,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,90,18.0142,held_out,True,Tracked,explicit selection,fixed user selection
+courtyard_competitor,91,18.217981,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,92,18.381005,held_out,True,Missing,none,competitor ambiguity; LK disabled
+courtyard_competitor,93,18.584786,held_out,True,Missing,none,competitor ambiguity; LK disabled
+courtyard_competitor,94,18.788566,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,95,18.992347,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,96,19.196127,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,97,19.399908,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,98,19.603688,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,99,19.807469,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,100,20.011249,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,101,20.21503,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,102,20.418811,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,103,20.581835,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,104,20.785615,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,105,20.989396,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,106,21.193177,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,107,21.396957,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,108,21.600738,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,109,21.804518,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,110,22.008299,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,111,22.212079,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,112,22.41586,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,113,22.61964,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,114,22.782665,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,115,22.986445,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,116,23.190226,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,117,23.394006,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,118,23.597787,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,119,23.801568,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,120,24.005348,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,121,24.209129,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,122,24.412909,held_out,True,Missing,none,no identity-safe association; LK disabled
+courtyard_competitor,123,24.61669,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,124,24.779714,held_out,True,Missing,none,competitor ambiguity; LK disabled
+courtyard_competitor,125,24.983495,held_out,True,Missing,none,competitor ambiguity; LK disabled
+courtyard_competitor,126,25.187275,held_out,True,Lost,none,competitor ambiguity; Lost latched
+courtyard_competitor,127,25.391056,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,128,25.594836,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,129,25.798617,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,130,26.002397,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,131,26.206178,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,132,26.409959,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,133,26.613739,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,134,26.81752,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,135,26.980544,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,136,27.184325,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,137,27.388105,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,138,27.591886,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,139,27.795666,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,140,27.999447,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,141,28.203227,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,142,28.407008,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,143,28.610788,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,144,28.814569,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,145,29.018349,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,146,29.181374,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,147,29.385154,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,148,29.588935,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,149,29.792716,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,150,29.996496,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,151,30.200277,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,152,30.404057,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,153,30.607838,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,154,30.811618,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,155,31.015399,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,156,31.219179,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,157,31.382204,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,158,31.585984,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,159,31.789765,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,160,31.993545,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,161,32.197326,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,162,32.401107,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,163,32.604887,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,164,32.808668,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,165,33.012448,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,166,33.216229,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,167,33.420009,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,168,33.583034,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,169,33.786814,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,170,33.990595,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,171,34.194375,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,172,34.398156,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,173,34.601936,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,174,34.805717,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,175,35.009497,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,176,35.213278,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,177,35.417059,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,178,35.580083,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,179,35.783864,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,180,35.987644,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,181,36.191425,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,182,36.395205,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,183,36.598986,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,184,36.802766,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,185,37.006547,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,186,37.210327,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,187,37.414108,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,188,37.617888,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,189,37.780913,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,190,37.984693,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,191,38.188474,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,192,38.392254,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,193,38.596035,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,194,38.799816,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,195,39.003596,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,196,39.207377,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,197,39.411157,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,198,39.614938,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,199,39.818718,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,200,39.981743,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,201,40.185523,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,202,40.389304,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,203,40.593084,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,204,40.796865,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,205,41.000645,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,206,41.204426,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,207,41.408207,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,208,41.611987,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,209,41.815768,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,210,42.019548,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,211,42.182573,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,212,42.386353,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,213,42.590134,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,214,42.793914,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,215,42.997695,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,216,43.201475,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,217,43.405256,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,218,43.609036,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,219,43.812817,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,220,44.016598,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,221,44.179622,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,222,44.383402,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,223,44.587183,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,224,44.790964,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,225,44.994744,tuning,True,Unselected,none,outside evaluated section
+courtyard_competitor,226,45.198525,held_out,True,Tracked,explicit selection,fixed user selection
+courtyard_competitor,227,45.402305,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,228,45.606086,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,229,45.809866,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,230,46.013647,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,231,46.217427,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,232,46.380452,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,233,46.584232,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,234,46.788013,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,235,46.991793,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,236,47.195574,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,237,47.399355,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,238,47.603135,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,239,47.806916,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,240,48.010696,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,241,48.214477,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,242,48.418257,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,243,48.581282,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,244,48.785062,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,245,48.988843,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,246,49.192623,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,247,49.396404,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,248,49.600184,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,249,49.803965,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,250,50.007746,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,251,50.211526,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,252,50.415307,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,253,50.619087,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,254,50.782112,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,255,50.985892,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,256,51.189673,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,257,51.393453,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,258,51.597234,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,259,51.801014,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,260,52.004795,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,261,52.208575,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,262,52.412356,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,263,52.616136,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,264,52.819917,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,265,52.982941,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,266,53.186722,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,267,53.390503,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,268,53.594283,held_out,True,Missing,none,competitor ambiguity; LK disabled
+courtyard_competitor,269,53.798064,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,270,54.001844,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,271,54.205625,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,272,54.409405,held_out,True,Missing,none,competitor ambiguity; LK disabled
+courtyard_competitor,273,54.613186,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,274,54.816966,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,275,54.979991,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,276,55.183771,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,277,55.387552,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,278,55.591332,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,279,55.795113,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,280,55.998893,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,281,56.202674,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,282,56.406455,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,283,56.610235,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,284,56.814016,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,285,57.017796,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,286,57.180821,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,287,57.384601,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,288,57.588382,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,289,57.792162,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,290,57.995943,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,291,58.199723,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,292,58.403504,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,293,58.607284,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,294,58.811065,held_out,True,Tracked,detector,accepted detector association

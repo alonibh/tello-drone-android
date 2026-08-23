@@ -1,0 +1,20 @@
+{
+  "winner": "refine4_yolo11n_08",
+  "wrong_or_switch_indices": {
+    "single_person": [],
+    "multi_person": [
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54
+    ],
+    "courtyard_single_a": [],
+    "courtyard_single_b": [],
+    "courtyard_competitor": []
+  },
+  "interpretation": "empty lists mean no identity switch, wrong-person track, or IoU/distance drift failure on held-out frames"
+}

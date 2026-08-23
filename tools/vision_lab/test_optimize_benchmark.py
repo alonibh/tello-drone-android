@@ -9,6 +9,7 @@ from optimize_benchmark import (
     Result,
     VideoData,
     associate,
+    aggregate,
     evaluate_results,
     iou,
 )
@@ -65,6 +66,30 @@ class OptimizerTest(unittest.TestCase):
         self.assertEqual(metrics["identity_switch_events"], 1)
         self.assertEqual(metrics["wrong_person_frames"], 1)
         self.assertEqual(metrics["correctly_localized_target_frames"], 1)
+
+    def test_never_track_is_ineligible(self) -> None:
+        per_video = {
+            "test": {
+                "frames": 100,
+                "visible_target_frames": 100,
+                "identity_switch_events": 0,
+                "wrong_person_frames": 0,
+                "localization_drift_frames": 0,
+                "false_tracked_while_target_invisible": 0,
+                "lost_visible_frames": 100,
+                "missing_visible_frames": 0,
+                "correctly_localized_target_frames": 0,
+                "identity_safe_tracked_frames": 0,
+                "tracked_visible_frames": 0,
+                "iou_sum": 0.0,
+                "iou_sample_count": 0,
+                "jitter_squared_sum": 0.0,
+                "jitter_sample_count": 0,
+            }
+        }
+        metrics = aggregate(per_video, {"test": 0.0})
+        self.assertEqual(metrics["continuity_shortfall_frames"], 50)
+        self.assertEqual(metrics["rank_tuple"][0], 50)
 
 
 if __name__ == "__main__":

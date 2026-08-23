@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-08-23",
+  "canonical_fps": 5.0,
+  "review_method": "all canonical frames rendered on 384x216 focused cells, 25 frames per sheet; target identity and visibility independently checked before optimization",
+  "total_frames": 1365,
+  "reviewed_frames": 1365,
+  "focused_review_sheets": 56,
+  "videos": [
+    {"id": "single_person", "frames": 344, "visible_frames": 264, "invisible_frames": 80, "manual_correction_frames": 79, "annotations_sha256": "b7bd420f158a3c80b9a7b74c15543ed9c48b604fe33ea5b5000b10b162ad4a14"},
+    {"id": "multi_person", "frames": 100, "visible_frames": 100, "invisible_frames": 0, "manual_correction_frames": 9, "annotations_sha256": "8e446ca8cbefc8c39c2be2e402479c9e233c800a8a6027cb6ed775e9a95f5c14"},
+    {"id": "courtyard_single_a", "frames": 297, "visible_frames": 266, "invisible_frames": 31, "manual_correction_frames": 30, "annotations_sha256": "547267bf058b38c053712b5c1acb0923ab75b2ebddc5216e1bb108e3bd33ffa0"},
+    {"id": "courtyard_single_b", "frames": 329, "visible_frames": 329, "invisible_frames": 0, "manual_correction_frames": 0, "annotations_sha256": "d34d71703a9c31cc3e447b1f6fbb527c684eaf3ab5bc5e01972daffcf4786f20"},
+    {"id": "courtyard_competitor", "frames": 295, "visible_frames": 295, "invisible_frames": 0, "manual_correction_frames": 67, "annotations_sha256": "abb662b9e951bb695082cf3108c74ce7dc53d4efe00271e48ac60c994e903abf"}
+  ]
+}

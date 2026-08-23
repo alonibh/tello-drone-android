@@ -126,14 +126,16 @@ def extract_frames(video: Path, canonical_fps: float, output_dir: Path) -> tuple
     return frames, records
 
 
-def detect_people(frames: list[np.ndarray], model_path: Path, threads: int) -> list[list[tuple[Box, float]]]:
+def detect_people(
+    frames: list[np.ndarray], model_path: Path, threads: int, image_size: int
+) -> list[list[tuple[Box, float]]]:
     if sha256_file(model_path) != YOLO11N_SHA256:
         raise ValueError("YOLO11n bootstrap checkpoint hash mismatch")
     torch.set_num_threads(threads)
     model = YOLO(str(model_path), task="detect")
     result: list[list[tuple[Box, float]]] = []
-    for frame in frames:
-        prediction = model.predict(frame, imgsz=960, conf=0.03, iou=0.55, classes=[0], device="cpu", verbose=False)[0]
+    for index, frame in enumerate(frames):
+        prediction = model.predict(frame, imgsz=image_size, conf=0.03, iou=0.55, classes=[0], device="cpu", verbose=False)[0]
         items: list[tuple[Box, float]] = []
         if prediction.boxes is not None:
             for values, confidence in zip(
@@ -141,6 +143,8 @@ def detect_people(frames: list[np.ndarray], model_path: Path, threads: int) -> l
             ):
                 items.append((Box(*(float(value) for value in values)), float(confidence)))
         result.append(items)
+        if (index + 1) % 50 == 0 or index + 1 == len(frames):
+            print(f"bootstrap {index + 1}/{len(frames)} frames", flush=True)
     return result
 
 
@@ -336,10 +340,69 @@ def draw_review_sheets(
         cv2.imwrite(str(review_dir / f"{video_id}_{page:02d}.jpg"), cv2.vconcat(rows), [cv2.IMWRITE_JPEG_QUALITY, 92])
 
 
+def draw_focused_review_sheets(
+    output_dir: Path,
+    video_id: str,
+    frames: list[np.ndarray],
+    annotations: list[dict[str, Any]],
+    detections: list[list[tuple[Box, float]]],
+) -> None:
+    """Render larger all-frame sheets for independent identity/visibility review."""
+    cells: list[np.ndarray] = []
+    cell_width, cell_height = 384, 216
+    for frame, annotation, frame_detections in zip(frames, annotations, detections, strict=True):
+        cell = cv2.resize(frame, (cell_width, cell_height), interpolation=cv2.INTER_AREA)
+        sx, sy = cell_width / frame.shape[1], cell_height / frame.shape[0]
+        for box, confidence in frame_detections:
+            x1, y1, x2, y2 = round(box.x1 * sx), round(box.y1 * sy), round(box.x2 * sx), round(box.y2 * sy)
+            cv2.rectangle(cell, (x1, y1), (x2, y2), (0, 145, 210), 1)
+            cv2.putText(cell, f"{confidence:.2f}", (x1, max(12, y1 - 2)), cv2.FONT_HERSHEY_SIMPLEX, 0.32, (0, 145, 210), 1)
+        values = annotation["target_box_norm"]
+        if values is not None:
+            target = Box.from_normalized(values, cell_width, cell_height)
+            cv2.rectangle(
+                cell,
+                (round(target.x1), round(target.y1)),
+                (round(target.x2), round(target.y2)),
+                (255, 255, 0),
+                3,
+            )
+        cv2.rectangle(cell, (0, 0), (cell_width, 29), (0, 0, 0), -1)
+        status = "manual" if annotation.get("manual_correction") else "reviewed"
+        cv2.putText(
+            cell,
+            f"#{annotation['canonical_index']} {annotation['timestamp_s']:.1f}s {status}",
+            (5, 20),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.48,
+            (255, 255, 255),
+            1,
+            cv2.LINE_AA,
+        )
+        cells.append(cell)
+    review_dir = output_dir / "review_focused"
+    review_dir.mkdir(parents=True, exist_ok=True)
+    page_size = 25
+    blank = np.zeros((cell_height, cell_width, 3), dtype=np.uint8)
+    for page, start in enumerate(range(0, len(cells), page_size)):
+        page_cells = cells[start : start + page_size]
+        page_cells.extend([blank] * (page_size - len(page_cells)))
+        rows = [cv2.hconcat(page_cells[index : index + 5]) for index in range(0, page_size, 5)]
+        cv2.imwrite(
+            str(review_dir / f"{video_id}_{page:02d}.jpg"),
+            cv2.vconcat(rows),
+            [cv2.IMWRITE_JPEG_QUALITY, 92],
+        )
+
+
 def apply_completed_review(
     annotations: list[dict[str, Any]],
     invisible_ranges: list[list[int]],
     box_overrides: dict[str, list[float]] | None = None,
+    fixed_appearance_detection_ranges: list[list[int]] | None = None,
+    frames: list[np.ndarray] | None = None,
+    detections: list[list[tuple[Box, float]]] | None = None,
+    anchor_hist: np.ndarray | None = None,
 ) -> list[dict[str, Any]]:
     """Apply the fixed decisions made from the generated all-frame sheets."""
     invisible = {
@@ -349,6 +412,11 @@ def apply_completed_review(
     }
     result: list[dict[str, Any]] = []
     box_overrides = box_overrides or {}
+    fixed_appearance = {
+        index
+        for first, last in (fixed_appearance_detection_ranges or [])
+        for index in range(first, last + 1)
+    }
     for annotation in annotations:
         item = dict(annotation)
         item["bootstrap_needs_review"] = item.pop("needs_review")
@@ -361,6 +429,29 @@ def apply_completed_review(
             item["target_visible"] = True
             item["target_box_norm"] = box_overrides[str(item["canonical_index"])]
             item["manual_correction"] = "identity-switching bootstrap box replaced by reviewed visual bounds"
+        elif item["canonical_index"] in fixed_appearance:
+            if frames is None or detections is None or anchor_hist is None:
+                raise ValueError("fixed-appearance correction requires frames, detections, and anchor")
+            frame_index = item["canonical_index"]
+            candidates = detections[frame_index]
+            if not candidates:
+                raise ValueError(f"no detection for reviewed identity correction at frame {frame_index}")
+            chosen, confidence = max(
+                candidates,
+                key=lambda candidate: similarity(
+                    anchor_hist, crop_histogram(frames[frame_index], candidate[0])
+                ),
+            )
+            height, width = frames[frame_index].shape[:2]
+            item["target_visible"] = True
+            item["target_box_norm"] = chosen.normalized(width, height)
+            item["bootstrap_confidence"] = round(confidence, 6)
+            item["bootstrap_appearance"] = round(
+                similarity(anchor_hist, crop_histogram(frames[frame_index], chosen)), 6
+            )
+            item["manual_correction"] = (
+                "reviewed crossing span replaced by highest fixed-target appearance proposal"
+            )
         else:
             item["manual_correction"] = None
         item["reviewed_identity"] = True
@@ -376,6 +467,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--spec", type=Path, default=LAB_DIR / "benchmark_spec.json")
     parser.add_argument("--yolo-model", type=Path, default=CACHE_DIR / "yolo11n.pt")
     parser.add_argument("--threads", type=int, default=4)
+    parser.add_argument("--bootstrap-image-size", type=int, default=960)
+    parser.add_argument(
+        "--video-id",
+        action="append",
+        help="prepare only the named video; preserves other entries in an existing output manifest",
+    )
     return parser.parse_args()
 
 
@@ -383,15 +480,39 @@ def main() -> int:
     args = parse_args()
     spec = json.loads(args.spec.read_text(encoding="utf-8"))
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    benchmark_manifest: dict[str, Any] = {"schema_version": 1, "canonical_fps": spec["canonical_fps"], "videos": []}
+    manifest_path = args.output_dir / "manifest.json"
+    if args.video_id and manifest_path.is_file():
+        benchmark_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if benchmark_manifest["canonical_fps"] != spec["canonical_fps"]:
+            raise ValueError("existing manifest canonical FPS does not match the spec")
+        selected_ids = set(args.video_id)
+        benchmark_manifest["videos"] = [
+            item for item in benchmark_manifest["videos"] if item["id"] not in selected_ids
+        ]
+    else:
+        benchmark_manifest = {
+            "schema_version": 1,
+            "canonical_fps": spec["canonical_fps"],
+            "videos": [],
+        }
+    requested = set(args.video_id or [])
+    known_ids = {item["id"] for item in spec["videos"]}
+    unknown_ids = requested - known_ids
+    if unknown_ids:
+        raise ValueError(f"unknown video ids: {sorted(unknown_ids)}")
     for video_spec in spec["videos"]:
+        if requested and video_spec["id"] not in requested:
+            continue
         video = args.video_dir / video_spec["filename"]
         actual_hash = sha256_file(video)
         if actual_hash.lower() != video_spec["sha256"].lower():
             raise ValueError(f"source hash mismatch for {video}")
         video_output = args.output_dir / video_spec["id"]
         frames, records = extract_frames(video, spec["canonical_fps"], video_output)
-        detections = detect_people(frames, args.yolo_model, args.threads)
+        print(f"preparing {video_spec['id']} ({len(frames)} canonical frames)", flush=True)
+        detections = detect_people(
+            frames, args.yolo_model, args.threads, args.bootstrap_image_size
+        )
         annotations = bootstrap_identity(
             frames,
             records,
@@ -400,14 +521,31 @@ def main() -> int:
             video_spec["selection_box_norm"],
         )
         (video_output / "annotations.bootstrap.json").write_text(json.dumps(annotations, indent=2) + "\n", encoding="utf-8")
+        height, width = frames[0].shape[:2]
+        selection_index = min(
+            range(len(records)),
+            key=lambda index: abs(records[index]["timestamp_s"] - video_spec["selection_time_s"]),
+        )
+        selection_box = Box.from_normalized(video_spec["selection_box_norm"], width, height)
+        anchor_box = max(
+            detections[selection_index], key=lambda item: iou(item[0], selection_box)
+        )[0]
+        anchor_hist = crop_histogram(frames[selection_index], anchor_box)
         draw_review_sheets(video_output, video_spec["id"], frames, annotations, detections)
         annotations = apply_completed_review(
             annotations,
             video_spec.get("manual_invisible_canonical_ranges", []),
             video_spec.get("manual_box_overrides_norm", {}),
+            video_spec.get("manual_fixed_appearance_detection_ranges", []),
+            frames,
+            detections,
+            anchor_hist,
         )
         annotation_path = video_output / "annotations.json"
         annotation_path.write_text(json.dumps(annotations, indent=2) + "\n", encoding="utf-8")
+        draw_focused_review_sheets(
+            video_output, video_spec["id"], frames, annotations, detections
+        )
         benchmark_manifest["videos"].append(
             {
                 "id": video_spec["id"],
@@ -425,7 +563,9 @@ def main() -> int:
                 "frames": records,
             }
         )
-    (args.output_dir / "manifest.json").write_text(json.dumps(benchmark_manifest, indent=2) + "\n", encoding="utf-8")
+    spec_order = {item["id"]: index for index, item in enumerate(spec["videos"])}
+    benchmark_manifest["videos"].sort(key=lambda item: spec_order[item["id"]])
+    manifest_path.write_text(json.dumps(benchmark_manifest, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"output_dir": str(args.output_dir.resolve()), "videos": [{"id": item["id"], "frames": item["frame_count"]} for item in benchmark_manifest["videos"]]}, indent=2))
     return 0
 
