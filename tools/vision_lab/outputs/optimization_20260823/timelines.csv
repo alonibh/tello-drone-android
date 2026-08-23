@@ -1,0 +1,445 @@
+video,canonical_index,timestamp_s,partition,target_visible,state,source,note
+single_person,0,0.0,outside,False,Unselected,none,before explicit selection
+single_person,1,0.217644,outside,False,Unselected,none,before explicit selection
+single_person,2,0.399014,outside,False,Unselected,none,before explicit selection
+single_person,3,0.616658,outside,False,Unselected,none,before explicit selection
+single_person,4,0.798028,outside,False,Unselected,none,before explicit selection
+single_person,5,1.015672,outside,False,Unselected,none,before explicit selection
+single_person,6,1.197042,outside,False,Unselected,none,before explicit selection
+single_person,7,1.414686,outside,False,Unselected,none,before explicit selection
+single_person,8,1.596056,outside,False,Unselected,none,before explicit selection
+single_person,9,1.8137,outside,False,Unselected,none,before explicit selection
+single_person,10,1.99507,outside,False,Unselected,none,before explicit selection
+single_person,11,2.212714,outside,False,Unselected,none,before explicit selection
+single_person,12,2.394083,outside,False,Unselected,none,before explicit selection
+single_person,13,2.611727,outside,False,Unselected,none,before explicit selection
+single_person,14,2.793097,outside,False,Unselected,none,before explicit selection
+single_person,15,3.010741,outside,True,Unselected,none,before explicit selection
+single_person,16,3.192111,outside,True,Unselected,none,before explicit selection
+single_person,17,3.409755,outside,True,Unselected,none,before explicit selection
+single_person,18,3.591125,outside,True,Unselected,none,before explicit selection
+single_person,19,3.808769,outside,True,Unselected,none,before explicit selection
+single_person,20,3.990139,outside,True,Unselected,none,before explicit selection
+single_person,21,4.207783,outside,True,Unselected,none,before explicit selection
+single_person,22,4.389153,outside,True,Unselected,none,before explicit selection
+single_person,23,4.606797,outside,True,Unselected,none,before explicit selection
+single_person,24,4.788167,outside,True,Unselected,none,before explicit selection
+single_person,25,5.005811,tuning,True,Tracked,explicit selection,fixed user selection
+single_person,26,5.187181,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,27,5.404825,tuning,True,Tracked,detector,accepted detector association
+single_person,28,5.586195,tuning,True,Tracked,detector,accepted detector association
+single_person,29,5.803839,tuning,True,Tracked,detector,accepted detector association
+single_person,30,5.985209,tuning,True,Tracked,detector,accepted detector association
+single_person,31,6.202853,tuning,True,Tracked,detector,accepted detector association
+single_person,32,6.384223,tuning,True,Tracked,detector,accepted detector association
+single_person,33,6.601867,tuning,True,Tracked,detector,accepted detector association
+single_person,34,6.783236,tuning,True,Tracked,detector,accepted detector association
+single_person,35,7.00088,tuning,True,Tracked,detector,accepted detector association
+single_person,36,7.18225,tuning,True,Tracked,detector,accepted detector association
+single_person,37,7.399894,tuning,True,Tracked,detector,accepted detector association
+single_person,38,7.617538,tuning,True,Tracked,detector,accepted detector association
+single_person,39,7.798908,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,40,8.016552,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,41,8.197922,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,42,8.415566,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,43,8.596936,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,44,8.81458,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,45,8.99595,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,46,9.213594,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,47,9.394964,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,48,9.612608,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,49,9.793978,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,50,10.011622,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,51,10.192992,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,52,10.410636,tuning,True,Missing,none,no identity-safe association; too few LK features
+single_person,53,10.592006,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,54,10.80965,tuning,True,Tracked,detector,accepted detector association
+single_person,55,10.99102,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,56,11.208663,tuning,True,Tracked,detector,accepted detector association
+single_person,57,11.390033,tuning,True,Tracked,detector,accepted detector association
+single_person,58,11.607677,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,59,11.789047,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,60,12.006691,tuning,True,Tracked,detector,accepted detector association
+single_person,61,12.188061,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,62,12.405705,tuning,True,Tracked,detector,accepted detector association
+single_person,63,12.587075,tuning,True,Tracked,detector,accepted detector association
+single_person,64,12.804719,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,65,12.986089,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,66,13.203733,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,67,13.385103,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,68,13.602747,tuning,True,Tracked,detector,accepted detector association
+single_person,69,13.784117,tuning,True,Tracked,detector,accepted detector association
+single_person,70,14.001761,tuning,True,Tracked,detector,accepted detector association
+single_person,71,14.183131,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,72,14.400775,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,73,14.582145,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,74,14.799789,tuning,True,Tracked,detector,accepted detector association
+single_person,75,15.017433,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,76,15.198803,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,77,15.416447,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,78,15.597817,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,79,15.81546,tuning,True,Tracked,detector,accepted detector association
+single_person,80,15.99683,tuning,True,Tracked,detector,accepted detector association
+single_person,81,16.214474,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,82,16.395844,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,83,16.613488,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,84,16.794858,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,85,17.012502,tuning,True,Missing,none,no identity-safe association; too few LK features
+single_person,86,17.193872,tuning,True,Missing,none,no identity-safe association; too few LK features
+single_person,87,17.411516,tuning,True,Tracked,detector,accepted detector association
+single_person,88,17.592886,tuning,True,Tracked,detector,accepted detector association
+single_person,89,17.81053,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,90,17.9919,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,91,18.209544,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,92,18.390914,tuning,True,Missing,none,no identity-safe association; too few LK features
+single_person,93,18.608558,tuning,True,Missing,none,no identity-safe association; too few LK features
+single_person,94,18.789928,tuning,True,Missing,none,no identity-safe association; too few LK features
+single_person,95,19.007572,tuning,False,Missing,none,no identity-safe association; too few LK features
+single_person,96,19.188942,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,97,19.406586,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,98,19.587956,tuning,True,Tracked,low-confidence association,accepted detector association
+single_person,99,19.8056,tuning,True,Tracked,detector,accepted detector association
+single_person,100,19.98697,tuning,True,Tracked,detector,accepted detector association
+single_person,101,20.204613,held_out,True,Tracked,detector,accepted detector association
+single_person,102,20.385983,held_out,True,Tracked,detector,accepted detector association
+single_person,103,20.603627,held_out,True,Missing,none,no identity-safe association; too few LK features
+single_person,104,20.784997,held_out,True,Tracked,detector,accepted detector association
+single_person,105,21.002641,held_out,True,Tracked,detector,accepted detector association
+single_person,106,21.184011,held_out,True,Tracked,detector,accepted detector association
+single_person,107,21.401655,held_out,True,Tracked,detector,accepted detector association
+single_person,108,21.583025,held_out,True,Tracked,detector,accepted detector association
+single_person,109,21.800669,held_out,True,Tracked,detector,accepted detector association
+single_person,110,21.982039,held_out,True,Tracked,detector,accepted detector association
+single_person,111,22.199683,held_out,True,Tracked,detector,accepted detector association
+single_person,112,22.417327,held_out,True,Tracked,detector,accepted detector association
+single_person,113,22.598697,held_out,True,Tracked,detector,accepted detector association
+single_person,114,22.816341,held_out,True,Tracked,detector,accepted detector association
+single_person,115,22.997711,held_out,True,Tracked,detector,accepted detector association
+single_person,116,23.215355,held_out,True,Tracked,detector,accepted detector association
+single_person,117,23.396725,held_out,True,Tracked,detector,accepted detector association
+single_person,118,23.614369,held_out,True,Tracked,detector,accepted detector association
+single_person,119,23.795739,held_out,True,Tracked,detector,accepted detector association
+single_person,120,24.013383,held_out,True,Tracked,detector,accepted detector association
+single_person,121,24.194753,held_out,True,Tracked,low-confidence association,accepted detector association
+single_person,122,24.412397,held_out,True,Tracked,detector,accepted detector association
+single_person,123,24.593767,held_out,True,Tracked,detector,accepted detector association
+single_person,124,24.81141,held_out,True,Tracked,low-confidence association,accepted detector association
+single_person,125,24.99278,held_out,True,Tracked,detector,accepted detector association
+single_person,126,25.210424,held_out,True,Tracked,detector,accepted detector association
+single_person,127,25.391794,held_out,True,Tracked,low-confidence association,accepted detector association
+single_person,128,25.609438,held_out,True,Tracked,detector,accepted detector association
+single_person,129,25.790808,held_out,True,Tracked,detector,accepted detector association
+single_person,130,26.008452,held_out,True,Tracked,low-confidence association,accepted detector association
+single_person,131,26.189822,held_out,True,Tracked,low-confidence association,accepted detector association
+single_person,132,26.407466,held_out,True,Tracked,low-confidence association,accepted detector association
+single_person,133,26.588836,held_out,True,Missing,none,no identity-safe association; weak LK consensus
+single_person,134,26.80648,held_out,True,Missing,none,no identity-safe association; too few LK features
+single_person,135,26.98785,held_out,True,Missing,none,no identity-safe association; weak LK consensus
+single_person,136,27.205494,held_out,True,Tracked,low-confidence association,accepted detector association
+single_person,137,27.386864,held_out,True,Tracked,low-confidence association,accepted detector association
+single_person,138,27.604508,held_out,True,Missing,none,no identity-safe association; too few LK features
+single_person,139,27.785878,held_out,True,Missing,none,no identity-safe association; too few LK features
+single_person,140,28.003522,held_out,True,Missing,none,no identity-safe association; too few LK features
+single_person,141,28.184892,held_out,True,Missing,none,no identity-safe association; too few LK features
+single_person,142,28.402536,held_out,True,Lost,none,no identity-safe association; Lost latched
+single_person,143,28.583906,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,144,28.80155,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,145,28.98292,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,146,29.200563,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,147,29.381933,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,148,29.599577,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,149,29.817221,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,150,29.998591,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,151,30.216235,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,152,30.397605,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,153,30.615249,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,154,30.796619,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,155,31.014263,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,156,31.195633,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,157,31.413277,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,158,31.594647,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,159,31.812291,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,160,31.993661,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,161,32.211305,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,162,32.392675,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,163,32.610319,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,164,32.791689,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,165,33.009333,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,166,33.190703,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,167,33.408347,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,168,33.589716,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,169,33.80736,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,170,33.98873,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,171,34.206374,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,172,34.387744,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,173,34.605388,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,174,34.786758,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,175,35.004402,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,176,35.185772,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,177,35.403416,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,178,35.584786,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,179,35.80243,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,180,35.9838,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,181,36.201444,tuning,False,Lost,none,Lost latched; explicit reselection required
+single_person,182,36.382814,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,183,36.600458,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,184,36.818102,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,185,36.999472,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,186,37.217116,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,187,37.398486,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,188,37.61613,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,189,37.7975,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,190,38.015144,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,191,38.196513,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,192,38.414157,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,193,38.595527,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,194,38.813171,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,195,38.994541,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,196,39.212185,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,197,39.393555,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,198,39.611199,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,199,39.792569,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,200,40.010213,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,201,40.191583,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,202,40.409227,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,203,40.590597,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,204,40.808241,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,205,40.989611,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,206,41.207255,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,207,41.388625,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,208,41.606269,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,209,41.787639,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,210,42.005283,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,211,42.186653,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,212,42.404297,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,213,42.585666,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,214,42.80331,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,215,42.98468,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,216,43.202324,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,217,43.383694,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,218,43.601338,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,219,43.782708,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,220,44.000352,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,221,44.217996,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,222,44.399366,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,223,44.61701,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,224,44.79838,tuning,True,Lost,none,Lost latched; explicit reselection required
+single_person,225,45.016024,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,226,45.197394,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,227,45.415038,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,228,45.596408,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,229,45.814052,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,230,45.995422,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,231,46.213066,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,232,46.394436,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,233,46.61208,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,234,46.79345,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,235,47.011094,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,236,47.192463,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,237,47.410107,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,238,47.591477,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,239,47.809121,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,240,47.990491,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,241,48.208135,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,242,48.389505,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,243,48.607149,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,244,48.788519,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,245,49.006163,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,246,49.187533,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,247,49.405177,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,248,49.586547,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,249,49.804191,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,250,49.985561,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,251,50.203205,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,252,50.384575,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,253,50.602219,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,254,50.783589,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,255,51.001233,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,256,51.182603,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,257,51.400247,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,258,51.61789,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,259,51.79926,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,260,52.016904,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,261,52.198274,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,262,52.415918,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,263,52.597288,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,264,52.814932,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,265,52.996302,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,266,53.213946,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,267,53.395316,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,268,53.61296,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,269,53.79433,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,270,54.011974,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,271,54.193344,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,272,54.410988,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,273,54.592358,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,274,54.810002,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,275,54.991372,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,276,55.209016,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,277,55.390386,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,278,55.60803,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,279,55.7894,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,280,56.007043,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,281,56.188413,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,282,56.406057,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,283,56.587427,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,284,56.805071,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,285,56.986441,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,286,57.204085,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,287,57.385455,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,288,57.603099,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,289,57.784469,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,290,58.002113,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,291,58.183483,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,292,58.401127,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,293,58.582497,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,294,58.800141,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,295,59.017785,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,296,59.199155,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,297,59.416799,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,298,59.598169,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,299,59.815813,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,300,59.997183,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,301,60.214827,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,302,60.396197,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,303,60.61384,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,304,60.79521,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,305,61.012854,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,306,61.194224,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,307,61.411868,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,308,61.593238,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,309,61.810882,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,310,61.992252,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,311,62.209896,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,312,62.391266,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,313,62.60891,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,314,62.79028,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,315,63.007924,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,316,63.189294,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,317,63.406938,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,318,63.588308,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,319,63.805952,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,320,63.987322,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,321,64.204966,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,322,64.386336,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,323,64.60398,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,324,64.78535,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,325,65.002993,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,326,65.184363,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,327,65.402007,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,328,65.583377,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,329,65.801021,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,330,65.982391,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,331,66.200035,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,332,66.417679,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,333,66.599049,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,334,66.816693,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,335,66.998063,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,336,67.215707,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,337,67.397077,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,338,67.614721,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,339,67.796091,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,340,68.013735,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,341,68.195105,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,342,68.412749,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,343,68.594119,held_out,False,Lost,none,Lost latched; explicit reselection required
+multi_person,0,0.0,tuning,True,Tracked,explicit selection,fixed user selection
+multi_person,1,0.2,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,2,0.4,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,3,0.6,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,4,0.8,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,5,1.0,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,6,1.2,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,7,1.4,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,8,1.6,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,9,1.8,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,10,2.0,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,11,2.2,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,12,2.4,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,13,2.6,tuning,True,Tracked,detector,accepted detector association
+multi_person,14,2.8,tuning,True,Tracked,detector,accepted detector association
+multi_person,15,3.0,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,16,3.2,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,17,3.4,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,18,3.6,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,19,3.8,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,20,4.0,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,21,4.2,tuning,True,Tracked,detector,accepted detector association
+multi_person,22,4.4,tuning,True,Tracked,detector,accepted detector association
+multi_person,23,4.6,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,24,4.8,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,25,5.0,tuning,True,Tracked,detector,accepted detector association
+multi_person,26,5.2,tuning,True,Tracked,detector,accepted detector association
+multi_person,27,5.4,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,28,5.6,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,29,5.8,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,30,6.0,tuning,True,Tracked,detector,accepted detector association
+multi_person,31,6.2,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,32,6.4,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,33,6.6,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,34,6.8,tuning,True,Tracked,detector,accepted detector association
+multi_person,35,7.0,tuning,True,Tracked,detector,accepted detector association
+multi_person,36,7.2,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,37,7.4,tuning,True,Tracked,detector,accepted detector association
+multi_person,38,7.6,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,39,7.8,tuning,True,Tracked,low-confidence association,accepted detector association
+multi_person,40,8.0,held_out,True,Tracked,low-confidence association,accepted detector association
+multi_person,41,8.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,42,8.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,43,8.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,44,8.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,45,9.0,held_out,True,Tracked,detector,accepted detector association
+multi_person,46,9.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,47,9.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,48,9.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,49,9.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,50,10.0,held_out,True,Tracked,detector,accepted detector association
+multi_person,51,10.2,held_out,True,Tracked,detector,accepted detector association
+multi_person,52,10.4,held_out,True,Tracked,detector,accepted detector association
+multi_person,53,10.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,54,10.8,held_out,True,Missing,none,no identity-safe association; too few LK features
+multi_person,55,11.0,held_out,True,Missing,none,no identity-safe association; too few LK features
+multi_person,56,11.2,held_out,True,Missing,none,no identity-safe association; too few LK features
+multi_person,57,11.4,held_out,True,Missing,none,no identity-safe association; too few LK features
+multi_person,58,11.6,held_out,True,Lost,none,no identity-safe association; Lost latched
+multi_person,59,11.8,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,60,12.0,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,61,12.2,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,62,12.4,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,63,12.6,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,64,12.8,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,65,13.0,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,66,13.2,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,67,13.4,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,68,13.6,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,69,13.8,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,70,14.0,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,71,14.2,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,72,14.4,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,73,14.6,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,74,14.8,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,75,15.0,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,76,15.2,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,77,15.4,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,78,15.6,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,79,15.8,tuning,True,Lost,none,Lost latched; explicit reselection required
+multi_person,80,16.0,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,81,16.2,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,82,16.4,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,83,16.6,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,84,16.8,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,85,17.0,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,86,17.2,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,87,17.4,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,88,17.6,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,89,17.8,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,90,18.0,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,91,18.2,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,92,18.4,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,93,18.6,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,94,18.8,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,95,19.0,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,96,19.2,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,97,19.4,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,98,19.6,held_out,True,Lost,none,Lost latched; explicit reselection required
+multi_person,99,19.8,held_out,True,Lost,none,Lost latched; explicit reselection required

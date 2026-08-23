@@ -1,0 +1,12 @@
+rank,name,family,detector,switches,wrong_person_frames,false_track_frames,lost_frames,missing_frames,safe_continuity_percent,localization_drift_frames,mean_iou,tracker_ms
+1,refine1_efficientdet_lite2_09,efficientdet_lite2_refined,efficientdet_lite2,0,0,0,39,12,64.583,0,0.8264,30.79
+2,refine1_efficientdet_lite2_07,efficientdet_lite2_refined,efficientdet_lite2,0,0,0,39,12,64.583,0,0.8264,27.892
+3,search_efficientdet_lite2_08,efficientdet_lite2_searched_hybrid,efficientdet_lite2,0,0,0,39,12,64.583,0,0.8264,28.271
+4,search_efficientdet_lite2_04,efficientdet_lite2_searched_hybrid,efficientdet_lite2,0,0,0,61,15,47.222,1,0.8063,31.299
+5,search_yolo11n_12,yolo11n_searched_hybrid,yolo11n,0,0,0,74,8,43.056,0,0.8478,28.376
+6,efficientdet_hilo_lk,efficientdet_hilo_lk,efficientdet_lite2,0,0,0,76,8,41.667,0,0.779,34.81
+7,efficientdet_lk,efficientdet_lk,efficientdet_lite2,0,0,0,88,13,29.861,0,0.8279,23.767
+8,efficientdet_baseline,efficientdet_baseline,efficientdet_lite2,0,0,0,113,16,10.417,0,0.915,0.0
+9,yolo11n_hilo_lk,yolo11n_hilo_lk,yolo11n,1,1,0,37,11,65.972,0,0.828,28.713
+10,yolo11n_detector,yolo11n_detector,yolo11n,1,1,0,39,10,65.278,0,0.8538,0.0
+11,search_yolo11n_01,yolo11n_searched_hybrid,yolo11n,1,3,0,39,9,64.583,0,0.8279,27.101

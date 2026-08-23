@@ -1,0 +1,8 @@
+{
+  "winner": "refine1_efficientdet_lite2_09",
+  "wrong_or_switch_indices": {
+    "single_person": [],
+    "multi_person": []
+  },
+  "interpretation": "empty lists mean no identity switch, wrong-person track, or IoU/distance drift failure on held-out frames"
+}

@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "canonical_fps": 5.0,
+  "videos": [
+    {
+      "id": "single_person",
+      "filename": "20260823133755.mp4",
+      "sha256": "d90c07d4353a448b99b6644176214719e79e1d3b87cd3338f0e8a1659bbb1138",
+      "selection_time_s": 5.0,
+      "selection_box_norm": [0.405, 0.015, 0.585, 0.92],
+      "manual_invisible_canonical_ranges": [[0, 14], [251, 255], [285, 343]],
+      "target_description": "the only clearly visible person",
+      "tuning_intervals_s": [[5.0, 20.0], [30.0, 45.0]],
+      "held_out_intervals_s": [[20.0, 30.0], [45.0, 68.7]]
+    },
+    {
+      "id": "multi_person",
+      "filename": "20250314160035.mp4",
+      "sha256": "2dc5214b46d08d0b2dc9d30658f4e501f9d44c6f00334e2a62f108b859bd10ef",
+      "selection_time_s": 0.0,
+      "selection_box_norm": [0.0, 0.38, 0.105, 0.94],
+      "manual_invisible_canonical_ranges": [],
+      "manual_box_overrides_norm": {
+        "47": [0.105, 0.66, 0.18, 0.865],
+        "48": [0.093, 0.655, 0.158, 0.865],
+        "49": [0.076, 0.64, 0.134, 0.855],
+        "50": [0.05, 0.63, 0.116, 0.835],
+        "51": [0.0, 0.63, 0.08, 0.855],
+        "52": [0.01, 0.625, 0.087, 0.83],
+        "53": [0.004, 0.607, 0.059, 0.81],
+        "54": [0.0, 0.61, 0.037, 0.825],
+        "78": [0.012, 0.825, 0.057, 1.0]
+      },
+      "target_description": "shirtless player in dark shorts at the foreground/lower-left at the start",
+      "tuning_intervals_s": [[0.0, 8.0], [12.0, 16.0]],
+      "held_out_intervals_s": [[8.0, 12.0], [16.0, 19.9]]
+    }
+  ]
+}

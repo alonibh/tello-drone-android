@@ -9,6 +9,12 @@ timestamps, `trace.jsonl` supplies the exact recorded EfficientDet-Lite2
 baseline, and `frames/*.jpg` are the only evaluated pixels. A screen recording
 may be inspected separately, but is never decoded as evaluation input.
 
+The two-video optimizer is a separate reproducible benchmark path. It samples
+the pinned MP4 inputs at 5 Hz, freezes reviewed target-identity annotations,
+uses fixed tuning and held-out time sections, caches detector output, and runs
+a deterministic bounded search. It does not import into or modify the Android
+build.
+
 ## One-time setup
 
 From the repository root in PowerShell:
@@ -35,6 +41,24 @@ tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\evaluate.py `
   --baseline-model app\src\main\assets\efficientdet_lite2_metadata_v1_int8.tflite `
   --output-dir tools\vision_lab\outputs\my_run
 ```
+
+For the fixed two-video identity benchmark:
+
+```powershell
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\prepare_benchmark.py `
+  --video-dir "C:\path\to\videos" `
+  --output-dir tools\vision_lab\work\benchmark
+
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\optimize_benchmark.py `
+  --benchmark-dir tools\vision_lab\work\benchmark `
+  --output-dir tools\vision_lab\work\optimization `
+  --baseline-model app\src\main\assets\efficientdet_lite2_metadata_v1_int8.tflite
+```
+
+The benchmark spec, reviewed annotation snapshot, split explanation, experiment
+history, ranked finalists, winning config, timelines, annotated winner videos,
+and baseline comparisons are retained under `tools/vision_lab/benchmark` and
+`tools/vision_lab/outputs/optimization_20260823`.
 
 The run produces four annotated MP4 videos, `metrics.json`, `per_frame.csv`,
 and `report.md`:
