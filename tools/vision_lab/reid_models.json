@@ -1,0 +1,39 @@
+{
+  "source": "Intel Open Model Zoo 2023.0",
+  "license": "Apache-2.0",
+  "license_url": "https://github.com/openvinotoolkit/open_model_zoo/blob/master/LICENSE",
+  "models": [
+    {
+      "name": "person-reidentification-retail-0288",
+      "family": "OmniScaleNet/OSNet",
+      "gflops": 0.174,
+      "million_parameters": 0.183,
+      "files": {
+        "xml": {
+          "url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/person-reidentification-retail-0288/FP16/person-reidentification-retail-0288.xml",
+          "sha256": "0d5021c772e603dce69d9ef2e326ecf0a43234cc8b4c5bb5e8aa566f090bdb51"
+        },
+        "bin": {
+          "url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/person-reidentification-retail-0288/FP16/person-reidentification-retail-0288.bin",
+          "sha256": "08e24c2f1dd976ff8e1f667b93db2950ac8db8da09e163e1ca6463b82d1dbc42"
+        }
+      }
+    },
+    {
+      "name": "person-reidentification-retail-0287",
+      "family": "OmniScaleNet/OSNet",
+      "gflops": 0.564,
+      "million_parameters": 0.595,
+      "files": {
+        "xml": {
+          "url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/person-reidentification-retail-0287/FP16/person-reidentification-retail-0287.xml",
+          "sha256": "95125bc630208d9a27370b11bd04d220f93f64b60fe4be5bc576e9aebb69603d"
+        },
+        "bin": {
+          "url": "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/models_bin/1/person-reidentification-retail-0287/FP16/person-reidentification-retail-0287.bin",
+          "sha256": "8811b3db2f6ebacbf2c05510593783316026ff779d9b048b6ca2581f17baf86c"
+        }
+      }
+    }
+  ]
+}

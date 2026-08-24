@@ -1,0 +1,419 @@
+{
+  "limits": {
+    "maximum_experiments": 20,
+    "maximum_refinement_rounds": 2,
+    "maximum_model_families": 2,
+    "actual_experiments": 20,
+    "actual_rounds": 2,
+    "actual_model_family": "OmniScaleNet/OSNet",
+    "models_tested": [
+      "person-reidentification-retail-0287",
+      "person-reidentification-retail-0288"
+    ],
+    "stop_reason": "all 20 candidates violated a hard tuning safety constraint",
+    "safety_eligible_tuning_candidates": 0
+  },
+  "normal_tracking_config": {
+    "name": "previous_corrected_winner",
+    "family": "previous_corrected_winner",
+    "detector": "yolo11n",
+    "use_lk": false,
+    "detector_cadence": 1,
+    "high_confidence": 0.3,
+    "low_confidence": 0.3,
+    "iou_gate": 0.15,
+    "distance_gate": 0.24,
+    "appearance_gate": 0.45,
+    "ambiguity_margin": 0.1,
+    "low_confidence_appearance_margin": 0.06,
+    "low_confidence_iou_margin": 0.08,
+    "low_confidence_distance_scale": 0.7,
+    "persistent_appearance_weight": 0.6,
+    "persistent_conflict_margin": 0.06,
+    "reacquire_confirmation_frames": 2,
+    "persistent_identity_safety": false,
+    "lk_fb_error": 1.2,
+    "lk_inlier_ratio": 0.58,
+    "lk_min_features": 10,
+    "lk_feature_count": 120,
+    "motion_alpha": 0.0,
+    "camera_compensation": false,
+    "missing_ttl_s": 0.4
+  },
+  "detector_timing": {
+    "frames": 1365,
+    "mean_ms": 104.425,
+    "median_ms": 70.547,
+    "p95_ms": 232.676
+  },
+  "embedding_timing": {
+    "person-reidentification-retail-0287": {
+      "uncached_inferences": 364,
+      "mean_ms": 10.183,
+      "median_ms": 7.988,
+      "p95_ms": 24.425
+    },
+    "person-reidentification-retail-0288": {
+      "uncached_inferences": 216,
+      "mean_ms": 9.101,
+      "median_ms": 4.441,
+      "p95_ms": 17.784
+    }
+  },
+  "baseline_heldout": {
+    "aggregate": {
+      "visible_target_frames": 581,
+      "identity_safe_tracked_frames": 493,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "false_tracked_while_target_invisible": 0,
+      "identity_safe_continuity_percent": 84.854,
+      "lost_visible_frames": 76,
+      "missing_visible_frames": 12,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9243,
+      "jitter_rms_norm": 0.039288
+    },
+    "per_video": {
+      "single_person": {
+        "visible_target_frames": 104,
+        "identity_safe_tracked_frames": 59,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 56.731,
+        "lost_visible_frames": 41,
+        "missing_visible_frames": 4,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.914,
+        "jitter_rms_norm": 0.037454,
+        "wrong_indices": []
+      },
+      "multi_person": {
+        "visible_target_frames": 35,
+        "identity_safe_tracked_frames": 35,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.8453,
+        "jitter_rms_norm": 0.022874,
+        "wrong_indices": []
+      },
+      "courtyard_single_a": {
+        "visible_target_frames": 147,
+        "identity_safe_tracked_frames": 146,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 99.32,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 1,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9253,
+        "jitter_rms_norm": 0.035555,
+        "wrong_indices": []
+      },
+      "courtyard_single_b": {
+        "visible_target_frames": 155,
+        "identity_safe_tracked_frames": 155,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9479,
+        "jitter_rms_norm": 0.048201,
+        "wrong_indices": []
+      },
+      "courtyard_competitor": {
+        "visible_target_frames": 140,
+        "identity_safe_tracked_frames": 98,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 70.0,
+        "lost_visible_frames": 35,
+        "missing_visible_frames": 7,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9202,
+        "jitter_rms_norm": 0.032999,
+        "wrong_indices": []
+      }
+    }
+  },
+  "frozen_reid_config": {
+    "name": "0287_sim0.64_margin0.04_c2",
+    "model": "person-reidentification-retail-0287",
+    "identity_threshold": 0.64,
+    "selection_floor": 0.42000000000000004,
+    "competitor_margin": 0.04,
+    "score_margin": 0.02,
+    "confirmation_frames": 2,
+    "max_center_distance": 0.58,
+    "max_scale_ratio": 6.0,
+    "gallery_admission_similarity": 0.62,
+    "gallery_min_confidence": 0.55,
+    "gallery_size": 10
+  },
+  "frozen_reid_heldout": {
+    "aggregate": {
+      "visible_target_frames": 581,
+      "identity_safe_tracked_frames": 544,
+      "identity_switch_events": 2,
+      "wrong_person_frames": 15,
+      "false_tracked_while_target_invisible": 0,
+      "identity_safe_continuity_percent": 93.632,
+      "lost_visible_frames": 6,
+      "missing_visible_frames": 16,
+      "localization_drift_frames": 2,
+      "mean_iou_when_tracked": 0.8929,
+      "jitter_rms_norm": 0.0385
+    },
+    "per_video": {
+      "single_person": {
+        "visible_target_frames": 104,
+        "identity_safe_tracked_frames": 92,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 88.462,
+        "lost_visible_frames": 5,
+        "missing_visible_frames": 7,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.898,
+        "jitter_rms_norm": 0.035026,
+        "wrong_indices": []
+      },
+      "multi_person": {
+        "visible_target_frames": 35,
+        "identity_safe_tracked_frames": 35,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.8453,
+        "jitter_rms_norm": 0.022874,
+        "wrong_indices": []
+      },
+      "courtyard_single_a": {
+        "visible_target_frames": 147,
+        "identity_safe_tracked_frames": 146,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 99.32,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 1,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9253,
+        "jitter_rms_norm": 0.035555,
+        "wrong_indices": []
+      },
+      "courtyard_single_b": {
+        "visible_target_frames": 155,
+        "identity_safe_tracked_frames": 155,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9479,
+        "jitter_rms_norm": 0.048201,
+        "wrong_indices": []
+      },
+      "courtyard_competitor": {
+        "visible_target_frames": 140,
+        "identity_safe_tracked_frames": 116,
+        "identity_switch_events": 2,
+        "wrong_person_frames": 15,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 82.857,
+        "lost_visible_frames": 1,
+        "missing_visible_frames": 8,
+        "localization_drift_frames": 2,
+        "mean_iou_when_tracked": 0.8008,
+        "jitter_rms_norm": 0.031539,
+        "wrong_indices": [
+          133,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143,
+          144,
+          145,
+          146,
+          147,
+          148,
+          149,
+          150
+        ]
+      }
+    }
+  },
+  "heldout_reid_diagnostics": {
+    "single_person": {
+      "recoveries": 2,
+      "confirmation_candidates": 4,
+      "fail_closed_frames": 65,
+      "gallery_embeddings": 22
+    },
+    "multi_person": {
+      "recoveries": 0,
+      "confirmation_candidates": 0,
+      "fail_closed_frames": 3,
+      "gallery_embeddings": 12
+    },
+    "courtyard_single_a": {
+      "recoveries": 0,
+      "confirmation_candidates": 0,
+      "fail_closed_frames": 0,
+      "gallery_embeddings": 2
+    },
+    "courtyard_single_b": {
+      "recoveries": 0,
+      "confirmation_candidates": 0,
+      "fail_closed_frames": 0,
+      "gallery_embeddings": 2
+    },
+    "courtyard_competitor": {
+      "recoveries": 1,
+      "confirmation_candidates": 2,
+      "fail_closed_frames": 0,
+      "gallery_embeddings": 12
+    }
+  },
+  "known_sequences": {
+    "single_person": {
+      "canonical_frames": [
+        251,
+        343
+      ],
+      "state_counts": {
+        "Missing": 6,
+        "Lost": 64,
+        "Tracked": 23
+      },
+      "reacquisition_frames": [
+        259
+      ]
+    },
+    "courtyard_competitor": {
+      "canonical_frames": [
+        124,
+        160
+      ],
+      "state_counts": {
+        "Missing": 3,
+        "Lost": 1,
+        "Tracked": 33
+      },
+      "reacquisition_frames": [
+        127
+      ]
+    }
+  },
+  "frozen_candidate_was_tuning_eligible": false,
+  "reid_accepted": false,
+  "winner": {
+    "aggregate": {
+      "visible_target_frames": 581,
+      "identity_safe_tracked_frames": 493,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "false_tracked_while_target_invisible": 0,
+      "identity_safe_continuity_percent": 84.854,
+      "lost_visible_frames": 76,
+      "missing_visible_frames": 12,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9243,
+      "jitter_rms_norm": 0.039288
+    },
+    "per_video": {
+      "single_person": {
+        "visible_target_frames": 104,
+        "identity_safe_tracked_frames": 59,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 56.731,
+        "lost_visible_frames": 41,
+        "missing_visible_frames": 4,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.914,
+        "jitter_rms_norm": 0.037454,
+        "wrong_indices": []
+      },
+      "multi_person": {
+        "visible_target_frames": 35,
+        "identity_safe_tracked_frames": 35,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.8453,
+        "jitter_rms_norm": 0.022874,
+        "wrong_indices": []
+      },
+      "courtyard_single_a": {
+        "visible_target_frames": 147,
+        "identity_safe_tracked_frames": 146,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 99.32,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 1,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9253,
+        "jitter_rms_norm": 0.035555,
+        "wrong_indices": []
+      },
+      "courtyard_single_b": {
+        "visible_target_frames": 155,
+        "identity_safe_tracked_frames": 155,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9479,
+        "jitter_rms_norm": 0.048201,
+        "wrong_indices": []
+      },
+      "courtyard_competitor": {
+        "visible_target_frames": 140,
+        "identity_safe_tracked_frames": 98,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 70.0,
+        "lost_visible_frames": 35,
+        "missing_visible_frames": 7,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9202,
+        "jitter_rms_norm": 0.032999,
+        "wrong_indices": []
+      }
+    }
+  },
+  "ready_to_port": false
+}

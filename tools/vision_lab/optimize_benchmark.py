@@ -557,6 +557,8 @@ def run_pipeline(
     selection_index: int | None = None,
     stop_index: int | None = None,
     diagnostic_trace: list[dict[str, Any]] | None = None,
+    initial_box: Box | None = None,
+    selection_note: str = "fixed user selection",
 ) -> tuple[list[Result], float]:
     results = [Result("Unselected", "none", None, "before explicit selection") for _ in video.frames]
     selection_index = video.selection_index if selection_index is None else selection_index
@@ -564,13 +566,19 @@ def run_pipeline(
     selected_annotation = video.annotations[selection_index]
     if not selected_annotation["target_visible"]:
         raise ValueError(f"{video.id} selection frame {selection_index} has no visible target")
-    selected_box = Box.from_normalized(selected_annotation["target_box_norm"], video.frames[0].shape[1], video.frames[0].shape[0])
+    selected_box = initial_box or Box.from_normalized(
+        selected_annotation["target_box_norm"],
+        video.frames[0].shape[1],
+        video.frames[0].shape[0],
+    )
     box = selected_box
     persistent_hist = histogram(video.frames[selection_index], box)
     target_hist = None if persistent_hist is None else persistent_hist.copy()
     tracker = LkTracker(config)
     tracker.reset(video.frames[selection_index], box)
-    results[selection_index] = Result("Tracked", "explicit selection", box, "fixed user selection")
+    results[selection_index] = Result(
+        "Tracked", "explicit selection", box, selection_note
+    )
     last_seen_s = video.timestamps[selection_index]
     missing_since: float | None = None
     velocity = np.zeros(2, dtype=np.float64)
