@@ -60,6 +60,24 @@ history, ranked finalists, winning config, timelines, annotated winner videos,
 and baseline comparisons are retained under `tools/vision_lab/benchmark` and
 `tools/vision_lab/outputs/optimization_20260823_expanded`.
 
+For the reproducible corrected-winner Missing/Lost diagnosis and bounded
+continuity search:
+
+```powershell
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\targeted_continuity_optimization.py `
+  --benchmark-dir tools\vision_lab\work\benchmark_expanded `
+  --output-dir tools\vision_lab\outputs\optimization_20260824_targeted `
+  --max-experiments 40 `
+  --max-rounds 2
+```
+
+This path first asserts the exact corrected-label baseline result, writes a
+per-frame gate/detector explanation and contact sheets for every held-out
+Missing/Lost run, then searches tuning partitions only. It enforces hard caps
+of 40 new configurations and two rounds. Candidates with any tuning identity
+switch, wrong-person frame, or false track while the target is invisible are
+ineligible; held-out data never changes the frozen candidate.
+
 The run produces four annotated MP4 videos, `metrics.json`, `per_frame.csv`,
 and `report.md`:
 

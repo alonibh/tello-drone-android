@@ -104,9 +104,13 @@ class Config:
     distance_gate: float = 0.12
     appearance_gate: float = 0.45
     ambiguity_margin: float = 0.10
+    low_confidence_appearance_margin: float = 0.06
+    low_confidence_iou_margin: float = 0.08
+    low_confidence_distance_scale: float = 0.70
     persistent_appearance_weight: float = 0.60
     persistent_conflict_margin: float = 0.06
     reacquire_confirmation_frames: int = 2
+    persistent_identity_safety: bool = True
     lk_fb_error: float = 1.2
     lk_inlier_ratio: float = 0.58
     lk_min_features: int = 10
@@ -408,9 +412,15 @@ def associate(
         appearance = (
             (1.0 - config.persistent_appearance_weight) * adaptive_appearance
             + config.persistent_appearance_weight * persistent_appearance
+            if config.persistent_identity_safety
+            else adaptive_appearance
         )
         area_ratio = detection.box.area / max(predicted.area, 1.0)
-        if 0.35 <= area_ratio <= 2.8 and persistent_appearance >= config.appearance_gate:
+        if (
+            config.persistent_identity_safety
+            and 0.35 <= area_ratio <= 2.8
+            and persistent_appearance >= config.appearance_gate
+        ):
             persistent_hypotheses.append(
                 (persistent_appearance, detection, overlap, distance)
             )
@@ -420,14 +430,18 @@ def associate(
             not 0.35 <= area_ratio <= 2.8
             or appearance < config.appearance_gate
             or (
-                strict_persistent
+                config.persistent_identity_safety
+                and strict_persistent
                 and persistent_appearance < max(0.0, config.appearance_gate - 0.10)
             )
         ):
             continue
         if detection.confidence < config.high_confidence and not (
-            appearance >= config.appearance_gate + 0.06
-            and (overlap >= config.iou_gate + 0.08 or distance <= config.distance_gate * 0.70)
+            appearance >= config.appearance_gate + config.low_confidence_appearance_margin
+            and (
+                overlap >= config.iou_gate + config.low_confidence_iou_margin
+                or distance <= config.distance_gate * config.low_confidence_distance_scale
+            )
         ):
             continue
         score = 0.42 * overlap + 0.23 * (1.0 - min(1.0, distance / max(config.distance_gate, 0.01))) + 0.27 * appearance + 0.08 * detection.confidence
@@ -456,7 +470,7 @@ def associate(
             )
         ):
             return None, chosen[4] - persistent_appearance, "persistent identity ambiguity"
-    for detection in detections:
+    for detection in detections if config.persistent_identity_safety else ():
         if detection is chosen[1] or detection.confidence < 0.03:
             continue
         area_ratio = detection.box.area / max(predicted.area, 1.0)
@@ -475,6 +489,66 @@ def associate(
     return chosen[1], margin, "accepted detector association"
 
 
+def association_evidence(
+    detections: Sequence[Detection],
+    predicted: Box,
+    image: np.ndarray,
+    adaptive_hist: np.ndarray | None,
+    persistent_hist: np.ndarray | None,
+    config: Config,
+) -> list[dict[str, Any]]:
+    """Explain the ordinary per-detection gates without changing association."""
+    height, width = image.shape[:2]
+    evidence: list[dict[str, Any]] = []
+    for detection in detections:
+        overlap = iou(predicted, detection.box)
+        distance = center_distance(predicted, detection.box, width, height)
+        candidate_hist = histogram(image, detection.box)
+        adaptive_appearance = hist_similarity(adaptive_hist, candidate_hist)
+        persistent_appearance = hist_similarity(persistent_hist, candidate_hist)
+        appearance = (
+            (1.0 - config.persistent_appearance_weight) * adaptive_appearance
+            + config.persistent_appearance_weight * persistent_appearance
+            if config.persistent_identity_safety
+            else adaptive_appearance
+        )
+        area_ratio = detection.box.area / max(predicted.area, 1.0)
+        if detection.confidence < config.low_confidence:
+            rejection = "detector confidence"
+        elif not (overlap >= config.iou_gate or distance <= config.distance_gate):
+            rejection = "geometry gate"
+        elif not 0.35 <= area_ratio <= 2.8:
+            rejection = "geometry gate"
+        elif appearance < config.appearance_gate:
+            rejection = "appearance gate"
+        elif detection.confidence < config.high_confidence and not (
+            appearance
+            >= config.appearance_gate + config.low_confidence_appearance_margin
+            and (
+                overlap >= config.iou_gate + config.low_confidence_iou_margin
+                or distance
+                <= config.distance_gate * config.low_confidence_distance_scale
+            )
+        ):
+            rejection = "low-confidence association rejection"
+        else:
+            rejection = "eligible"
+        evidence.append(
+            {
+                "box": asdict(detection.box),
+                "confidence": round(detection.confidence, 6),
+                "predicted_iou": round(overlap, 6),
+                "predicted_center_distance": round(distance, 6),
+                "area_ratio": round(area_ratio, 6),
+                "adaptive_appearance": round(adaptive_appearance, 6),
+                "persistent_appearance": round(persistent_appearance, 6),
+                "combined_appearance": round(appearance, 6),
+                "rejection": rejection,
+            }
+        )
+    return evidence
+
+
 def run_pipeline(
     video: VideoData,
     detections: list[list[Detection]],
@@ -482,6 +556,7 @@ def run_pipeline(
     config: Config,
     selection_index: int | None = None,
     stop_index: int | None = None,
+    diagnostic_trace: list[dict[str, Any]] | None = None,
 ) -> tuple[list[Result], float]:
     results = [Result("Unselected", "none", None, "before explicit selection") for _ in video.frames]
     selection_index = video.selection_index if selection_index is None else selection_index
@@ -510,6 +585,16 @@ def run_pipeline(
         height, width = frame.shape[:2]
         if lost:
             results[index] = Result("Lost", "none", None, "Lost latched; explicit reselection required")
+            if diagnostic_trace is not None:
+                diagnostic_trace.append(
+                    {
+                        "canonical_index": index,
+                        "state": "Lost",
+                        "association_note": "Lost latched; explicit reselection required",
+                        "predicted_box": None,
+                        "detections": [],
+                    }
+                )
             continue
         predicted = transform_box(box, camera_motion[index] if config.camera_compensation else None, width, height)
         if config.motion_alpha > 0.0:
@@ -537,15 +622,30 @@ def run_pipeline(
                 config,
                 strict_persistent=confirmation_required,
             )
-        safety_rejection = association_note in {
-            "competitor ambiguity",
-            "overlapping competitor ambiguity",
-            "persistent identity ambiguity",
-        }
-        if safety_rejection:
+        frame_evidence = (
+            association_evidence(
+                detections[index],
+                predicted,
+                frame,
+                target_hist,
+                persistent_hist,
+                config,
+            )
+            if diagnostic_trace is not None and should_detect
+            else []
+        )
+        safety_rejection = association_note == "competitor ambiguity" or (
+            config.persistent_identity_safety
+            and association_note in {
+                "overlapping competitor ambiguity",
+                "persistent identity ambiguity",
+            }
+        )
+        if safety_rejection and config.persistent_identity_safety:
             confirmation_required = True
         if (
-            chosen is not None
+            config.persistent_identity_safety
+            and chosen is not None
             and confirmation_required
             and config.reacquire_confirmation_frames > 1
         ):
@@ -585,6 +685,16 @@ def run_pipeline(
             missing_since = None
             source = "low-confidence association" if chosen.confidence < config.high_confidence else "detector"
             results[index] = Result("Tracked", source, box, association_note, chosen.confidence, margin)
+            if diagnostic_trace is not None:
+                diagnostic_trace.append(
+                    {
+                        "canonical_index": index,
+                        "state": "Tracked",
+                        "association_note": association_note,
+                        "predicted_box": asdict(predicted),
+                        "detections": frame_evidence,
+                    }
+                )
             continue
         if flow_box is not None and not safety_rejection:
             displacement = np.array(flow_box.center) - previous_center
@@ -594,6 +704,16 @@ def run_pipeline(
             last_seen_s = video.timestamps[index]
             missing_since = None
             results[index] = Result("Tracked", "LK", box, flow_note if not should_detect else association_note + "; " + flow_note, tracker_quality=flow_quality)
+            if diagnostic_trace is not None:
+                diagnostic_trace.append(
+                    {
+                        "canonical_index": index,
+                        "state": "Tracked",
+                        "association_note": association_note,
+                        "predicted_box": asdict(predicted),
+                        "detections": frame_evidence,
+                    }
+                )
             continue
         if missing_since is None:
             missing_since = video.timestamps[index]
@@ -602,6 +722,16 @@ def run_pipeline(
             results[index] = Result("Lost", "none", None, association_note + "; Lost latched")
         else:
             results[index] = Result("Missing", "none", None, association_note + "; " + flow_note)
+        if diagnostic_trace is not None:
+            diagnostic_trace.append(
+                {
+                    "canonical_index": index,
+                    "state": results[index].state,
+                    "association_note": association_note,
+                    "predicted_box": asdict(predicted),
+                    "detections": frame_evidence,
+                }
+            )
     tracker_mean = statistics.mean(tracker_times) if tracker_times else 0.0
     return results, tracker_mean
 
@@ -811,6 +941,26 @@ def evaluate_config(
         "per_video": per_video,
         "aggregate": aggregate(per_video, tracker_ms, section_metrics),
     }, all_results
+
+
+def corrected_label_winner_config() -> Config:
+    return Config(
+        "previous_corrected_winner",
+        "previous_corrected_winner",
+        "yolo11n",
+        False,
+        detector_cadence=1,
+        high_confidence=0.30,
+        low_confidence=0.30,
+        iou_gate=0.15,
+        distance_gate=0.24,
+        appearance_gate=0.45,
+        ambiguity_margin=0.10,
+        motion_alpha=0.0,
+        camera_compensation=False,
+        missing_ttl_s=0.4,
+        persistent_identity_safety=False,
+    )
 
 
 def seed_configs() -> list[Config]:

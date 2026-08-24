@@ -1,0 +1,3778 @@
+{
+  "baseline": {
+    "name": "previous_corrected_winner",
+    "family": "previous_corrected_winner",
+    "detector": "yolo11n",
+    "use_lk": false,
+    "detector_cadence": 1,
+    "high_confidence": 0.3,
+    "low_confidence": 0.3,
+    "iou_gate": 0.15,
+    "distance_gate": 0.24,
+    "appearance_gate": 0.45,
+    "ambiguity_margin": 0.1,
+    "low_confidence_appearance_margin": 0.06,
+    "low_confidence_iou_margin": 0.08,
+    "low_confidence_distance_scale": 0.7,
+    "persistent_appearance_weight": 0.6,
+    "persistent_conflict_margin": 0.06,
+    "reacquire_confirmation_frames": 2,
+    "persistent_identity_safety": false,
+    "lk_fb_error": 1.2,
+    "lk_inlier_ratio": 0.58,
+    "lk_min_features": 10,
+    "lk_feature_count": 120,
+    "motion_alpha": 0.0,
+    "camera_compensation": false,
+    "missing_ttl_s": 0.4
+  },
+  "runs": [
+    {
+      "video": "single_person",
+      "start_canonical_index": 136,
+      "end_canonical_index": 150,
+      "frame_count": 15,
+      "states": {
+        "Missing": 2,
+        "Lost": 13
+      },
+      "categories": {
+        "geometry gate": 3,
+        "other": 12
+      },
+      "trigger_category": "geometry gate",
+      "trigger_explanation": "target proposal failed position/scale geometry"
+    },
+    {
+      "video": "single_person",
+      "start_canonical_index": 246,
+      "end_canonical_index": 247,
+      "frame_count": 2,
+      "states": {
+        "Missing": 2
+      },
+      "categories": {
+        "detector miss/confidence": 2
+      },
+      "trigger_category": "detector miss/confidence",
+      "trigger_explanation": "target proposal confidence 0.031 is below 0.300"
+    },
+    {
+      "video": "single_person",
+      "start_canonical_index": 251,
+      "end_canonical_index": 343,
+      "frame_count": 93,
+      "states": {
+        "Missing": 2,
+        "Lost": 91
+      },
+      "categories": {
+        "target leaving/occlusion": 65,
+        "other": 28
+      },
+      "trigger_category": "target leaving/occlusion",
+      "trigger_explanation": "ground truth marks the target invisible on this frame"
+    },
+    {
+      "video": "multi_person",
+      "start_canonical_index": 55,
+      "end_canonical_index": 59,
+      "frame_count": 5,
+      "states": {
+        "Missing": 2,
+        "Lost": 3
+      },
+      "categories": {
+        "target leaving/occlusion": 5
+      },
+      "trigger_category": "target leaving/occlusion",
+      "trigger_explanation": "ground truth marks the target invisible on this frame"
+    },
+    {
+      "video": "courtyard_single_a",
+      "start_canonical_index": 156,
+      "end_canonical_index": 156,
+      "frame_count": 1,
+      "states": {
+        "Missing": 1
+      },
+      "categories": {
+        "association rejection": 1
+      },
+      "trigger_category": "association rejection",
+      "trigger_explanation": "multiple eligible proposals were too close in association score"
+    },
+    {
+      "video": "courtyard_competitor",
+      "start_canonical_index": 92,
+      "end_canonical_index": 93,
+      "frame_count": 2,
+      "states": {
+        "Missing": 2
+      },
+      "categories": {
+        "association rejection": 2
+      },
+      "trigger_category": "association rejection",
+      "trigger_explanation": "multiple eligible proposals were too close in association score"
+    },
+    {
+      "video": "courtyard_competitor",
+      "start_canonical_index": 122,
+      "end_canonical_index": 122,
+      "frame_count": 1,
+      "states": {
+        "Missing": 1
+      },
+      "categories": {
+        "geometry gate": 1
+      },
+      "trigger_category": "geometry gate",
+      "trigger_explanation": "target proposal failed position/scale geometry"
+    },
+    {
+      "video": "courtyard_competitor",
+      "start_canonical_index": 124,
+      "end_canonical_index": 160,
+      "frame_count": 37,
+      "states": {
+        "Missing": 2,
+        "Lost": 35
+      },
+      "categories": {
+        "association rejection": 3,
+        "other": 34
+      },
+      "trigger_category": "association rejection",
+      "trigger_explanation": "multiple eligible proposals were too close in association score"
+    },
+    {
+      "video": "courtyard_competitor",
+      "start_canonical_index": 268,
+      "end_canonical_index": 268,
+      "frame_count": 1,
+      "states": {
+        "Missing": 1
+      },
+      "categories": {
+        "association rejection": 1
+      },
+      "trigger_category": "association rejection",
+      "trigger_explanation": "multiple eligible proposals were too close in association score"
+    },
+    {
+      "video": "courtyard_competitor",
+      "start_canonical_index": 272,
+      "end_canonical_index": 272,
+      "frame_count": 1,
+      "states": {
+        "Missing": 1
+      },
+      "categories": {
+        "association rejection": 1
+      },
+      "trigger_category": "association rejection",
+      "trigger_explanation": "multiple eligible proposals were too close in association score"
+    }
+  ],
+  "frames": [
+    {
+      "video": "single_person",
+      "canonical_index": 136,
+      "timestamp_s": 27.205494,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "geometry gate",
+      "explanation": "target proposal failed position/scale geometry",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 0.0893707275390625,
+          "y1": 171.652099609375,
+          "x2": 136.9102325439453,
+          "y2": 712.1455078125
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 0.6446685791015625,
+          "y1": 175.881103515625,
+          "x2": 142.57186889648438,
+          "y2": 718.4127197265625
+        },
+        "target_detection_confidence": 0.820651,
+        "target_detection_truth_iou": 0.938338,
+        "target_detection_truth_distance": 0.004153,
+        "association_evidence": {
+          "box": {
+            "x1": 0.6446685791015625,
+            "y1": 175.881103515625,
+            "x2": 142.57186889648438,
+            "y2": 718.4127197265625
+          },
+          "confidence": 0.820651,
+          "predicted_iou": 0.218941,
+          "predicted_center_distance": 0.055965,
+          "area_ratio": 4.557354,
+          "adaptive_appearance": 0.91794,
+          "persistent_appearance": 0.8782,
+          "combined_appearance": 0.91794,
+          "rejection": "geometry gate"
+        }
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 137,
+      "timestamp_s": 27.386864,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "geometry gate",
+      "explanation": "target proposal failed position/scale geometry",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 110.0645751953125,
+          "y1": 164.82965087890625,
+          "x2": 294.1258850097656,
+          "y2": 685.4838256835938
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 83.9886474609375,
+          "y1": 167.25421142578125,
+          "x2": 296.2301025390625,
+          "y2": 701.8176879882812
+        },
+        "target_detection_confidence": 0.897732,
+        "target_detection_truth_iou": 0.837434,
+        "target_detection_truth_distance": 0.010363,
+        "association_evidence": {
+          "box": {
+            "x1": 83.9886474609375,
+            "y1": 167.25421142578125,
+            "x2": 296.2301025390625,
+            "y2": 701.8176879882812
+          },
+          "confidence": 0.897732,
+          "predicted_iou": 0.0,
+          "predicted_center_distance": 0.126555,
+          "area_ratio": 6.715085,
+          "adaptive_appearance": 0.890282,
+          "persistent_appearance": 0.826508,
+          "combined_appearance": 0.890282,
+          "rejection": "geometry gate"
+        }
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 138,
+      "timestamp_s": 27.604508,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "geometry gate",
+      "explanation": "target proposal failed position/scale geometry",
+      "pipeline_note": "no identity-safe association; Lost latched",
+      "details": {
+        "truth_box": {
+          "x1": 341.67669677734375,
+          "y1": 159.4178466796875,
+          "x2": 511.10430908203125,
+          "y2": 670.7177124023438
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 337.71417236328125,
+          "y1": 160.9556884765625,
+          "x2": 515.64111328125,
+          "y2": 674.858154296875
+        },
+        "target_detection_confidence": 0.845986,
+        "target_detection_truth_iou": 0.941875,
+        "target_detection_truth_distance": 0.001943,
+        "association_evidence": {
+          "box": {
+            "x1": 337.71417236328125,
+            "y1": 160.9556884765625,
+            "x2": 515.64111328125,
+            "y2": 674.858154296875
+          },
+          "confidence": 0.845986,
+          "predicted_iou": 0.0,
+          "predicted_center_distance": 0.28345,
+          "area_ratio": 5.411834,
+          "adaptive_appearance": 0.864154,
+          "persistent_appearance": 0.817585,
+          "combined_appearance": 0.864154,
+          "rejection": "geometry gate"
+        }
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 139,
+      "timestamp_s": 27.785878,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 638.3095703125,
+          "y1": 149.25189208984375,
+          "x2": 790.1837158203125,
+          "y2": 661.71533203125
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 614.120361328125,
+          "y1": 152.05950927734375,
+          "x2": 793.831787109375,
+          "y2": 666.9603881835938
+        },
+        "target_detection_confidence": 0.853294,
+        "target_detection_truth_iou": 0.832655,
+        "target_detection_truth_distance": 0.007512
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 140,
+      "timestamp_s": 28.003522,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 699.8046875,
+          "y1": 144.40625,
+          "x2": 869.252685546875,
+          "y2": 663.14794921875
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 688.138671875,
+          "y1": 152.4610595703125,
+          "x2": 868.5853271484375,
+          "y2": 668.466796875
+        },
+        "target_detection_confidence": 0.85424,
+        "target_detection_truth_iou": 0.909055,
+        "target_detection_truth_distance": 0.006194
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 141,
+      "timestamp_s": 28.184892,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 712.8504638671875,
+          "y1": 147.18365478515625,
+          "x2": 877.6087646484375,
+          "y2": 661.8851928710938
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 701.7532958984375,
+          "y1": 149.89630126953125,
+          "x2": 878.4534912109375,
+          "y2": 668.2647705078125
+        },
+        "target_detection_confidence": 0.855439,
+        "target_detection_truth_iou": 0.91647,
+        "target_detection_truth_distance": 0.004665
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 142,
+      "timestamp_s": 28.402536,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 710.0353393554688,
+          "y1": 165.0469970703125,
+          "x2": 875.1178588867188,
+          "y2": 677.06201171875
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 697.8490600585938,
+          "y1": 157.89404296875,
+          "x2": 875.1194458007812,
+          "y2": 679.119384765625
+        },
+        "target_detection_confidence": 0.867599,
+        "target_detection_truth_iou": 0.914791,
+        "target_detection_truth_distance": 0.004497
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 143,
+      "timestamp_s": 28.583906,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 706.467529296875,
+          "y1": 166.53973388671875,
+          "x2": 871.6138916015625,
+          "y2": 678.4051513671875
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 698.7349243164062,
+          "y1": 164.826171875,
+          "x2": 870.9172973632812,
+          "y2": 683.0616455078125
+        },
+        "target_detection_confidence": 0.876389,
+        "target_detection_truth_iou": 0.939596,
+        "target_detection_truth_distance": 0.00304
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 144,
+      "timestamp_s": 28.80155,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 568.943603515625,
+          "y1": 172.82476806640625,
+          "x2": 722.05419921875,
+          "y2": 676.1841430664062
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 559.3399658203125,
+          "y1": 168.83160400390625,
+          "x2": 722.635009765625,
+          "y2": 680.7640380859375
+        },
+        "target_detection_confidence": 0.827298,
+        "target_detection_truth_iou": 0.92193,
+        "target_detection_truth_distance": 0.003078
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 145,
+      "timestamp_s": 28.98292,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 561.2113037109375,
+          "y1": 174.84161376953125,
+          "x2": 717.4698486328125,
+          "y2": 674.5831909179688
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 551.8121337890625,
+          "y1": 168.97149658203125,
+          "x2": 719.1851806640625,
+          "y2": 678.8506469726562
+        },
+        "target_detection_confidence": 0.876908,
+        "target_detection_truth_iou": 0.915032,
+        "target_detection_truth_distance": 0.002672
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 146,
+      "timestamp_s": 29.200563,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 551.707275390625,
+          "y1": 178.71905517578125,
+          "x2": 709.6240234375,
+          "y2": 671.5970458984375
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 541.9445190429688,
+          "y1": 176.93333435058594,
+          "x2": 708.2589721679688,
+          "y2": 680.6455078125
+        },
+        "target_detection_confidence": 0.859293,
+        "target_detection_truth_iou": 0.913715,
+        "target_detection_truth_distance": 0.004524
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 147,
+      "timestamp_s": 29.381933,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 547.4039306640625,
+          "y1": 180.17633056640625,
+          "x2": 708.5592041015625,
+          "y2": 675.4803466796875
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 532.8868408203125,
+          "y1": 177.8447265625,
+          "x2": 704.0164794921875,
+          "y2": 687.8441162109375
+        },
+        "target_detection_confidence": 0.86968,
+        "target_detection_truth_iou": 0.866461,
+        "target_detection_truth_distance": 0.007333
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 148,
+      "timestamp_s": 29.599577,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 541.3695678710938,
+          "y1": 184.05853271484375,
+          "x2": 703.6524047851562,
+          "y2": 674.8629760742188
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 535.7711181640625,
+          "y1": 180.6728515625,
+          "x2": 703.2308349609375,
+          "y2": 685.1470336914062
+        },
+        "target_detection_confidence": 0.87069,
+        "target_detection_truth_iou": 0.93808,
+        "target_detection_truth_distance": 0.003117
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 149,
+      "timestamp_s": 29.817221,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 542.7611083984375,
+          "y1": 182.45989990234378,
+          "x2": 705.9852294921875,
+          "y2": 675.3485717773438
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 536.6808471679688,
+          "y1": 180.61109924316406,
+          "x2": 702.8027954101562,
+          "y2": 680.3189697265625
+        },
+        "target_detection_confidence": 0.87039,
+        "target_detection_truth_iou": 0.932629,
+        "target_detection_truth_distance": 0.003328
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 150,
+      "timestamp_s": 29.998591,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 541.33251953125,
+          "y1": 191.6500244140625,
+          "x2": 702.448974609375,
+          "y2": 675.9387817382812
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 533.0814819335938,
+          "y1": 188.771240234375,
+          "x2": 702.2332153320312,
+          "y2": 686.6553955078125
+        },
+        "target_detection_confidence": 0.882663,
+        "target_detection_truth_iou": 0.9241,
+        "target_detection_truth_distance": 0.003928
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 246,
+      "timestamp_s": 49.187533,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "detector miss/confidence",
+      "explanation": "target proposal confidence 0.031 is below 0.300",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 403.28424072265625,
+          "y1": 251.80612182617188,
+          "x2": 460.23651123046875,
+          "y2": 426.5103454589844
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 404.2890319824219,
+          "y1": 255.67462158203125,
+          "x2": 457.0885925292969,
+          "y2": 386.29644775390625
+        },
+        "target_detection_confidence": 0.030826,
+        "target_detection_truth_iou": 0.693157,
+        "target_detection_truth_distance": 0.012396,
+        "association_evidence": {
+          "box": {
+            "x1": 404.2890319824219,
+            "y1": 255.67462158203125,
+            "x2": 457.0885925292969,
+            "y2": 386.29644775390625
+          },
+          "confidence": 0.030826,
+          "predicted_iou": 0.309813,
+          "predicted_center_distance": 0.038322,
+          "area_ratio": 0.739465,
+          "adaptive_appearance": 0.865967,
+          "persistent_appearance": 0.846383,
+          "combined_appearance": 0.865967,
+          "rejection": "detector confidence"
+        }
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 247,
+      "timestamp_s": 49.405177,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "detector miss/confidence",
+      "explanation": "target proposal confidence 0.208 is below 0.300",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 415.96240234375,
+          "y1": 236.99957275390625,
+          "x2": 471.0494384765625,
+          "y2": 409.36956787109375
+        },
+        "raw_detection_count": 6,
+        "target_detection_box": {
+          "x1": 422.62005615234375,
+          "y1": 256.658935546875,
+          "x2": 471.35467529296875,
+          "y2": 403.88720703125
+        },
+        "target_detection_confidence": 0.207505,
+        "target_detection_truth_iou": 0.747375,
+        "target_detection_truth_distance": 0.005377,
+        "association_evidence": {
+          "box": {
+            "x1": 422.62005615234375,
+            "y1": 256.658935546875,
+            "x2": 471.35467529296875,
+            "y2": 403.88720703125
+          },
+          "confidence": 0.207505,
+          "predicted_iou": 0.180596,
+          "predicted_center_distance": 0.03695,
+          "area_ratio": 0.769308,
+          "adaptive_appearance": 0.889342,
+          "persistent_appearance": 0.848769,
+          "combined_appearance": 0.889342,
+          "rejection": "detector confidence"
+        }
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 251,
+      "timestamp_s": 50.203205,
+      "target_visible": false,
+      "state": "Missing",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 252,
+      "timestamp_s": 50.384575,
+      "target_visible": false,
+      "state": "Missing",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 253,
+      "timestamp_s": 50.602219,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "no identity-safe association; Lost latched",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 254,
+      "timestamp_s": 50.783589,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 255,
+      "timestamp_s": 51.001233,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 256,
+      "timestamp_s": 51.182603,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 257,
+      "timestamp_s": 51.400247,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; the target still lacked a usable detection",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 476.2042236328125,
+          "y1": 267.0467529296875,
+          "x2": 527.0506591796875,
+          "y2": 402.49731445312494
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 483.3729248046875,
+          "y1": 255.899658203125,
+          "x2": 526.6216430664062,
+          "y2": 400.4752197265625
+        },
+        "target_detection_confidence": 0.027724,
+        "target_detection_truth_iou": 0.783063,
+        "target_detection_truth_distance": 0.005037
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 258,
+      "timestamp_s": 51.61789,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 499.18402099609375,
+          "y1": 244.11822509765625,
+          "x2": 549.1716918945312,
+          "y2": 406.740966796875
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 501.41943359375,
+          "y1": 247.531005859375,
+          "x2": 549.1280517578125,
+          "y2": 402.95306396484375
+        },
+        "target_detection_confidence": 0.546921,
+        "target_detection_truth_iou": 0.912148,
+        "target_detection_truth_distance": 0.000757
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 259,
+      "timestamp_s": 51.79926,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 505.3876953125,
+          "y1": 248.27099609375,
+          "x2": 554.6241455078125,
+          "y2": 407.3895263671875
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 506.8363037109375,
+          "y1": 250.5863037109375,
+          "x2": 553.3599853515625,
+          "y2": 407.1339111328125
+        },
+        "target_detection_confidence": 0.708936,
+        "target_detection_truth_iou": 0.929636,
+        "target_detection_truth_distance": 0.000704
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 260,
+      "timestamp_s": 52.016904,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 507.1947326660156,
+          "y1": 252.59527587890625,
+          "x2": 557.2867431640625,
+          "y2": 413.14935302734375
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 510.27728271484375,
+          "y1": 251.8245849609375,
+          "x2": 558.9096069335938,
+          "y2": 410.7244873046875
+        },
+        "target_detection_confidence": 0.740125,
+        "target_detection_truth_iou": 0.891681,
+        "target_detection_truth_distance": 0.001937
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 261,
+      "timestamp_s": 52.198274,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 505.538330078125,
+          "y1": 255.92517089843753,
+          "x2": 556.5562744140625,
+          "y2": 423.400146484375
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 507.81890869140625,
+          "y1": 264.9560241699219,
+          "x2": 556.4070434570312,
+          "y2": 421.6878356933594
+        },
+        "target_detection_confidence": 0.555292,
+        "target_detection_truth_iou": 0.891281,
+        "target_detection_truth_distance": 0.002595
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 262,
+      "timestamp_s": 52.415918,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 492.65618896484375,
+          "y1": 260.341796875,
+          "x2": 551.9067993164062,
+          "y2": 426.44696044921875
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 499.505859375,
+          "y1": 258.7760314941406,
+          "x2": 550.13427734375,
+          "y2": 423.7387390136719
+        },
+        "target_detection_confidence": 0.633766,
+        "target_detection_truth_iou": 0.833831,
+        "target_detection_truth_distance": 0.002259
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 263,
+      "timestamp_s": 52.597288,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; the target still lacked a usable detection",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 487.2972106933594,
+          "y1": 260.40802001953125,
+          "x2": 542.1959228515625,
+          "y2": 430.52935791015625
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 490.4921875,
+          "y1": 268.00616455078125,
+          "x2": 538.216064453125,
+          "y2": 421.79473876953125
+        },
+        "target_detection_confidence": 0.059281,
+        "target_detection_truth_iou": 0.785849,
+        "target_detection_truth_distance": 0.00047
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 264,
+      "timestamp_s": 52.814932,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 454.8487548828125,
+          "y1": 262.89788818359375,
+          "x2": 508.3614501953125,
+          "y2": 433.34686279296875
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 454.79156494140625,
+          "y1": 270.800537109375,
+          "x2": 511.42193603515625,
+          "y2": 432.63787841796875
+        },
+        "target_detection_confidence": 0.437369,
+        "target_detection_truth_iou": 0.899708,
+        "target_detection_truth_distance": 0.002654
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 265,
+      "timestamp_s": 52.996302,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 407.556396484375,
+          "y1": 265.72845458984375,
+          "x2": 458.9844970703125,
+          "y2": 438.51251220703125
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 407.9479064941406,
+          "y1": 275.29571533203125,
+          "x2": 460.4853210449219,
+          "y2": 440.99176025390625
+        },
+        "target_detection_confidence": 0.735235,
+        "target_detection_truth_iou": 0.899458,
+        "target_detection_truth_distance": 0.004152
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 266,
+      "timestamp_s": 53.213946,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 391.9532470703125,
+          "y1": 276.07958984375,
+          "x2": 443.4498291015625,
+          "y2": 446.98730468750006
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 386.63812255859375,
+          "y1": 278.36474609375,
+          "x2": 449.81134033203125,
+          "y2": 448.8955078125
+        },
+        "target_detection_confidence": 0.649723,
+        "target_detection_truth_iou": 0.797334,
+        "target_detection_truth_distance": 0.001471
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 267,
+      "timestamp_s": 53.395316,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 378.66015625,
+          "y1": 281.3282470703125,
+          "x2": 433.907958984375,
+          "y2": 453.35980224609375
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 380.8317565917969,
+          "y1": 276.2635498046875,
+          "x2": 438.8464660644531,
+          "y2": 454.3148193359375
+        },
+        "target_detection_confidence": 0.719105,
+        "target_detection_truth_iou": 0.853091,
+        "target_detection_truth_distance": 0.002796
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 268,
+      "timestamp_s": 53.61296,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 370.8392333984375,
+          "y1": 283.38824462890625,
+          "x2": 425.5794677734375,
+          "y2": 455.4771118164063
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 371.213623046875,
+          "y1": 286.07574462890625,
+          "x2": 424.7252197265625,
+          "y2": 451.01666259765625
+        },
+        "target_detection_confidence": 0.732033,
+        "target_detection_truth_iou": 0.936951,
+        "target_detection_truth_distance": 0.000625
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 269,
+      "timestamp_s": 53.79433,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 356.7908020019531,
+          "y1": 281.0579833984375,
+          "x2": 413.9301452636719,
+          "y2": 454.31982421874994
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 355.53466796875,
+          "y1": 288.0228271484375,
+          "x2": 411.1346435546875,
+          "y2": 449.59503173828125
+        },
+        "target_detection_confidence": 0.748707,
+        "target_detection_truth_iou": 0.869092,
+        "target_detection_truth_distance": 0.001576
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 270,
+      "timestamp_s": 54.011974,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 344.22039794921875,
+          "y1": 274.13623046875,
+          "x2": 399.1429443359375,
+          "y2": 449.31707763671875
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 342.6666564941406,
+          "y1": 275.4349365234375,
+          "x2": 401.8481140136719,
+          "y2": 449.8648681640625
+        },
+        "target_detection_confidence": 0.621826,
+        "target_detection_truth_iou": 0.918774,
+        "target_detection_truth_distance": 0.000741
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 271,
+      "timestamp_s": 54.193344,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 317.70526123046875,
+          "y1": 258.8846435546875,
+          "x2": 384.57379150390625,
+          "y2": 436.65454101562506
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 319.26190185546875,
+          "y1": 267.79718017578125,
+          "x2": 385.79107666015625,
+          "y2": 432.29547119140625
+        },
+        "target_detection_confidence": 0.612584,
+        "target_detection_truth_iou": 0.88883,
+        "target_detection_truth_distance": 0.001815
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 272,
+      "timestamp_s": 54.410988,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 299.54949951171875,
+          "y1": 245.82623291015628,
+          "x2": 371.97235107421875,
+          "y2": 423.66833496093744
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 298.3492431640625,
+          "y1": 256.7786865234375,
+          "x2": 369.23291015625,
+          "y2": 417.23394775390625
+        },
+        "target_detection_confidence": 0.727415,
+        "target_detection_truth_iou": 0.855318,
+        "target_detection_truth_distance": 0.002041
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 273,
+      "timestamp_s": 54.592358,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 279.61016845703125,
+          "y1": 223.38423156738278,
+          "x2": 356.70050048828125,
+          "y2": 402.49053955078125
+        },
+        "raw_detection_count": 1,
+        "target_detection_box": {
+          "x1": 277.67230224609375,
+          "y1": 227.30430603027344,
+          "x2": 354.110595703125,
+          "y2": 400.2158203125
+        },
+        "target_detection_confidence": 0.755546,
+        "target_detection_truth_iou": 0.910874,
+        "target_detection_truth_distance": 0.00164
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 274,
+      "timestamp_s": 54.810002,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 255.20899963378906,
+          "y1": 207.01336669921875,
+          "x2": 317.1436767578125,
+          "y2": 388.03033447265625
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 250.77703857421875,
+          "y1": 210.3998260498047,
+          "x2": 342.44049072265625,
+          "y2": 385.85125732421875
+        },
+        "target_detection_confidence": 0.817745,
+        "target_detection_truth_iou": 0.661497,
+        "target_detection_truth_distance": 0.007116
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 275,
+      "timestamp_s": 54.991372,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 232.323974609375,
+          "y1": 189.83085632324222,
+          "x2": 317.85888671875,
+          "y2": 373.67547607421875
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 229.35008239746094,
+          "y1": 192.44671630859375,
+          "x2": 306.705810546875,
+          "y2": 371.39697265625
+        },
+        "target_detection_confidence": 0.742088,
+        "target_detection_truth_iou": 0.818748,
+        "target_detection_truth_distance": 0.004811
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 276,
+      "timestamp_s": 55.209016,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 199.15838623046875,
+          "y1": 169.31503295898438,
+          "x2": 258.0765075683594,
+          "y2": 355.4247131347656
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 195.41030883789062,
+          "y1": 176.4248046875,
+          "x2": 267.9477233886719,
+          "y2": 355.6673583984375
+        },
+        "target_detection_confidence": 0.594259,
+        "target_detection_truth_iou": 0.785827,
+        "target_detection_truth_distance": 0.003258
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 277,
+      "timestamp_s": 55.390386,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 172.51638793945312,
+          "y1": 161.6939697265625,
+          "x2": 234.49758911132812,
+          "y2": 349.75439453125
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 171.90472412109375,
+          "y1": 160.5128936767578,
+          "x2": 231.9112548828125,
+          "y2": 352.57305908203125
+        },
+        "target_detection_confidence": 0.669579,
+        "target_detection_truth_iou": 0.929947,
+        "target_detection_truth_distance": 0.001223
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 278,
+      "timestamp_s": 55.60803,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 141.143798828125,
+          "y1": 154.357421875,
+          "x2": 204.7763671875,
+          "y2": 347.0802001953125
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 139.7360382080078,
+          "y1": 157.599365234375,
+          "x2": 203.05039978027344,
+          "y2": 351.88726806640625
+        },
+        "target_detection_confidence": 0.700546,
+        "target_detection_truth_iou": 0.913949,
+        "target_detection_truth_distance": 0.002941
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 279,
+      "timestamp_s": 55.7894,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 110.9847640991211,
+          "y1": 157.03140258789062,
+          "x2": 175.90286254882812,
+          "y2": 353.0286560058594
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 108.87216186523438,
+          "y1": 157.1689453125,
+          "x2": 179.17706298828125,
+          "y2": 356.69696044921875
+        },
+        "target_detection_confidence": 0.620743,
+        "target_detection_truth_iou": 0.905827,
+        "target_detection_truth_distance": 0.001355
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 280,
+      "timestamp_s": 56.007043,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 80.31387329101562,
+          "y1": 157.80447387695312,
+          "x2": 156.58322143554688,
+          "y2": 358.8724060058594
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 78.30949401855469,
+          "y1": 164.19239807128906,
+          "x2": 150.39877319335938,
+          "y2": 360.32421875
+        },
+        "target_detection_confidence": 0.710026,
+        "target_detection_truth_iou": 0.861905,
+        "target_detection_truth_distance": 0.00386
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 281,
+      "timestamp_s": 56.188413,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 42.76988220214844,
+          "y1": 150.03981018066406,
+          "x2": 113.71087646484375,
+          "y2": 350.4039306640625
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 40.30648422241211,
+          "y1": 156.47804260253906,
+          "x2": 119.14276123046875,
+          "y2": 352.466064453125
+        },
+        "target_detection_confidence": 0.747131,
+        "target_detection_truth_iou": 0.86482,
+        "target_detection_truth_distance": 0.003065
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 282,
+      "timestamp_s": 56.406057,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 12.577995300292969,
+          "y1": 152.66888427734375,
+          "x2": 83.27412414550781,
+          "y2": 353.42633056640625
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 17.651168823242188,
+          "y1": 170.94761657714844,
+          "x2": 85.06634521484375,
+          "y2": 355.799560546875
+        },
+        "target_detection_confidence": 0.740285,
+        "target_detection_truth_iou": 0.815732,
+        "target_detection_truth_distance": 0.007409
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 283,
+      "timestamp_s": 56.587427,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 0.1705474853515625,
+          "y1": 158.35345458984375,
+          "x2": 55.618961334228516,
+          "y2": 358.6466064453125
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 0.17181396484375,
+          "y1": 168.1455078125,
+          "x2": 58.86219787597656,
+          "y2": 357.078125
+        },
+        "target_detection_confidence": 0.711923,
+        "target_detection_truth_iou": 0.893937,
+        "target_detection_truth_distance": 0.00301
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 284,
+      "timestamp_s": 56.805071,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; the target still lacked a usable detection",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 204.563232421875,
+          "y1": 109.04495239257812,
+          "x2": 239.4654541015625,
+          "y2": 182.3788757324219
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 201.12948608398438,
+          "y1": 119.86239624023438,
+          "x2": 239.93508911132812,
+          "y2": 179.37118530273438
+        },
+        "target_detection_confidence": 0.085792,
+        "target_detection_truth_iou": 0.74396,
+        "target_detection_truth_distance": 0.002844
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 285,
+      "timestamp_s": 56.986441,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 286,
+      "timestamp_s": 57.204085,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 287,
+      "timestamp_s": 57.385455,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 288,
+      "timestamp_s": 57.603099,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 289,
+      "timestamp_s": 57.784469,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 290,
+      "timestamp_s": 58.002113,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 291,
+      "timestamp_s": 58.183483,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 292,
+      "timestamp_s": 58.401127,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 293,
+      "timestamp_s": 58.582497,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 294,
+      "timestamp_s": 58.800141,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 295,
+      "timestamp_s": 59.017785,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 296,
+      "timestamp_s": 59.199155,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 297,
+      "timestamp_s": 59.416799,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 5
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 298,
+      "timestamp_s": 59.598169,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 299,
+      "timestamp_s": 59.815813,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 4
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 300,
+      "timestamp_s": 59.997183,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 301,
+      "timestamp_s": 60.214827,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 302,
+      "timestamp_s": 60.396197,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 303,
+      "timestamp_s": 60.61384,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 304,
+      "timestamp_s": 60.79521,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 305,
+      "timestamp_s": 61.012854,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 306,
+      "timestamp_s": 61.194224,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 307,
+      "timestamp_s": 61.411868,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 308,
+      "timestamp_s": 61.593238,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 309,
+      "timestamp_s": 61.810882,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 310,
+      "timestamp_s": 61.992252,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 311,
+      "timestamp_s": 62.209896,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 312,
+      "timestamp_s": 62.391266,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 313,
+      "timestamp_s": 62.60891,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 4
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 314,
+      "timestamp_s": 62.79028,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 315,
+      "timestamp_s": 63.007924,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 316,
+      "timestamp_s": 63.189294,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 317,
+      "timestamp_s": 63.406938,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 6
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 318,
+      "timestamp_s": 63.588308,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 319,
+      "timestamp_s": 63.805952,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 4
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 320,
+      "timestamp_s": 63.987322,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 321,
+      "timestamp_s": 64.204966,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 322,
+      "timestamp_s": 64.386336,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 323,
+      "timestamp_s": 64.60398,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 4
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 324,
+      "timestamp_s": 64.78535,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 5
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 325,
+      "timestamp_s": 65.002993,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 3
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 326,
+      "timestamp_s": 65.184363,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 327,
+      "timestamp_s": 65.402007,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 328,
+      "timestamp_s": 65.583377,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 329,
+      "timestamp_s": 65.801021,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 330,
+      "timestamp_s": 65.982391,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 331,
+      "timestamp_s": 66.200035,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 332,
+      "timestamp_s": 66.417679,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 1
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 333,
+      "timestamp_s": 66.599049,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 3
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 334,
+      "timestamp_s": 66.816693,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 335,
+      "timestamp_s": 66.998063,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 2
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 336,
+      "timestamp_s": 67.215707,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 337,
+      "timestamp_s": 67.397077,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 338,
+      "timestamp_s": 67.614721,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 339,
+      "timestamp_s": 67.796091,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 340,
+      "timestamp_s": 68.013735,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 341,
+      "timestamp_s": 68.195105,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 342,
+      "timestamp_s": 68.412749,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "single_person",
+      "canonical_index": 343,
+      "timestamp_s": 68.594119,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 0
+      }
+    },
+    {
+      "video": "multi_person",
+      "canonical_index": 55,
+      "timestamp_s": 11.0,
+      "target_visible": false,
+      "state": "Missing",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "raw_detection_count": 7
+      }
+    },
+    {
+      "video": "multi_person",
+      "canonical_index": 56,
+      "timestamp_s": 11.2,
+      "target_visible": false,
+      "state": "Missing",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "raw_detection_count": 8
+      }
+    },
+    {
+      "video": "multi_person",
+      "canonical_index": 57,
+      "timestamp_s": 11.4,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "no identity-safe association; Lost latched",
+      "details": {
+        "raw_detection_count": 9
+      }
+    },
+    {
+      "video": "multi_person",
+      "canonical_index": 58,
+      "timestamp_s": 11.6,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 9
+      }
+    },
+    {
+      "video": "multi_person",
+      "canonical_index": 59,
+      "timestamp_s": 11.8,
+      "target_visible": false,
+      "state": "Lost",
+      "category": "target leaving/occlusion",
+      "explanation": "ground truth marks the target invisible on this frame",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "raw_detection_count": 9
+      }
+    },
+    {
+      "video": "courtyard_single_a",
+      "canonical_index": 156,
+      "timestamp_s": 31.205342,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "association rejection",
+      "explanation": "multiple eligible proposals were too close in association score",
+      "pipeline_note": "competitor ambiguity; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 642.383544921875,
+          "y1": 30.984893798828125,
+          "x2": 819.132080078125,
+          "y2": 399.1558837890625
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 677.5382690429688,
+          "y1": 41.394775390625,
+          "x2": 820.9188842773438,
+          "y2": 395.87890625
+        },
+        "target_detection_confidence": 0.476726,
+        "target_detection_truth_iou": 0.763887,
+        "target_detection_truth_distance": 0.012809,
+        "association_evidence": {
+          "box": {
+            "x1": 677.5382690429688,
+            "y1": 41.394775390625,
+            "x2": 820.9188842773438,
+            "y2": 395.87890625
+          },
+          "confidence": 0.476726,
+          "predicted_iou": 0.0,
+          "predicted_center_distance": 0.18483,
+          "area_ratio": 1.142409,
+          "adaptive_appearance": 0.946411,
+          "persistent_appearance": 0.922177,
+          "combined_appearance": 0.946411,
+          "rejection": "eligible"
+        }
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 92,
+      "timestamp_s": 18.381005,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "association rejection",
+      "explanation": "multiple eligible proposals were too close in association score",
+      "pipeline_note": "competitor ambiguity; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 429.2962646484375,
+          "y1": 26.006546020507816,
+          "x2": 574.5201416015625,
+          "y2": 445.9070434570312
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 432.62347412109375,
+          "y1": 30.492279052734375,
+          "x2": 574.4240112304688,
+          "y2": 449.0716247558594
+        },
+        "target_detection_confidence": 0.716288,
+        "target_detection_truth_iou": 0.958939,
+        "target_detection_truth_distance": 0.002827,
+        "association_evidence": {
+          "box": {
+            "x1": 432.62347412109375,
+            "y1": 30.492279052734375,
+            "x2": 574.4240112304688,
+            "y2": 449.0716247558594
+          },
+          "confidence": 0.716288,
+          "predicted_iou": 0.18862,
+          "predicted_center_distance": 0.063538,
+          "area_ratio": 1.103656,
+          "adaptive_appearance": 0.918926,
+          "persistent_appearance": 0.91751,
+          "combined_appearance": 0.918926,
+          "rejection": "eligible"
+        }
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 93,
+      "timestamp_s": 18.584786,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "association rejection",
+      "explanation": "multiple eligible proposals were too close in association score",
+      "pipeline_note": "competitor ambiguity; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 419.16668701171875,
+          "y1": 26.176086425781246,
+          "x2": 565.9769897460938,
+          "y2": 452.70513916015625
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 421.34832763671875,
+          "y1": 24.757476806640625,
+          "x2": 565.61279296875,
+          "y2": 451.7308044433594
+        },
+        "target_detection_confidence": 0.848473,
+        "target_detection_truth_iou": 0.97722,
+        "target_detection_truth_distance": 0.001023,
+        "association_evidence": {
+          "box": {
+            "x1": 421.34832763671875,
+            "y1": 24.757476806640625,
+            "x2": 565.61279296875,
+            "y2": 451.7308044433594
+          },
+          "confidence": 0.848473,
+          "predicted_iou": 0.142798,
+          "predicted_center_distance": 0.070323,
+          "area_ratio": 1.14535,
+          "adaptive_appearance": 0.95479,
+          "persistent_appearance": 0.953484,
+          "combined_appearance": 0.95479,
+          "rejection": "eligible"
+        }
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 122,
+      "timestamp_s": 24.412909,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "geometry gate",
+      "explanation": "target proposal failed position/scale geometry",
+      "pipeline_note": "no identity-safe association; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 638.0152587890625,
+          "y1": 92.84100341796875,
+          "x2": 878.738525390625,
+          "y2": 661.96826171875
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 632.0836181640625,
+          "y1": 36.3514404296875,
+          "x2": 876.6195068359375,
+          "y2": 659.2513427734375
+        },
+        "target_detection_confidence": 0.85665,
+        "target_detection_truth_iou": 0.876584,
+        "target_detection_truth_distance": 0.020343,
+        "association_evidence": {
+          "box": {
+            "x1": 632.0836181640625,
+            "y1": 36.3514404296875,
+            "x2": 876.6195068359375,
+            "y2": 659.2513427734375
+          },
+          "confidence": 0.85665,
+          "predicted_iou": 0.29702,
+          "predicted_center_distance": 0.089317,
+          "area_ratio": 2.883674,
+          "adaptive_appearance": 0.888317,
+          "persistent_appearance": 0.809577,
+          "combined_appearance": 0.888317,
+          "rejection": "geometry gate"
+        }
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 124,
+      "timestamp_s": 24.779714,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "association rejection",
+      "explanation": "multiple eligible proposals were too close in association score",
+      "pipeline_note": "competitor ambiguity; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 880.28955078125,
+          "y1": 21.02392578125,
+          "x2": 1011.2083740234375,
+          "y2": 490.0389404296875
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 879.73193359375,
+          "y1": 18.247360229492188,
+          "x2": 1010.354248046875,
+          "y2": 483.36346435546875
+        },
+        "target_detection_confidence": 0.867273,
+        "target_detection_truth_iou": 0.969538,
+        "target_detection_truth_distance": 0.003254,
+        "association_evidence": {
+          "box": {
+            "x1": 879.73193359375,
+            "y1": 18.247360229492188,
+            "x2": 1010.354248046875,
+            "y2": 483.36346435546875
+          },
+          "confidence": 0.867273,
+          "predicted_iou": 0.00781,
+          "predicted_center_distance": 0.126393,
+          "area_ratio": 0.593398,
+          "adaptive_appearance": 0.898157,
+          "persistent_appearance": 0.746236,
+          "combined_appearance": 0.898157,
+          "rejection": "eligible"
+        }
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 125,
+      "timestamp_s": 24.983495,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "association rejection",
+      "explanation": "multiple eligible proposals were too close in association score",
+      "pipeline_note": "competitor ambiguity; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 856.9437255859375,
+          "y1": 18.7357177734375,
+          "x2": 991.6851806640625,
+          "y2": 462.29827880859375
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 878.2089233398438,
+          "y1": 15.382125854492188,
+          "x2": 989.8768920898438,
+          "y2": 464.85845947265625
+        },
+        "target_detection_confidence": 0.826343,
+        "target_detection_truth_iou": 0.8197,
+        "target_detection_truth_distance": 0.00663,
+        "association_evidence": {
+          "box": {
+            "x1": 878.2089233398438,
+            "y1": 15.382125854492188,
+            "x2": 989.8768920898438,
+            "y2": 464.85845947265625
+          },
+          "confidence": 0.826343,
+          "predicted_iou": 0.012013,
+          "predicted_center_distance": 0.125036,
+          "area_ratio": 0.490233,
+          "adaptive_appearance": 0.883499,
+          "persistent_appearance": 0.739032,
+          "combined_appearance": 0.883499,
+          "rejection": "eligible"
+        }
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 126,
+      "timestamp_s": 25.187275,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "association rejection",
+      "explanation": "multiple eligible proposals were too close in association score",
+      "pipeline_note": "competitor ambiguity; Lost latched",
+      "details": {
+        "truth_box": {
+          "x1": 831.7012329101562,
+          "y1": 18.782745361328125,
+          "x2": 969.7295532226562,
+          "y2": 459.0801696777344
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 839.4703369140625,
+          "y1": 12.635162353515625,
+          "x2": 967.7467041015625,
+          "y2": 459.0231018066406
+        },
+        "target_detection_confidence": 0.818124,
+        "target_detection_truth_iou": 0.917325,
+        "target_detection_truth_distance": 0.002888,
+        "association_evidence": {
+          "box": {
+            "x1": 839.4703369140625,
+            "y1": 12.635162353515625,
+            "x2": 967.7467041015625,
+            "y2": 459.0231018066406
+          },
+          "confidence": 0.818124,
+          "predicted_iou": 0.11843,
+          "predicted_center_distance": 0.112346,
+          "area_ratio": 0.559276,
+          "adaptive_appearance": 0.921449,
+          "persistent_appearance": 0.79416,
+          "combined_appearance": 0.921449,
+          "rejection": "eligible"
+        }
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 127,
+      "timestamp_s": 25.391056,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 813.3431396484375,
+          "y1": 30.342147827148438,
+          "x2": 955.8526611328125,
+          "y2": 457.179443359375
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 813.3453369140625,
+          "y1": 5.5718994140625,
+          "x2": 955.5875244140625,
+          "y2": 453.5140380859375
+        },
+        "target_detection_confidence": 0.822206,
+        "target_detection_truth_iou": 0.935373,
+        "target_detection_truth_distance": 0.009682
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 128,
+      "timestamp_s": 25.594836,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 785.1124267578125,
+          "y1": 32.90960693359375,
+          "x2": 941.7896728515625,
+          "y2": 446.21893310546875
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 780.5444946289062,
+          "y1": 12.650115966796875,
+          "x2": 945.0269165039062,
+          "y2": 445.88720703125
+        },
+        "target_detection_confidence": 0.856921,
+        "target_detection_truth_iou": 0.907341,
+        "target_detection_truth_distance": 0.007025
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 129,
+      "timestamp_s": 25.798617,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 757.7330322265625,
+          "y1": 30.1015625,
+          "x2": 893.6024169921875,
+          "y2": 444.44866943359375
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 784.709228515625,
+          "y1": 29.034286499023438,
+          "x2": 896.27490234375,
+          "y2": 444.4635009765625
+        },
+        "target_detection_confidence": 0.774695,
+        "target_detection_truth_iou": 0.784345,
+        "target_detection_truth_distance": 0.010101
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 130,
+      "timestamp_s": 26.002397,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 751.396240234375,
+          "y1": 30.818542480468754,
+          "x2": 885.305419921875,
+          "y2": 442.4739990234375
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 770.624267578125,
+          "y1": 23.0128173828125,
+          "x2": 880.855712890625,
+          "y2": 444.3416748046875
+        },
+        "target_detection_confidence": 0.749168,
+        "target_detection_truth_iou": 0.807559,
+        "target_detection_truth_distance": 0.005422
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 131,
+      "timestamp_s": 26.206178,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; the target still lacked a usable detection",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 755.664794921875,
+          "y1": 33.90037536621094,
+          "x2": 882.592041015625,
+          "y2": 439.82421875000006
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 774.143310546875,
+          "y1": 63.632537841796875,
+          "x2": 887.722900390625,
+          "y2": 444.3474426269531
+        },
+        "target_detection_confidence": 0.032456,
+        "target_detection_truth_iou": 0.755975,
+        "target_detection_truth_distance": 0.014164
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 132,
+      "timestamp_s": 26.409959,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 692.73876953125,
+          "y1": 66.6434326171875,
+          "x2": 851.5347900390625,
+          "y2": 656.50537109375
+        },
+        "raw_detection_count": 7,
+        "target_detection_box": {
+          "x1": 696.6082763671875,
+          "y1": 84.7838134765625,
+          "x2": 853.8714599609375,
+          "y2": 650.752197265625
+        },
+        "target_detection_confidence": 0.788791,
+        "target_detection_truth_iou": 0.923079,
+        "target_detection_truth_distance": 0.004717
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 133,
+      "timestamp_s": 26.613739,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 757.2161865234375,
+          "y1": 31.36151123046875,
+          "x2": 883.7352294921875,
+          "y2": 443.8646850585938
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 761.6629638671875,
+          "y1": 27.265625,
+          "x2": 884.6109619140625,
+          "y2": 445.8206787109375
+        },
+        "target_detection_confidence": 0.796057,
+        "target_detection_truth_iou": 0.944842,
+        "target_detection_truth_distance": 0.001953
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 134,
+      "timestamp_s": 26.81752,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 747.443603515625,
+          "y1": 32.5697021484375,
+          "x2": 878.511474609375,
+          "y2": 435.64343261718744
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 622.186767578125,
+          "y1": 36.72998046875,
+          "x2": 877.513916015625,
+          "y2": 668.51318359375
+        },
+        "target_detection_confidence": 0.863816,
+        "target_detection_truth_iou": 0.319786,
+        "target_detection_truth_distance": 0.091433
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 135,
+      "timestamp_s": 26.980544,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 692.73876953125,
+          "y1": 66.6434326171875,
+          "x2": 851.5347900390625,
+          "y2": 656.50537109375
+        },
+        "raw_detection_count": 7,
+        "target_detection_box": {
+          "x1": 696.6082763671875,
+          "y1": 84.7838134765625,
+          "x2": 853.8714599609375,
+          "y2": 650.752197265625
+        },
+        "target_detection_confidence": 0.788791,
+        "target_detection_truth_iou": 0.923079,
+        "target_detection_truth_distance": 0.004717
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 136,
+      "timestamp_s": 27.184325,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; the target still lacked a usable detection",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 657.4940185546875,
+          "y1": 32.564453125,
+          "x2": 789.049072265625,
+          "y2": 425.5492248535157
+        },
+        "raw_detection_count": 6,
+        "target_detection_box": {
+          "x1": 655.5665283203125,
+          "y1": 23.13763427734375,
+          "x2": 790.6290283203125,
+          "y2": 406.43402099609375
+        },
+        "target_detection_confidence": 0.247982,
+        "target_detection_truth_iou": 0.906063,
+        "target_detection_truth_distance": 0.009718
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 137,
+      "timestamp_s": 27.388105,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 627.6115112304688,
+          "y1": 29.513275146484375,
+          "x2": 775.5549926757812,
+          "y2": 436.47763061523443
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 626.056396484375,
+          "y1": 27.7939453125,
+          "x2": 779.18359375,
+          "y2": 432.9534912109375
+        },
+        "target_detection_confidence": 0.799047,
+        "target_detection_truth_iou": 0.95403,
+        "target_detection_truth_distance": 0.00192
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 138,
+      "timestamp_s": 27.591886,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 576.3445434570312,
+          "y1": 30.683212280273438,
+          "x2": 738.0746459960938,
+          "y2": 439.32971191406256
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 610.154052734375,
+          "y1": 32.704254150390625,
+          "x2": 740.6181640625,
+          "y2": 430.2439880371094
+        },
+        "target_detection_confidence": 0.697019,
+        "target_detection_truth_iou": 0.757859,
+        "target_detection_truth_distance": 0.012608
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 139,
+      "timestamp_s": 27.795666,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 552.0994262695312,
+          "y1": 27.286163330078125,
+          "x2": 688.6676635742188,
+          "y2": 438.0772399902344
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 586.4677734375,
+          "y1": 36.992034912109375,
+          "x2": 690.8837890625,
+          "y2": 437.7008972167969
+        },
+        "target_detection_confidence": 0.77654,
+        "target_detection_truth_iou": 0.718601,
+        "target_detection_truth_distance": 0.012854
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 140,
+      "timestamp_s": 27.999447,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 519.1588134765625,
+          "y1": 31.72369384765625,
+          "x2": 675.2501220703125,
+          "y2": 447.53448486328125
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 512.9481201171875,
+          "y1": 33.04606628417969,
+          "x2": 678.1507568359375,
+          "y2": 446.46136474609375
+        },
+        "target_detection_confidence": 0.837801,
+        "target_detection_truth_iou": 0.939703,
+        "target_detection_truth_distance": 0.00113
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 141,
+      "timestamp_s": 28.203227,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 498.0339050292969,
+          "y1": 31.451904296875,
+          "x2": 672.920166015625,
+          "y2": 458.01226806640625
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 506.4546813964844,
+          "y1": 35.22444152832031,
+          "x2": 675.2437744140625,
+          "y2": 452.51434326171875
+        },
+        "target_detection_confidence": 0.815127,
+        "target_detection_truth_iou": 0.919216,
+        "target_detection_truth_distance": 0.003705
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 142,
+      "timestamp_s": 28.407008,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 455.62786865234375,
+          "y1": 26.677566528320312,
+          "x2": 608.1115112304688,
+          "y2": 479.51312255859375
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 463.2519836425781,
+          "y1": 30.85345458984375,
+          "x2": 610.94482421875,
+          "y2": 483.4989013671875
+        },
+        "target_detection_confidence": 0.839481,
+        "target_detection_truth_iou": 0.916553,
+        "target_detection_truth_distance": 0.004516
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 143,
+      "timestamp_s": 28.610788,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 448.5672302246094,
+          "y1": 26.376754760742188,
+          "x2": 599.0601806640625,
+          "y2": 493.04071044921875
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 453.00311279296875,
+          "y1": 31.822921752929688,
+          "x2": 603.2225952148438,
+          "y2": 493.49774169921875
+        },
+        "target_detection_confidence": 0.869465,
+        "target_detection_truth_iou": 0.932788,
+        "target_detection_truth_distance": 0.003551
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 144,
+      "timestamp_s": 28.814569,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 448.3612976074219,
+          "y1": 29.03448486328125,
+          "x2": 606.52392578125,
+          "y2": 503.12719726562506
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 443.7058410644531,
+          "y1": 31.134017944335938,
+          "x2": 605.99658203125,
+          "y2": 499.3800048828125
+        },
+        "target_detection_confidence": 0.895756,
+        "target_detection_truth_iou": 0.956566,
+        "target_detection_truth_distance": 0.001852
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 145,
+      "timestamp_s": 29.018349,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 441.8134765625,
+          "y1": 31.505355834960938,
+          "x2": 608.192626953125,
+          "y2": 532.2177734375
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 437.3735046386719,
+          "y1": 38.57476806640625,
+          "x2": 608.01318359375,
+          "y2": 525.1032104492188
+        },
+        "target_detection_confidence": 0.881425,
+        "target_detection_truth_iou": 0.946092,
+        "target_detection_truth_distance": 0.001573
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 146,
+      "timestamp_s": 29.181374,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 436.0308837890625,
+          "y1": 33.467041015625,
+          "x2": 607.976806640625,
+          "y2": 542.7825317382812
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 434.19384765625,
+          "y1": 37.24774169921875,
+          "x2": 604.764404296875,
+          "y2": 534.4044799804688
+        },
+        "target_detection_confidence": 0.867573,
+        "target_detection_truth_iou": 0.948004,
+        "target_detection_truth_distance": 0.002325
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 147,
+      "timestamp_s": 29.385154,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 436.4881896972656,
+          "y1": 30.71868896484375,
+          "x2": 604.6600341796875,
+          "y2": 545.3007202148438
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 432.16619873046875,
+          "y1": 39.919677734375,
+          "x2": 605.7958374023438,
+          "y2": 544.0936279296875
+        },
+        "target_detection_confidence": 0.863376,
+        "target_detection_truth_iou": 0.94958,
+        "target_detection_truth_distance": 0.00293
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 148,
+      "timestamp_s": 29.588935,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 458.61181640625,
+          "y1": 31.342041015625,
+          "x2": 643.4364013671875,
+          "y2": 559.0846557617188
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 453.78863525390625,
+          "y1": 33.9376220703125,
+          "x2": 644.9545288085938,
+          "y2": 556.4119873046875
+        },
+        "target_detection_confidence": 0.862982,
+        "target_detection_truth_iou": 0.957494,
+        "target_detection_truth_distance": 0.001126
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 149,
+      "timestamp_s": 29.792716,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 473.4559326171875,
+          "y1": 29.116699218750004,
+          "x2": 646.531494140625,
+          "y2": 562.9515380859375
+        },
+        "raw_detection_count": 4,
+        "target_detection_box": {
+          "x1": 468.79534912109375,
+          "y1": 34.4400634765625,
+          "x2": 650.6223754882812,
+          "y2": 561.2904052734375
+        },
+        "target_detection_confidence": 0.864262,
+        "target_detection_truth_iou": 0.940007,
+        "target_detection_truth_distance": 0.001262
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 150,
+      "timestamp_s": 29.996496,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 515.24560546875,
+          "y1": 31.152099609375,
+          "x2": 676.7249755859375,
+          "y2": 562.3050537109375
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 507.2218933105469,
+          "y1": 38.74090576171875,
+          "x2": 675.5625,
+          "y2": 564.28662109375
+        },
+        "target_detection_confidence": 0.885488,
+        "target_detection_truth_iou": 0.929477,
+        "target_detection_truth_distance": 0.004516
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 151,
+      "timestamp_s": 30.200277,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 548.0482177734375,
+          "y1": 35.9425048828125,
+          "x2": 707.6229248046875,
+          "y2": 586.21435546875
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 545.52880859375,
+          "y1": 38.19683837890625,
+          "x2": 699.685791015625,
+          "y2": 580.351318359375
+        },
+        "target_detection_confidence": 0.804486,
+        "target_detection_truth_iou": 0.921902,
+        "target_detection_truth_distance": 0.003766
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 152,
+      "timestamp_s": 30.404057,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 686.78271484375,
+          "y1": 30.0660400390625,
+          "x2": 889.420654296875,
+          "y2": 591.1754150390625
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 683.951416015625,
+          "y1": 35.12451171875,
+          "x2": 893.74755859375,
+          "y2": 590.2762451171875
+        },
+        "target_detection_confidence": 0.834527,
+        "target_detection_truth_iou": 0.955971,
+        "target_detection_truth_distance": 0.001505
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 153,
+      "timestamp_s": 30.607838,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 718.0313110351562,
+          "y1": 28.545715332031246,
+          "x2": 913.7676391601562,
+          "y2": 592.5298461914062
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 712.8445434570312,
+          "y1": 32.7642822265625,
+          "x2": 912.9158325195312,
+          "y2": 590.5218505859375
+        },
+        "target_detection_confidence": 0.886429,
+        "target_detection_truth_iou": 0.959511,
+        "target_detection_truth_distance": 0.002189
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 154,
+      "timestamp_s": 30.811618,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 747.0145263671875,
+          "y1": 24.043701171875,
+          "x2": 941.3475341796875,
+          "y2": 580.5325927734375
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 741.6222534179688,
+          "y1": 32.20465087890625,
+          "x2": 940.3765258789062,
+          "y2": 583.8289794921875
+        },
+        "target_detection_confidence": 0.881052,
+        "target_detection_truth_iou": 0.948725,
+        "target_detection_truth_distance": 0.004462
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 155,
+      "timestamp_s": 31.015399,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 776.9420166015625,
+          "y1": 23.726196289062504,
+          "x2": 980.5885009765625,
+          "y2": 573.4116821289062
+        },
+        "raw_detection_count": 2,
+        "target_detection_box": {
+          "x1": 777.1552734375,
+          "y1": 24.8861083984375,
+          "x2": 981.975341796875,
+          "y2": 571.2833251953125
+        },
+        "target_detection_confidence": 0.866055,
+        "target_detection_truth_iou": 0.9863,
+        "target_detection_truth_distance": 0.000637
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 156,
+      "timestamp_s": 31.219179,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 786.60107421875,
+          "y1": 26.008544921874996,
+          "x2": 993.28076171875,
+          "y2": 575.494384765625
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 788.33349609375,
+          "y1": 20.5093994140625,
+          "x2": 991.207275390625,
+          "y2": 572.663818359375
+        },
+        "target_detection_confidence": 0.891244,
+        "target_detection_truth_iou": 0.967029,
+        "target_detection_truth_distance": 0.002838
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 157,
+      "timestamp_s": 31.382204,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 808.5098876953125,
+          "y1": 9.9725341796875,
+          "x2": 974.0352783203125,
+          "y2": 550.4752197265625
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 809.3946533203125,
+          "y1": 19.10113525390625,
+          "x2": 971.7525634765625,
+          "y2": 553.2646484375
+        },
+        "target_detection_confidence": 0.87974,
+        "target_detection_truth_iou": 0.959441,
+        "target_detection_truth_distance": 0.004085
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 158,
+      "timestamp_s": 31.585984,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 819.05419921875,
+          "y1": 12.178100585937502,
+          "x2": 986.40478515625,
+          "y2": 534.98486328125
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 815.388671875,
+          "y1": 22.90838623046875,
+          "x2": 982.7640380859375,
+          "y2": 532.616455078125
+        },
+        "target_detection_confidence": 0.876082,
+        "target_detection_truth_iou": 0.933795,
+        "target_detection_truth_distance": 0.003781
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 159,
+      "timestamp_s": 31.789765,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 828.423828125,
+          "y1": 20.50921630859375,
+          "x2": 997.89306640625,
+          "y2": 533.5459594726562
+        },
+        "raw_detection_count": 3,
+        "target_detection_box": {
+          "x1": 829.138427734375,
+          "y1": 20.23095703125,
+          "x2": 996.6846923828125,
+          "y2": 531.2398681640625
+        },
+        "target_detection_confidence": 0.885955,
+        "target_detection_truth_iou": 0.983682,
+        "target_detection_truth_distance": 0.000896
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 160,
+      "timestamp_s": 31.993545,
+      "target_visible": true,
+      "state": "Lost",
+      "category": "other",
+      "explanation": "Lost latch prevented reacquisition; a usable target detection was now present",
+      "pipeline_note": "Lost latched; explicit reselection required",
+      "details": {
+        "truth_box": {
+          "x1": 838.478271484375,
+          "y1": 19.1385498046875,
+          "x2": 1001.965087890625,
+          "y2": 529.4760131835938
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 837.8260498046875,
+          "y1": 17.8028564453125,
+          "x2": 1001.9063720703125,
+          "y2": 531.440185546875
+        },
+        "target_detection_confidence": 0.889996,
+        "target_detection_truth_iou": 0.989274,
+        "target_detection_truth_distance": 0.000323
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 268,
+      "timestamp_s": 53.594283,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "association rejection",
+      "explanation": "multiple eligible proposals were too close in association score",
+      "pipeline_note": "competitor ambiguity; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 621.0833129882812,
+          "y1": 12.790374755859375,
+          "x2": 731.7002563476562,
+          "y2": 432.6138000488281
+        },
+        "raw_detection_count": 5,
+        "target_detection_box": {
+          "x1": 619.0076904296875,
+          "y1": 28.90631103515625,
+          "x2": 732.9884033203125,
+          "y2": 436.54376220703125
+        },
+        "target_detection_confidence": 0.805971,
+        "target_detection_truth_iou": 0.925618,
+        "target_detection_truth_distance": 0.00683,
+        "association_evidence": {
+          "box": {
+            "x1": 619.0076904296875,
+            "y1": 28.90631103515625,
+            "x2": 732.9884033203125,
+            "y2": 436.54376220703125
+          },
+          "confidence": 0.805971,
+          "predicted_iou": 0.447149,
+          "predicted_center_distance": 0.045844,
+          "area_ratio": 0.597882,
+          "adaptive_appearance": 0.95233,
+          "persistent_appearance": 0.909912,
+          "combined_appearance": 0.95233,
+          "rejection": "eligible"
+        }
+      }
+    },
+    {
+      "video": "courtyard_competitor",
+      "canonical_index": 272,
+      "timestamp_s": 54.409405,
+      "target_visible": true,
+      "state": "Missing",
+      "category": "association rejection",
+      "explanation": "multiple eligible proposals were too close in association score",
+      "pipeline_note": "competitor ambiguity; LK disabled",
+      "details": {
+        "truth_box": {
+          "x1": 640.0357666015625,
+          "y1": 19.9664306640625,
+          "x2": 751.1207275390625,
+          "y2": 433.9861145019532
+        },
+        "raw_detection_count": 6,
+        "target_detection_box": {
+          "x1": 637.4585571289062,
+          "y1": 23.482940673828125,
+          "x2": 749.5709838867188,
+          "y2": 480.0749206542969
+        },
+        "target_detection_confidence": 0.305568,
+        "target_detection_truth_iou": 0.861119,
+        "target_detection_truth_distance": 0.016947,
+        "association_evidence": {
+          "box": {
+            "x1": 637.4585571289062,
+            "y1": 23.482940673828125,
+            "x2": 749.5709838867188,
+            "y2": 480.0749206542969
+          },
+          "confidence": 0.305568,
+          "predicted_iou": 0.71951,
+          "predicted_center_distance": 0.013915,
+          "area_ratio": 0.74291,
+          "adaptive_appearance": 0.894006,
+          "persistent_appearance": 0.827583,
+          "combined_appearance": 0.894006,
+          "rejection": "eligible"
+        }
+      }
+    }
+  ]
+}

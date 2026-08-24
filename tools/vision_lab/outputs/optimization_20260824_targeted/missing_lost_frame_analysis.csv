@@ -1,0 +1,159 @@
+video,canonical_index,timestamp_s,target_visible,state,category,explanation,pipeline_note
+single_person,136,27.205494,True,Missing,geometry gate,target proposal failed position/scale geometry,no identity-safe association; LK disabled
+single_person,137,27.386864,True,Missing,geometry gate,target proposal failed position/scale geometry,no identity-safe association; LK disabled
+single_person,138,27.604508,True,Lost,geometry gate,target proposal failed position/scale geometry,no identity-safe association; Lost latched
+single_person,139,27.785878,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,140,28.003522,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,141,28.184892,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,142,28.402536,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,143,28.583906,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,144,28.80155,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,145,28.98292,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,146,29.200563,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,147,29.381933,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,148,29.599577,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,149,29.817221,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,150,29.998591,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,246,49.187533,True,Missing,detector miss/confidence,target proposal confidence 0.031 is below 0.300,no identity-safe association; LK disabled
+single_person,247,49.405177,True,Missing,detector miss/confidence,target proposal confidence 0.208 is below 0.300,no identity-safe association; LK disabled
+single_person,251,50.203205,False,Missing,target leaving/occlusion,ground truth marks the target invisible on this frame,no identity-safe association; LK disabled
+single_person,252,50.384575,False,Missing,target leaving/occlusion,ground truth marks the target invisible on this frame,no identity-safe association; LK disabled
+single_person,253,50.602219,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,no identity-safe association; Lost latched
+single_person,254,50.783589,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,255,51.001233,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,256,51.182603,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,257,51.400247,True,Lost,other,Lost latch prevented reacquisition; the target still lacked a usable detection,Lost latched; explicit reselection required
+single_person,258,51.61789,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,259,51.79926,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,260,52.016904,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,261,52.198274,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,262,52.415918,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,263,52.597288,True,Lost,other,Lost latch prevented reacquisition; the target still lacked a usable detection,Lost latched; explicit reselection required
+single_person,264,52.814932,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,265,52.996302,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,266,53.213946,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,267,53.395316,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,268,53.61296,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,269,53.79433,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,270,54.011974,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,271,54.193344,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,272,54.410988,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,273,54.592358,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,274,54.810002,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,275,54.991372,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,276,55.209016,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,277,55.390386,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,278,55.60803,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,279,55.7894,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,280,56.007043,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,281,56.188413,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,282,56.406057,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,283,56.587427,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+single_person,284,56.805071,True,Lost,other,Lost latch prevented reacquisition; the target still lacked a usable detection,Lost latched; explicit reselection required
+single_person,285,56.986441,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,286,57.204085,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,287,57.385455,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,288,57.603099,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,289,57.784469,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,290,58.002113,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,291,58.183483,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,292,58.401127,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,293,58.582497,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,294,58.800141,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,295,59.017785,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,296,59.199155,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,297,59.416799,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,298,59.598169,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,299,59.815813,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,300,59.997183,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,301,60.214827,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,302,60.396197,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,303,60.61384,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,304,60.79521,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,305,61.012854,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,306,61.194224,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,307,61.411868,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,308,61.593238,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,309,61.810882,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,310,61.992252,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,311,62.209896,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,312,62.391266,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,313,62.60891,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,314,62.79028,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,315,63.007924,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,316,63.189294,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,317,63.406938,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,318,63.588308,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,319,63.805952,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,320,63.987322,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,321,64.204966,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,322,64.386336,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,323,64.60398,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,324,64.78535,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,325,65.002993,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,326,65.184363,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,327,65.402007,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,328,65.583377,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,329,65.801021,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,330,65.982391,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,331,66.200035,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,332,66.417679,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,333,66.599049,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,334,66.816693,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,335,66.998063,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,336,67.215707,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,337,67.397077,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,338,67.614721,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,339,67.796091,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,340,68.013735,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,341,68.195105,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,342,68.412749,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+single_person,343,68.594119,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+multi_person,55,11.0,False,Missing,target leaving/occlusion,ground truth marks the target invisible on this frame,no identity-safe association; LK disabled
+multi_person,56,11.2,False,Missing,target leaving/occlusion,ground truth marks the target invisible on this frame,no identity-safe association; LK disabled
+multi_person,57,11.4,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,no identity-safe association; Lost latched
+multi_person,58,11.6,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+multi_person,59,11.8,False,Lost,target leaving/occlusion,ground truth marks the target invisible on this frame,Lost latched; explicit reselection required
+courtyard_single_a,156,31.205342,True,Missing,association rejection,multiple eligible proposals were too close in association score,competitor ambiguity; LK disabled
+courtyard_competitor,92,18.381005,True,Missing,association rejection,multiple eligible proposals were too close in association score,competitor ambiguity; LK disabled
+courtyard_competitor,93,18.584786,True,Missing,association rejection,multiple eligible proposals were too close in association score,competitor ambiguity; LK disabled
+courtyard_competitor,122,24.412909,True,Missing,geometry gate,target proposal failed position/scale geometry,no identity-safe association; LK disabled
+courtyard_competitor,124,24.779714,True,Missing,association rejection,multiple eligible proposals were too close in association score,competitor ambiguity; LK disabled
+courtyard_competitor,125,24.983495,True,Missing,association rejection,multiple eligible proposals were too close in association score,competitor ambiguity; LK disabled
+courtyard_competitor,126,25.187275,True,Lost,association rejection,multiple eligible proposals were too close in association score,competitor ambiguity; Lost latched
+courtyard_competitor,127,25.391056,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,128,25.594836,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,129,25.798617,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,130,26.002397,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,131,26.206178,True,Lost,other,Lost latch prevented reacquisition; the target still lacked a usable detection,Lost latched; explicit reselection required
+courtyard_competitor,132,26.409959,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,133,26.613739,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,134,26.81752,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,135,26.980544,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,136,27.184325,True,Lost,other,Lost latch prevented reacquisition; the target still lacked a usable detection,Lost latched; explicit reselection required
+courtyard_competitor,137,27.388105,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,138,27.591886,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,139,27.795666,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,140,27.999447,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,141,28.203227,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,142,28.407008,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,143,28.610788,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,144,28.814569,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,145,29.018349,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,146,29.181374,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,147,29.385154,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,148,29.588935,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,149,29.792716,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,150,29.996496,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,151,30.200277,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,152,30.404057,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,153,30.607838,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,154,30.811618,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,155,31.015399,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,156,31.219179,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,157,31.382204,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,158,31.585984,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,159,31.789765,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,160,31.993545,True,Lost,other,Lost latch prevented reacquisition; a usable target detection was now present,Lost latched; explicit reselection required
+courtyard_competitor,268,53.594283,True,Missing,association rejection,multiple eligible proposals were too close in association score,competitor ambiguity; LK disabled
+courtyard_competitor,272,54.409405,True,Missing,association rejection,multiple eligible proposals were too close in association score,competitor ambiguity; LK disabled
