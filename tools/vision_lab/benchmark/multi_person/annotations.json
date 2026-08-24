@@ -4,12 +4,12 @@
     "timestamp_s": 0.0,
     "target_visible": true,
     "target_box_norm": [
-      0.08995277881622314,
-      0.6698479970296224,
-      0.12364435195922852,
-      0.8283026801215277
+      0.08931379318237305,
+      0.6707866668701172,
+      0.1246111512184143,
+      0.8284707811143663
     ],
-    "bootstrap_confidence": 0.818243,
+    "bootstrap_confidence": 0.858455,
     "bootstrap_appearance": 1.0,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
@@ -22,13 +22,13 @@
     "timestamp_s": 0.2,
     "target_visible": true,
     "target_box_norm": [
-      0.08338983654975891,
-      0.6831615871853298,
-      0.12096350193023682,
-      0.8420086330837674
+      0.08679257035255432,
+      0.6825742509629992,
+      0.12044650316238403,
+      0.8446396721733941
     ],
-    "bootstrap_confidence": 0.735241,
-    "bootstrap_appearance": 0.959087,
+    "bootstrap_confidence": 0.830262,
+    "bootstrap_appearance": 0.976145,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -40,13 +40,13 @@
     "timestamp_s": 0.4,
     "target_visible": true,
     "target_box_norm": [
-      0.08479561805725097,
-      0.6864565531412761,
-      0.11958608627319336,
-      0.8524426778157552
+      0.08693888783454895,
+      0.6861223432752821,
+      0.12175756692886353,
+      0.8528531392415365
     ],
-    "bootstrap_confidence": 0.786149,
-    "bootstrap_appearance": 0.905456,
+    "bootstrap_confidence": 0.813205,
+    "bootstrap_appearance": 0.918444,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -58,13 +58,13 @@
     "timestamp_s": 0.6,
     "target_visible": true,
     "target_box_norm": [
-      0.09093220233917236,
-      0.6945999145507813,
-      0.11866552829742431,
-      0.8651640150282118
+      0.09024565815925598,
+      0.6938720703125,
+      0.1302895426750183,
+      0.8663408915201823
     ],
-    "bootstrap_confidence": 0.662209,
-    "bootstrap_appearance": 0.948448,
+    "bootstrap_confidence": 0.822169,
+    "bootstrap_appearance": 0.886171,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -76,18 +76,16 @@
     "timestamp_s": 0.8,
     "target_visible": true,
     "target_box_norm": [
-      0.09771287441253662,
-      0.688681877983941,
-      0.13010070323944092,
-      0.8641543918185763
+      0.09844433665275573,
+      0.6899449242485894,
+      0.12241268157958984,
+      0.8618086920844183
     ],
-    "bootstrap_confidence": 0.765452,
-    "bootstrap_appearance": 0.870134,
+    "bootstrap_confidence": 0.748922,
+    "bootstrap_appearance": 0.938898,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
     "manual_correction": null,
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
@@ -96,13 +94,13 @@
     "timestamp_s": 1.0,
     "target_visible": true,
     "target_box_norm": [
-      0.09256640672683716,
-      0.6672469245062934,
-      0.13440574407577516,
-      0.8383357577853733
+      0.09600257873535156,
+      0.6664759318033854,
+      0.1347511887550354,
+      0.8395006815592448
     ],
-    "bootstrap_confidence": 0.703944,
-    "bootstrap_appearance": 0.869873,
+    "bootstrap_confidence": 0.872709,
+    "bootstrap_appearance": 0.896179,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -116,13 +114,13 @@
     "timestamp_s": 1.2,
     "target_visible": true,
     "target_box_norm": [
-      0.10613534450531006,
-      0.6641471015082465,
-      0.13565027713775635,
-      0.8376466539171007
+      0.10619897842407226,
+      0.6648992326524522,
+      0.1358753800392151,
+      0.8386081271701389
     ],
-    "bootstrap_confidence": 0.753265,
-    "bootstrap_appearance": 0.925764,
+    "bootstrap_confidence": 0.84187,
+    "bootstrap_appearance": 0.92061,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -134,13 +132,13 @@
     "timestamp_s": 1.4,
     "target_visible": true,
     "target_box_norm": [
-      0.10452402830123901,
-      0.6776908026801215,
-      0.13601192235946655,
-      0.8558529324001736
+      0.10640472173690796,
+      0.6790105607774523,
+      0.13654693365097045,
+      0.8550802442762587
     ],
-    "bootstrap_confidence": 0.752372,
-    "bootstrap_appearance": 0.897109,
+    "bootstrap_confidence": 0.835922,
+    "bootstrap_appearance": 0.907434,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -154,16 +152,18 @@
     "timestamp_s": 1.6,
     "target_visible": true,
     "target_box_norm": [
-      0.10693855285644531,
-      0.6947318183051215,
-      0.1355349063873291,
-      0.871295166015625
+      0.10801609754562377,
+      0.6936142391628689,
+      0.13578823804855347,
+      0.8699337429470486
     ],
-    "bootstrap_confidence": 0.753524,
-    "bootstrap_appearance": 0.918332,
+    "bootstrap_confidence": 0.856178,
+    "bootstrap_appearance": 0.919129,
     "reviewed_identity": true,
-    "bootstrap_needs_review": false,
-    "bootstrap_review_reasons": [],
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "small appearance margin"
+    ],
     "manual_correction": null,
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
@@ -172,13 +172,13 @@
     "timestamp_s": 1.8,
     "target_visible": true,
     "target_box_norm": [
-      0.10258541107177735,
-      0.7013270060221354,
-      0.14002103805541993,
-      0.8761198255750868
+      0.09805021286010743,
+      0.6996878306070964,
+      0.13942068815231323,
+      0.8777617560492621
     ],
-    "bootstrap_confidence": 0.792976,
-    "bootstrap_appearance": 0.854419,
+    "bootstrap_confidence": 0.829451,
+    "bootstrap_appearance": 0.827626,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -192,13 +192,13 @@
     "timestamp_s": 2.0,
     "target_visible": true,
     "target_box_norm": [
-      0.10004074573516845,
-      0.7026658799913195,
-      0.13258774280548097,
-      0.8790223863389757
+      0.09751124382019043,
+      0.6996812608506945,
+      0.13363966941833497,
+      0.8773429870605469
     ],
-    "bootstrap_confidence": 0.744027,
-    "bootstrap_appearance": 0.898479,
+    "bootstrap_confidence": 0.856162,
+    "bootstrap_appearance": 0.880229,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -210,13 +210,13 @@
     "timestamp_s": 2.2,
     "target_visible": true,
     "target_box_norm": [
-      0.09316028952598572,
-      0.7030523512098524,
-      0.12368955612182617,
-      0.8794863382975261
+      0.09022682309150695,
+      0.7031483968098958,
+      0.12905564308166503,
+      0.8777866787380643
     ],
-    "bootstrap_confidence": 0.765452,
-    "bootstrap_appearance": 0.961708,
+    "bootstrap_confidence": 0.85351,
+    "bootstrap_appearance": 0.915516,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -228,13 +228,13 @@
     "timestamp_s": 2.4,
     "target_visible": true,
     "target_box_norm": [
-      0.0843390941619873,
-      0.6973871866861979,
-      0.1280609369277954,
-      0.873696051703559
+      0.08487052917480468,
+      0.6962813907199435,
+      0.12817455530166627,
+      0.87153074476454
     ],
-    "bootstrap_confidence": 0.754885,
-    "bootstrap_appearance": 0.91128,
+    "bootstrap_confidence": 0.851555,
+    "bootstrap_appearance": 0.914008,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -246,13 +246,13 @@
     "timestamp_s": 2.6,
     "target_visible": true,
     "target_box_norm": [
-      0.07685140371322632,
-      0.6948110792371962,
-      0.12842968702316285,
-      0.8711904737684462
+      0.08014321327209473,
+      0.6924902598063151,
+      0.12858809232711793,
+      0.8697979397243923
     ],
-    "bootstrap_confidence": 0.829108,
-    "bootstrap_appearance": 0.844054,
+    "bootstrap_confidence": 0.875324,
+    "bootstrap_appearance": 0.846887,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -266,13 +266,13 @@
     "timestamp_s": 2.8,
     "target_visible": true,
     "target_box_norm": [
-      0.07524964809417725,
-      0.6700297461615669,
-      0.12418565750122071,
-      0.8449978298611112
+      0.07560846209526062,
+      0.6715701209174262,
+      0.12565714120864868,
+      0.8484994676378038
     ],
-    "bootstrap_confidence": 0.79686,
-    "bootstrap_appearance": 0.869175,
+    "bootstrap_confidence": 0.891206,
+    "bootstrap_appearance": 0.879956,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -284,13 +284,13 @@
     "timestamp_s": 3.0,
     "target_visible": true,
     "target_box_norm": [
-      0.07305595874786378,
-      0.6573295169406467,
-      0.10954000949859619,
-      0.8362740410698785
+      0.07291014790534973,
+      0.6569639841715494,
+      0.11440368890762329,
+      0.8334058973524305
     ],
-    "bootstrap_confidence": 0.750009,
-    "bootstrap_appearance": 0.915795,
+    "bootstrap_confidence": 0.835263,
+    "bootstrap_appearance": 0.876888,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -302,13 +302,13 @@
     "timestamp_s": 3.2,
     "target_visible": true,
     "target_box_norm": [
-      0.06915125846862794,
-      0.6429394192165798,
-      0.10099858045578003,
-      0.8232318454318577
+      0.06832666397094726,
+      0.6443572998046875,
+      0.10656147003173828,
+      0.8234569125705296
     ],
-    "bootstrap_confidence": 0.733775,
-    "bootstrap_appearance": 0.942033,
+    "bootstrap_confidence": 0.786817,
+    "bootstrap_appearance": 0.924105,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -320,13 +320,13 @@
     "timestamp_s": 3.4,
     "target_visible": true,
     "target_box_norm": [
-      0.0878196895122528,
-      0.6497986687554254,
-      0.12694003582000732,
-      0.8276561313205295
+      0.08848161697387695,
+      0.6484258439805772,
+      0.13087238073349,
+      0.8246243794759115
     ],
-    "bootstrap_confidence": 0.764269,
-    "bootstrap_appearance": 0.921321,
+    "bootstrap_confidence": 0.813376,
+    "bootstrap_appearance": 0.900941,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -338,13 +338,13 @@
     "timestamp_s": 3.6,
     "target_visible": true,
     "target_box_norm": [
-      0.09154794216156006,
-      0.6221985287136502,
-      0.12859220504760743,
-      0.79814453125
+      0.09086017608642578,
+      0.6231991238064236,
+      0.12989863157272338,
+      0.7966124640570746
     ],
-    "bootstrap_confidence": 0.737087,
-    "bootstrap_appearance": 0.876082,
+    "bootstrap_confidence": 0.828479,
+    "bootstrap_appearance": 0.87728,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -358,18 +358,16 @@
     "timestamp_s": 3.8,
     "target_visible": true,
     "target_box_norm": [
-      0.09621080756187439,
-      0.6318639119466146,
-      0.13248686790466307,
-      0.8112847222222223
+      0.0965800940990448,
+      0.6340866088867188,
+      0.13305174112319945,
+      0.8122298346625434
     ],
-    "bootstrap_confidence": 0.7842,
-    "bootstrap_appearance": 0.896452,
+    "bootstrap_confidence": 0.867893,
+    "bootstrap_appearance": 0.895273,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
     "manual_correction": null,
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
@@ -378,13 +376,13 @@
     "timestamp_s": 4.0,
     "target_visible": true,
     "target_box_norm": [
-      0.09581342935562134,
-      0.6412968953450521,
-      0.13455482721328735,
-      0.8166169908311632
+      0.09652047157287598,
+      0.6403938717312283,
+      0.13469862937927246,
+      0.8175479465060764
     ],
-    "bootstrap_confidence": 0.784848,
-    "bootstrap_appearance": 0.878538,
+    "bootstrap_confidence": 0.86619,
+    "bootstrap_appearance": 0.879377,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -396,16 +394,18 @@
     "timestamp_s": 4.2,
     "target_visible": true,
     "target_box_norm": [
-      0.08865845203399658,
-      0.6434864044189453,
-      0.14075617790222167,
-      0.8166973537868923
+      0.08775966763496398,
+      0.6427865346272786,
+      0.13840652704238893,
+      0.8155897352430556
     ],
-    "bootstrap_confidence": 0.746692,
-    "bootstrap_appearance": 0.813409,
+    "bootstrap_confidence": 0.883088,
+    "bootstrap_appearance": 0.818537,
     "reviewed_identity": true,
-    "bootstrap_needs_review": false,
-    "bootstrap_review_reasons": [],
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "small appearance margin"
+    ],
     "manual_correction": null,
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
@@ -414,13 +414,13 @@
     "timestamp_s": 4.4,
     "target_visible": true,
     "target_box_norm": [
-      0.09155814647674561,
-      0.6664106580946181,
-      0.1440488338470459,
-      0.8366946750217014
+      0.09121150970458984,
+      0.6666829850938585,
+      0.14522660970687867,
+      0.8388625250922309
     ],
-    "bootstrap_confidence": 0.75601,
-    "bootstrap_appearance": 0.751099,
+    "bootstrap_confidence": 0.877688,
+    "bootstrap_appearance": 0.766322,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -434,13 +434,13 @@
     "timestamp_s": 4.6,
     "target_visible": true,
     "target_box_norm": [
-      0.08877570033073426,
-      0.685338846842448,
-      0.12755448818206788,
-      0.8587268405490451
+      0.0884234607219696,
+      0.6834569719102648,
+      0.12859253883361815,
+      0.8595904032389323
     ],
-    "bootstrap_confidence": 0.703326,
-    "bootstrap_appearance": 0.839553,
+    "bootstrap_confidence": 0.820494,
+    "bootstrap_appearance": 0.852423,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -452,13 +452,13 @@
     "timestamp_s": 4.8,
     "target_visible": true,
     "target_box_norm": [
-      0.0702161192893982,
-      0.6787150065104167,
-      0.10479995012283325,
-      0.8572306315104167
+      0.07155774235725403,
+      0.6774012671576606,
+      0.10415071249008179,
+      0.8583533393012153
     ],
-    "bootstrap_confidence": 0.715341,
-    "bootstrap_appearance": 0.899768,
+    "bootstrap_confidence": 0.768853,
+    "bootstrap_appearance": 0.908194,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -470,13 +470,13 @@
     "timestamp_s": 5.0,
     "target_visible": true,
     "target_box_norm": [
-      0.0666536808013916,
-      0.6622383117675781,
-      0.11726076602935791,
-      0.8376311408148871
+      0.06812875866889953,
+      0.6621671464708117,
+      0.11677407026290894,
+      0.8360381232367622
     ],
-    "bootstrap_confidence": 0.756811,
-    "bootstrap_appearance": 0.862171,
+    "bootstrap_confidence": 0.841031,
+    "bootstrap_appearance": 0.866816,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -488,13 +488,13 @@
     "timestamp_s": 5.2,
     "target_visible": true,
     "target_box_norm": [
-      0.06693156957626342,
-      0.6612155490451389,
-      0.11518007516860962,
-      0.8358513726128473
+      0.06565961837768555,
+      0.6613391876220703,
+      0.11552296876907349,
+      0.8377401563856337
     ],
-    "bootstrap_confidence": 0.766364,
-    "bootstrap_appearance": 0.875725,
+    "bootstrap_confidence": 0.867607,
+    "bootstrap_appearance": 0.883828,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -506,13 +506,13 @@
     "timestamp_s": 5.4,
     "target_visible": true,
     "target_box_norm": [
-      0.06374179124832154,
-      0.6955282423231337,
-      0.09707962274551392,
-      0.8722204420301649
+      0.06411378383636475,
+      0.6934301164415148,
+      0.09747329354286194,
+      0.8706002977159288
     ],
-    "bootstrap_confidence": 0.720269,
-    "bootstrap_appearance": 0.914124,
+    "bootstrap_confidence": 0.816784,
+    "bootstrap_appearance": 0.914226,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -524,13 +524,13 @@
     "timestamp_s": 5.6,
     "target_visible": true,
     "target_box_norm": [
-      0.052425491809844973,
-      0.7144966973198785,
-      0.08549083471298217,
-      0.8896777682834202
+      0.05360007286071777,
+      0.71122801038954,
+      0.08650534749031066,
+      0.8922345479329427
     ],
-    "bootstrap_confidence": 0.697395,
-    "bootstrap_appearance": 0.89639,
+    "bootstrap_confidence": 0.798889,
+    "bootstrap_appearance": 0.891689,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -542,13 +542,13 @@
     "timestamp_s": 5.8,
     "target_visible": true,
     "target_box_norm": [
-      0.045308256149291994,
-      0.7467882792154948,
-      0.08432090282440186,
-      0.9248829311794705
+      0.05083458423614502,
+      0.7468881395128039,
+      0.08820695281028748,
+      0.9263954162597656
     ],
-    "bootstrap_confidence": 0.753523,
-    "bootstrap_appearance": 0.860904,
+    "bootstrap_confidence": 0.812258,
+    "bootstrap_appearance": 0.862936,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -560,13 +560,13 @@
     "timestamp_s": 6.0,
     "target_visible": true,
     "target_box_norm": [
-      0.04323470592498779,
-      0.7038423326280382,
-      0.08219168186187745,
-      0.883243645562066
+      0.0433675616979599,
+      0.7016423967149522,
+      0.08299888968467713,
+      0.8809427049424913
     ],
-    "bootstrap_confidence": 0.713806,
-    "bootstrap_appearance": 0.911794,
+    "bootstrap_confidence": 0.837672,
+    "bootstrap_appearance": 0.913944,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -578,13 +578,13 @@
     "timestamp_s": 6.2,
     "target_visible": true,
     "target_box_norm": [
-      0.041060277819633485,
-      0.6917123582628039,
-      0.0748863935470581,
-      0.8656422085232205
+      0.04161551892757416,
+      0.690757793850369,
+      0.07771173119544983,
+      0.8685069613986545
     ],
-    "bootstrap_confidence": 0.751758,
-    "bootstrap_appearance": 0.94482,
+    "bootstrap_confidence": 0.82765,
+    "bootstrap_appearance": 0.941424,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -596,13 +596,13 @@
     "timestamp_s": 6.4,
     "target_visible": true,
     "target_box_norm": [
-      0.047739720344543456,
-      0.71968994140625,
-      0.08811742067337036,
-      0.8988206651475694
+      0.048143616318702696,
+      0.7203717549641927,
+      0.08710780739784241,
+      0.8958595275878907
     ],
-    "bootstrap_confidence": 0.779903,
-    "bootstrap_appearance": 0.909654,
+    "bootstrap_confidence": 0.857181,
+    "bootstrap_appearance": 0.917659,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -614,13 +614,13 @@
     "timestamp_s": 6.6,
     "target_visible": true,
     "target_box_norm": [
-      0.05313166379928589,
-      0.7168209499782986,
-      0.0973594069480896,
-      0.8889387342664931
+      0.05354653000831604,
+      0.7158987257215712,
+      0.0957291603088379,
+      0.891824934217665
     ],
-    "bootstrap_confidence": 0.69244,
-    "bootstrap_appearance": 0.866565,
+    "bootstrap_confidence": 0.880244,
+    "bootstrap_appearance": 0.883588,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -632,13 +632,13 @@
     "timestamp_s": 6.8,
     "target_visible": true,
     "target_box_norm": [
-      0.04523346722126007,
-      0.7297042846679688,
-      0.09242844581604004,
-      0.9111767239040799
+      0.05049623847007752,
+      0.7306646558973524,
+      0.09251462817192077,
+      0.9071010165744358
     ],
-    "bootstrap_confidence": 0.748161,
-    "bootstrap_appearance": 0.951711,
+    "bootstrap_confidence": 0.843764,
+    "bootstrap_appearance": 0.949118,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -650,13 +650,13 @@
     "timestamp_s": 7.0,
     "target_visible": true,
     "target_box_norm": [
-      0.05048823356628418,
-      0.7130105760362413,
-      0.10363109111785888,
-      0.8903865390353732
+      0.05130311846733093,
+      0.7130167643229167,
+      0.10583235025405884,
+      0.8910940382215712
     ],
-    "bootstrap_confidence": 0.795578,
-    "bootstrap_appearance": 0.89061,
+    "bootstrap_confidence": 0.80244,
+    "bootstrap_appearance": 0.878547,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -668,13 +668,13 @@
     "timestamp_s": 7.2,
     "target_visible": true,
     "target_box_norm": [
-      0.06951429843902587,
-      0.6775631374782987,
-      0.0999457597732544,
-      0.8620839436848958
+      0.06952097415924072,
+      0.6774989234076606,
+      0.09985280632972718,
+      0.8621628655327691
     ],
-    "bootstrap_confidence": 0.701296,
-    "bootstrap_appearance": 0.975881,
+    "bootstrap_confidence": 0.835888,
+    "bootstrap_appearance": 0.977117,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -686,20 +686,17 @@
     "timestamp_s": 7.4,
     "target_visible": true,
     "target_box_norm": [
-      0.31053934097290037,
-      0.49916441175672743,
-      0.3376029014587402,
-      0.6235104878743489
+      0.073764,
+      0.653869,
+      0.119849,
+      0.837434
     ],
-    "bootstrap_confidence": 0.84595,
-    "bootstrap_appearance": 0.777249,
+    "bootstrap_confidence": 0.864551,
+    "bootstrap_appearance": 0.928483,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin",
-      "large target jump"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -707,19 +704,17 @@
     "timestamp_s": 7.6,
     "target_visible": true,
     "target_box_norm": [
-      0.30808486938476565,
-      0.5205168830023872,
-      0.33492531776428225,
-      0.6449846903483073
+      0.088572,
+      0.672957,
+      0.125998,
+      0.852514
     ],
-    "bootstrap_confidence": 0.848685,
-    "bootstrap_appearance": 0.734426,
+    "bootstrap_confidence": 0.746609,
+    "bootstrap_appearance": 0.864981,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -727,19 +722,17 @@
     "timestamp_s": 7.8,
     "target_visible": true,
     "target_box_norm": [
-      0.31052069664001464,
-      0.5308792114257812,
-      0.33568968772888186,
-      0.6592391967773438
+      0.110752,
+      0.682923,
+      0.150515,
+      0.876878
     ],
-    "bootstrap_confidence": 0.810202,
-    "bootstrap_appearance": 0.759442,
+    "bootstrap_confidence": 0.801316,
+    "bootstrap_appearance": 0.943182,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -747,19 +740,19 @@
     "timestamp_s": 8.0,
     "target_visible": true,
     "target_box_norm": [
-      0.305651330947876,
-      0.5265240139431424,
-      0.330535364151001,
-      0.6536577012803819
+      0.116551,
+      0.667841,
+      0.167949,
+      0.866031
     ],
-    "bootstrap_confidence": 0.862872,
-    "bootstrap_appearance": 0.808188,
+    "bootstrap_confidence": 0.826118,
+    "bootstrap_appearance": 0.829642,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -767,19 +760,19 @@
     "timestamp_s": 8.2,
     "target_visible": true,
     "target_box_norm": [
-      0.3074009418487549,
-      0.5230141109890408,
-      0.3309171199798584,
-      0.6506772783067492
+      0.131067,
+      0.673422,
+      0.183343,
+      0.853328
     ],
-    "bootstrap_confidence": 0.831787,
-    "bootstrap_appearance": 0.793898,
+    "bootstrap_confidence": 0.84459,
+    "bootstrap_appearance": 0.761317,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -787,17 +780,19 @@
     "timestamp_s": 8.4,
     "target_visible": true,
     "target_box_norm": [
-      0.2986436367034912,
-      0.5232396443684896,
-      0.3232092380523682,
-      0.6515909830729166
+      0.123054,
+      0.677982,
+      0.195188,
+      0.853227
     ],
-    "bootstrap_confidence": 0.80752,
-    "bootstrap_appearance": 0.842511,
+    "bootstrap_confidence": 0.874556,
+    "bootstrap_appearance": 0.703926,
     "reviewed_identity": true,
-    "bootstrap_needs_review": false,
-    "bootstrap_review_reasons": [],
-    "manual_correction": null,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "small appearance margin"
+    ],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -805,19 +800,17 @@
     "timestamp_s": 8.6,
     "target_visible": true,
     "target_box_norm": [
-      0.303911018371582,
-      0.49071036444769967,
-      0.3288205623626709,
-      0.6192659166124131
+      0.134714,
+      0.655839,
+      0.180138,
+      0.830982
     ],
-    "bootstrap_confidence": 0.78951,
-    "bootstrap_appearance": 0.813193,
+    "bootstrap_confidence": 0.800789,
+    "bootstrap_appearance": 0.898915,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -825,19 +818,17 @@
     "timestamp_s": 8.8,
     "target_visible": true,
     "target_box_norm": [
-      0.3038856029510498,
-      0.4650287628173828,
-      0.32973904609680177,
-      0.5947051578097873
+      0.132717,
+      0.644242,
+      0.179857,
+      0.803634
     ],
-    "bootstrap_confidence": 0.825755,
-    "bootstrap_appearance": 0.747304,
+    "bootstrap_confidence": 0.85538,
+    "bootstrap_appearance": 0.889164,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -845,19 +836,17 @@
     "timestamp_s": 9.0,
     "target_visible": true,
     "target_box_norm": [
-      0.3061017274856567,
-      0.45494766235351564,
-      0.33067052364349364,
-      0.5856474982367621
+      0.126024,
+      0.64772,
+      0.179403,
+      0.804674
     ],
-    "bootstrap_confidence": 0.848185,
-    "bootstrap_appearance": 0.821441,
+    "bootstrap_confidence": 0.804985,
+    "bootstrap_appearance": 0.928398,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -865,19 +854,17 @@
     "timestamp_s": 9.2,
     "target_visible": true,
     "target_box_norm": [
-      0.3107322692871094,
-      0.4744580586751302,
-      0.33553590774536135,
-      0.6024251302083333
+      0.127075,
+      0.658398,
+      0.179483,
+      0.829199
     ],
-    "bootstrap_confidence": 0.84147,
-    "bootstrap_appearance": 0.802624,
+    "bootstrap_confidence": 0.910686,
+    "bootstrap_appearance": 0.902371,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -890,12 +877,13 @@
       0.18,
       0.865
     ],
-    "bootstrap_confidence": 0.809992,
-    "bootstrap_appearance": 0.841724,
+    "bootstrap_confidence": 0.805212,
+    "bootstrap_appearance": 0.84093,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
-      "small appearance margin"
+      "small appearance margin",
+      "large target jump"
     ],
     "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
@@ -910,8 +898,8 @@
       0.158,
       0.865
     ],
-    "bootstrap_confidence": 0.844285,
-    "bootstrap_appearance": 0.856259,
+    "bootstrap_confidence": 0.823136,
+    "bootstrap_appearance": 0.847938,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -930,8 +918,8 @@
       0.134,
       0.855
     ],
-    "bootstrap_confidence": 0.802077,
-    "bootstrap_appearance": 0.844262,
+    "bootstrap_confidence": 0.832105,
+    "bootstrap_appearance": 0.847768,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -950,8 +938,8 @@
       0.116,
       0.835
     ],
-    "bootstrap_confidence": 0.855636,
-    "bootstrap_appearance": 0.842381,
+    "bootstrap_confidence": 0.792525,
+    "bootstrap_appearance": 0.846144,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -970,8 +958,8 @@
       0.08,
       0.855
     ],
-    "bootstrap_confidence": 0.841079,
-    "bootstrap_appearance": 0.812781,
+    "bootstrap_confidence": 0.800668,
+    "bootstrap_appearance": 0.813712,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -990,8 +978,8 @@
       0.087,
       0.83
     ],
-    "bootstrap_confidence": 0.803884,
-    "bootstrap_appearance": 0.811232,
+    "bootstrap_confidence": 0.817683,
+    "bootstrap_appearance": 0.803916,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1010,8 +998,8 @@
       0.059,
       0.81
     ],
-    "bootstrap_confidence": 0.803803,
-    "bootstrap_appearance": 0.810382,
+    "bootstrap_confidence": 0.848936,
+    "bootstrap_appearance": 0.815476,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1030,8 +1018,8 @@
       0.037,
       0.825
     ],
-    "bootstrap_confidence": 0.793028,
-    "bootstrap_appearance": 0.730809,
+    "bootstrap_confidence": 0.849884,
+    "bootstrap_appearance": 0.745024,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1043,101 +1031,76 @@
   {
     "canonical_index": 55,
     "timestamp_s": 11.0,
-    "target_visible": true,
-    "target_box_norm": [
-      0.28749589920043944,
-      0.48715650770399305,
-      0.31760540008544924,
-      0.6181857638888889
-    ],
-    "bootstrap_confidence": 0.79931,
-    "bootstrap_appearance": 0.755409,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.805012,
+    "bootstrap_appearance": 0.765993,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 56,
     "timestamp_s": 11.2,
-    "target_visible": true,
-    "target_box_norm": [
-      0.2894484519958496,
-      0.5081403944227431,
-      0.31937389373779296,
-      0.6337671915690104
-    ],
-    "bootstrap_confidence": 0.751585,
-    "bootstrap_appearance": 0.780751,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.825374,
+    "bootstrap_appearance": 0.781789,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 57,
     "timestamp_s": 11.4,
-    "target_visible": true,
-    "target_box_norm": [
-      0.2929472208023071,
-      0.502109612358941,
-      0.32458407878875734,
-      0.6296270582411024
-    ],
-    "bootstrap_confidence": 0.76939,
-    "bootstrap_appearance": 0.752083,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.817698,
+    "bootstrap_appearance": 0.762759,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 58,
     "timestamp_s": 11.6,
-    "target_visible": true,
-    "target_box_norm": [
-      0.2881836175918579,
-      0.5006775750054253,
-      0.3198955297470093,
-      0.6271561516655816
-    ],
-    "bootstrap_confidence": 0.806429,
-    "bootstrap_appearance": 0.681648,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.77768,
+    "bootstrap_appearance": 0.695723,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 59,
     "timestamp_s": 11.8,
-    "target_visible": true,
-    "target_box_norm": [
-      0.29735727310180665,
-      0.4904774136013455,
-      0.32668066024780273,
-      0.6203360663519966
-    ],
-    "bootstrap_confidence": 0.825939,
-    "bootstrap_appearance": 0.736453,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.822881,
+    "bootstrap_appearance": 0.744971,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1145,19 +1108,19 @@
     "timestamp_s": 12.0,
     "target_visible": true,
     "target_box_norm": [
-      0.00032747387886047365,
-      0.6624552408854166,
-      0.052588605880737306,
-      0.8364871554904514
+      0.003293,
+      0.666567,
+      0.05053,
+      0.835138
     ],
-    "bootstrap_confidence": 0.848169,
-    "bootstrap_appearance": 0.921714,
+    "bootstrap_confidence": 0.832743,
+    "bootstrap_appearance": 0.927294,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "large target jump"
     ],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1165,17 +1128,17 @@
     "timestamp_s": 12.2,
     "target_visible": true,
     "target_box_norm": [
-      0.019057463109493255,
-      0.6924747043185764,
-      0.05614458322525025,
-      0.8692440456814237
+      0.018495,
+      0.698882,
+      0.051883,
+      0.86828
     ],
-    "bootstrap_confidence": 0.635462,
-    "bootstrap_appearance": 0.933181,
+    "bootstrap_confidence": 0.808482,
+    "bootstrap_appearance": 0.929766,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1183,19 +1146,17 @@
     "timestamp_s": 12.4,
     "target_visible": true,
     "target_box_norm": [
-      0.0155873641371727,
-      0.7500945197211372,
-      0.055542266368865965,
-      0.9153729756673177
+      0.012888,
+      0.756063,
+      0.054134,
+      0.918833
     ],
-    "bootstrap_confidence": 0.062631,
-    "bootstrap_appearance": 0.918954,
+    "bootstrap_confidence": 0.837817,
+    "bootstrap_appearance": 0.869807,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1203,19 +1164,19 @@
     "timestamp_s": 12.6,
     "target_visible": true,
     "target_box_norm": [
-      0.008838599920272827,
-      0.7411398993598091,
-      0.05697268843650818,
-      0.8900538126627604
+      0.011916,
+      0.744679,
+      0.089144,
+      0.91103
     ],
-    "bootstrap_confidence": 0.068041,
-    "bootstrap_appearance": 0.925758,
+    "bootstrap_confidence": 0.88472,
+    "bootstrap_appearance": 0.861389,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1223,19 +1184,17 @@
     "timestamp_s": 12.8,
     "target_visible": true,
     "target_box_norm": [
-      0.09087303280830383,
-      0.6833058675130208,
-      0.14347684383392334,
-      0.8504669189453125
+      0.089282,
+      0.680348,
+      0.135878,
+      0.851566
     ],
-    "bootstrap_confidence": 0.742981,
-    "bootstrap_appearance": 0.905913,
+    "bootstrap_confidence": 0.740497,
+    "bootstrap_appearance": 0.908097,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1243,17 +1202,19 @@
     "timestamp_s": 13.0,
     "target_visible": true,
     "target_box_norm": [
-      0.16925272941589356,
-      0.6789037068684896,
-      0.19834585189819337,
-      0.8552691989474827
+      0.167692,
+      0.680547,
+      0.197952,
+      0.852612
     ],
-    "bootstrap_confidence": 0.721563,
-    "bootstrap_appearance": 0.930079,
+    "bootstrap_confidence": 0.808538,
+    "bootstrap_appearance": 0.937113,
     "reviewed_identity": true,
-    "bootstrap_needs_review": false,
-    "bootstrap_review_reasons": [],
-    "manual_correction": null,
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "small appearance margin"
+    ],
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1261,17 +1222,17 @@
     "timestamp_s": 13.2,
     "target_visible": true,
     "target_box_norm": [
-      0.15913701057434082,
-      0.6575993431939019,
-      0.1921668529510498,
-      0.8339713202582465
+      0.15774,
+      0.653667,
+      0.195444,
+      0.835157
     ],
-    "bootstrap_confidence": 0.747744,
-    "bootstrap_appearance": 0.926882,
+    "bootstrap_confidence": 0.841817,
+    "bootstrap_appearance": 0.933632,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1279,17 +1240,17 @@
     "timestamp_s": 13.4,
     "target_visible": true,
     "target_box_norm": [
-      0.16850018501281738,
-      0.653216807047526,
-      0.21173567771911622,
-      0.8288312276204427
+      0.168593,
+      0.654061,
+      0.20635,
+      0.825628
     ],
-    "bootstrap_confidence": 0.70918,
-    "bootstrap_appearance": 0.925799,
+    "bootstrap_confidence": 0.845037,
+    "bootstrap_appearance": 0.933605,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1297,19 +1258,19 @@
     "timestamp_s": 13.6,
     "target_visible": true,
     "target_box_norm": [
-      0.17504591941833497,
-      0.6730392456054688,
-      0.23103156089782714,
-      0.8463022867838542
+      0.174659,
+      0.669478,
+      0.226377,
+      0.848375
     ],
-    "bootstrap_confidence": 0.794155,
-    "bootstrap_appearance": 0.925854,
+    "bootstrap_confidence": 0.889489,
+    "bootstrap_appearance": 0.930119,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1317,179 +1278,137 @@
     "timestamp_s": 13.8,
     "target_visible": true,
     "target_box_norm": [
-      0.09593276977539063,
-      0.6930731879340277,
-      0.15186595916748047,
-      0.8668473985460069
+      0.098039,
+      0.696047,
+      0.138913,
+      0.873235
     ],
-    "bootstrap_confidence": 0.670476,
-    "bootstrap_appearance": 0.768587,
+    "bootstrap_confidence": 0.36738,
+    "bootstrap_appearance": 0.843227,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "identity-switching bootstrap box replaced by reviewed visual bounds",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 70,
     "timestamp_s": 14.0,
-    "target_visible": true,
-    "target_box_norm": [
-      0.18666446208953857,
-      0.5765118069118924,
-      0.20697896480560302,
-      0.7112784491644966
-    ],
-    "bootstrap_confidence": 0.751321,
-    "bootstrap_appearance": 0.663029,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.821024,
+    "bootstrap_appearance": 0.664673,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 71,
     "timestamp_s": 14.2,
-    "target_visible": true,
-    "target_box_norm": [
-      0.11620148420333862,
-      0.5997667948404948,
-      0.14535735845565795,
-      0.7389325459798177
-    ],
-    "bootstrap_confidence": 0.760411,
-    "bootstrap_appearance": 0.732006,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.824073,
+    "bootstrap_appearance": 0.729244,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 72,
     "timestamp_s": 14.4,
-    "target_visible": true,
-    "target_box_norm": [
-      0.12102131843566895,
-      0.5666852315266927,
-      0.14984641075134278,
-      0.7065055847167969
-    ],
-    "bootstrap_confidence": 0.735784,
-    "bootstrap_appearance": 0.718782,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.815655,
+    "bootstrap_appearance": 0.726085,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 73,
     "timestamp_s": 14.6,
-    "target_visible": true,
-    "target_box_norm": [
-      0.12798588275909423,
-      0.5504736158582899,
-      0.15098342895507813,
-      0.6888720194498698
-    ],
-    "bootstrap_confidence": 0.752606,
-    "bootstrap_appearance": 0.774825,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.77935,
+    "bootstrap_appearance": 0.747891,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 74,
     "timestamp_s": 14.8,
-    "target_visible": true,
-    "target_box_norm": [
-      0.1842365026473999,
-      0.5509429931640625,
-      0.2087756633758545,
-      0.6857348971896702
-    ],
-    "bootstrap_confidence": 0.763323,
-    "bootstrap_appearance": 0.764772,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.819872,
+    "bootstrap_appearance": 0.785845,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
-    "manual_correction": null,
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 75,
     "timestamp_s": 15.0,
-    "target_visible": true,
-    "target_box_norm": [
-      0.22853758335113525,
-      0.6161350674099393,
-      0.26150548458099365,
-      0.7512363857693143
-    ],
-    "bootstrap_confidence": 0.685111,
-    "bootstrap_appearance": 0.612654,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.747799,
+    "bootstrap_appearance": 0.611708,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 76,
     "timestamp_s": 15.2,
-    "target_visible": true,
-    "target_box_norm": [
-      0.24192681312561035,
-      0.7139449225531684,
-      0.27541003227233884,
-      0.8496718512641059
-    ],
-    "bootstrap_confidence": 0.728951,
-    "bootstrap_appearance": 0.596843,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.84275,
+    "bootstrap_appearance": 0.598318,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
     "canonical_index": 77,
     "timestamp_s": 15.4,
-    "target_visible": true,
-    "target_box_norm": [
-      0.22851846218109131,
-      0.7702245076497396,
-      0.26043455600738524,
-      0.9090025160047743
-    ],
-    "bootstrap_confidence": 0.695523,
-    "bootstrap_appearance": 0.725358,
+    "target_visible": false,
+    "target_box_norm": null,
+    "bootstrap_confidence": 0.802547,
+    "bootstrap_appearance": 0.736461,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
       "small appearance margin"
     ],
-    "manual_correction": null,
+    "manual_correction": "target verified not visible",
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
   {
@@ -1502,8 +1421,8 @@
       0.057,
       1.0
     ],
-    "bootstrap_confidence": 0.785408,
-    "bootstrap_appearance": 0.660278,
+    "bootstrap_confidence": 0.812977,
+    "bootstrap_appearance": 0.682183,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1517,13 +1436,13 @@
     "timestamp_s": 15.8,
     "target_visible": true,
     "target_box_norm": [
-      0.043598616123199464,
-      0.7334435356987847,
-      0.07637174129486084,
-      0.9094428168402777
+      0.04419771730899811,
+      0.7342170715332031,
+      0.07363840937614441,
+      0.9094471401638455
     ],
-    "bootstrap_confidence": 0.728125,
-    "bootstrap_appearance": 0.821669,
+    "bootstrap_confidence": 0.830368,
+    "bootstrap_appearance": 0.854945,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1538,13 +1457,13 @@
     "timestamp_s": 16.0,
     "target_visible": true,
     "target_box_norm": [
-      0.059340822696685794,
-      0.8060757954915364,
-      0.10258870124816895,
-      0.9847568935818143
+      0.05970569252967835,
+      0.8072539435492622,
+      0.10372729301452636,
+      0.9860233730740018
     ],
-    "bootstrap_confidence": 0.734427,
-    "bootstrap_appearance": 0.809341,
+    "bootstrap_confidence": 0.826882,
+    "bootstrap_appearance": 0.806191,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1558,13 +1477,13 @@
     "timestamp_s": 16.2,
     "target_visible": true,
     "target_box_norm": [
-      0.08219339847564697,
-      0.8453609890407986,
-      0.10864601135253907,
+      0.08207270503044128,
+      0.8446895175509983,
+      0.10886707305908203,
       1.0
     ],
-    "bootstrap_confidence": 0.755063,
-    "bootstrap_appearance": 0.876281,
+    "bootstrap_confidence": 0.812765,
+    "bootstrap_appearance": 0.866279,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1578,13 +1497,13 @@
     "timestamp_s": 16.4,
     "target_visible": true,
     "target_box_norm": [
-      0.08325396776199341,
-      0.8227787441677518,
-      0.1228211760520935,
-      0.9963172912597656
+      0.08484279513359069,
+      0.8191201951768663,
+      0.12356877326965332,
+      0.9943901062011719
     ],
-    "bootstrap_confidence": 0.744454,
-    "bootstrap_appearance": 0.820155,
+    "bootstrap_confidence": 0.843296,
+    "bootstrap_appearance": 0.7999,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1598,13 +1517,13 @@
     "timestamp_s": 16.6,
     "target_visible": true,
     "target_box_norm": [
-      0.08865113854408264,
-      0.8744556003146702,
-      0.11722102165222167,
+      0.088072007894516,
+      0.8742015414767795,
+      0.1219833493232727,
       1.0
     ],
-    "bootstrap_confidence": 0.766766,
-    "bootstrap_appearance": 0.846143,
+    "bootstrap_confidence": 0.770826,
+    "bootstrap_appearance": 0.784812,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1618,13 +1537,13 @@
     "timestamp_s": 16.8,
     "target_visible": true,
     "target_box_norm": [
-      0.09728708267211914,
-      0.9029463873969183,
-      0.12806410789489747,
+      0.0972722351551056,
+      0.9034485710991753,
+      0.12776851654052734,
       1.0
     ],
-    "bootstrap_confidence": 0.741692,
-    "bootstrap_appearance": 0.9268,
+    "bootstrap_confidence": 0.800308,
+    "bootstrap_appearance": 0.9261,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -1636,13 +1555,13 @@
     "timestamp_s": 17.0,
     "target_visible": true,
     "target_box_norm": [
-      0.10826746225357056,
-      0.914937252468533,
-      0.13772662878036498,
+      0.10475343465805054,
+      0.9162593417697482,
+      0.13984017372131347,
       1.0
     ],
-    "bootstrap_confidence": 0.68587,
-    "bootstrap_appearance": 0.769689,
+    "bootstrap_confidence": 0.793397,
+    "bootstrap_appearance": 0.75008,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1656,13 +1575,13 @@
     "timestamp_s": 17.2,
     "target_visible": true,
     "target_box_norm": [
-      0.10273556709289551,
-      0.911216057671441,
-      0.13157105445861816,
+      0.10098848342895508,
+      0.9101921081542969,
+      0.13274542093276978,
       1.0
     ],
-    "bootstrap_confidence": 0.711572,
-    "bootstrap_appearance": 0.871919,
+    "bootstrap_confidence": 0.805322,
+    "bootstrap_appearance": 0.837513,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1676,16 +1595,18 @@
     "timestamp_s": 17.4,
     "target_visible": true,
     "target_box_norm": [
-      0.10043816566467285,
-      0.882837422688802,
-      0.12795331478118896,
+      0.10117744207382202,
+      0.8808213975694444,
+      0.13004592657089234,
       1.0
     ],
-    "bootstrap_confidence": 0.699701,
-    "bootstrap_appearance": 0.87201,
+    "bootstrap_confidence": 0.772894,
+    "bootstrap_appearance": 0.873322,
     "reviewed_identity": true,
-    "bootstrap_needs_review": false,
-    "bootstrap_review_reasons": [],
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "small appearance margin"
+    ],
     "manual_correction": null,
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
@@ -1694,13 +1615,13 @@
     "timestamp_s": 17.6,
     "target_visible": true,
     "target_box_norm": [
-      0.10203166007995605,
-      0.8309459262424045,
-      0.13029696941375732,
-      0.9994212680392796
+      0.1011744499206543,
+      0.8316819932725694,
+      0.13370612859725953,
+      1.0
     ],
-    "bootstrap_confidence": 0.740401,
-    "bootstrap_appearance": 0.915497,
+    "bootstrap_confidence": 0.836975,
+    "bootstrap_appearance": 0.887646,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -1712,18 +1633,16 @@
     "timestamp_s": 17.8,
     "target_visible": true,
     "target_box_norm": [
-      0.10314369201660156,
-      0.8327385796440973,
-      0.14056065082550048,
+      0.1034967303276062,
+      0.8348538716634114,
+      0.13808783292770385,
       1.0
     ],
-    "bootstrap_confidence": 0.771434,
-    "bootstrap_appearance": 0.895336,
+    "bootstrap_confidence": 0.868046,
+    "bootstrap_appearance": 0.914312,
     "reviewed_identity": true,
-    "bootstrap_needs_review": true,
-    "bootstrap_review_reasons": [
-      "small appearance margin"
-    ],
+    "bootstrap_needs_review": false,
+    "bootstrap_review_reasons": [],
     "manual_correction": null,
     "annotation_source": "high-resolution proposal with all-frame identity review"
   },
@@ -1732,13 +1651,13 @@
     "timestamp_s": 18.0,
     "target_visible": true,
     "target_box_norm": [
-      0.09502120018005371,
-      0.842915513780382,
-      0.1319425344467163,
-      0.9997473822699653
+      0.0963219165802002,
+      0.8396929423014323,
+      0.13674010038375856,
+      1.0
     ],
-    "bootstrap_confidence": 0.795911,
-    "bootstrap_appearance": 0.908885,
+    "bootstrap_confidence": 0.839077,
+    "bootstrap_appearance": 0.919795,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -1750,13 +1669,13 @@
     "timestamp_s": 18.2,
     "target_visible": true,
     "target_box_norm": [
-      0.08799318075180054,
-      0.8065366956922743,
-      0.14044610261917115,
-      0.9695392184787326
+      0.08731514811515809,
+      0.8080992804633247,
+      0.13805322647094725,
+      0.9684813605414496
     ],
-    "bootstrap_confidence": 0.720742,
-    "bootstrap_appearance": 0.796572,
+    "bootstrap_confidence": 0.805747,
+    "bootstrap_appearance": 0.815783,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1770,13 +1689,13 @@
     "timestamp_s": 18.4,
     "target_visible": true,
     "target_box_norm": [
-      0.056299448013305664,
-      0.7602387322319879,
-      0.11568776369094849,
-      0.9242266337076823
+      0.05574807524681091,
+      0.7591840955946181,
+      0.11523170471191406,
+      0.9243151346842448
     ],
-    "bootstrap_confidence": 0.852526,
-    "bootstrap_appearance": 0.733198,
+    "bootstrap_confidence": 0.880806,
+    "bootstrap_appearance": 0.73625,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1790,13 +1709,13 @@
     "timestamp_s": 18.6,
     "target_visible": true,
     "target_box_norm": [
-      0.06665831804275513,
-      0.7720075819227431,
-      0.10601537227630616,
-      0.93475341796875
+      0.06718564033508301,
+      0.7716122945149739,
+      0.10473500490188599,
+      0.9359164767795138
     ],
-    "bootstrap_confidence": 0.785428,
-    "bootstrap_appearance": 0.752822,
+    "bootstrap_confidence": 0.817342,
+    "bootstrap_appearance": 0.773593,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1810,13 +1729,13 @@
     "timestamp_s": 18.8,
     "target_visible": true,
     "target_box_norm": [
-      0.1436704397201538,
-      0.7612286037868924,
-      0.18911879062652587,
-      0.9247682359483507
+      0.14459762573242188,
+      0.7630221048990885,
+      0.19434312582015992,
+      0.9241630554199218
     ],
-    "bootstrap_confidence": 0.757635,
-    "bootstrap_appearance": 0.733918,
+    "bootstrap_confidence": 0.873962,
+    "bootstrap_appearance": 0.730242,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1830,13 +1749,13 @@
     "timestamp_s": 19.0,
     "target_visible": true,
     "target_box_norm": [
-      0.22972402572631836,
-      0.7312455071343316,
-      0.2595212936401367,
-      0.889615970187717
+      0.23136141300201415,
+      0.7281518724229601,
+      0.25780811309814455,
+      0.8922848171657987
     ],
-    "bootstrap_confidence": 0.751892,
-    "bootstrap_appearance": 0.870926,
+    "bootstrap_confidence": 0.778538,
+    "bootstrap_appearance": 0.909286,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -1848,13 +1767,13 @@
     "timestamp_s": 19.2,
     "target_visible": true,
     "target_box_norm": [
-      0.20885329246520995,
-      0.7313955518934462,
-      0.2520771503448486,
-      0.882883792453342
+      0.20975973606109619,
+      0.7290685865614149,
+      0.2557342529296875,
+      0.8832068549262153
     ],
-    "bootstrap_confidence": 0.759475,
-    "bootstrap_appearance": 0.89007,
+    "bootstrap_confidence": 0.834952,
+    "bootstrap_appearance": 0.897925,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -1866,13 +1785,13 @@
     "timestamp_s": 19.4,
     "target_visible": true,
     "target_box_norm": [
-      0.20291218757629395,
-      0.7133939954969618,
-      0.23487229347229005,
-      0.8691143459743924
+      0.20353877544403076,
+      0.7144723680284288,
+      0.23505113124847413,
+      0.8703558180067275
     ],
-    "bootstrap_confidence": 0.781752,
-    "bootstrap_appearance": 0.895532,
+    "bootstrap_confidence": 0.846535,
+    "bootstrap_appearance": 0.904922,
     "reviewed_identity": true,
     "bootstrap_needs_review": true,
     "bootstrap_review_reasons": [
@@ -1886,13 +1805,13 @@
     "timestamp_s": 19.6,
     "target_visible": true,
     "target_box_norm": [
-      0.18998571634292602,
-      0.7085584852430555,
-      0.2266088008880615,
-      0.8621877034505209
+      0.19070897102355958,
+      0.7080974578857422,
+      0.22502245903015136,
+      0.861531490749783
     ],
-    "bootstrap_confidence": 0.8286,
-    "bootstrap_appearance": 0.935816,
+    "bootstrap_confidence": 0.814119,
+    "bootstrap_appearance": 0.941093,
     "reviewed_identity": true,
     "bootstrap_needs_review": false,
     "bootstrap_review_reasons": [],
@@ -1904,16 +1823,18 @@
     "timestamp_s": 19.8,
     "target_visible": true,
     "target_box_norm": [
-      0.19202299118041993,
-      0.6858807033962674,
-      0.2267451286315918,
-      0.8293570624457465
+      0.19075547456741332,
+      0.6849770016140408,
+      0.22449629306793212,
+      0.8323519388834636
     ],
-    "bootstrap_confidence": 0.714275,
-    "bootstrap_appearance": 0.926024,
+    "bootstrap_confidence": 0.764924,
+    "bootstrap_appearance": 0.937584,
     "reviewed_identity": true,
-    "bootstrap_needs_review": false,
-    "bootstrap_review_reasons": [],
+    "bootstrap_needs_review": true,
+    "bootstrap_review_reasons": [
+      "small appearance margin"
+    ],
     "manual_correction": null,
     "annotation_source": "high-resolution proposal with all-frame identity review"
   }

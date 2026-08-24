@@ -1,0 +1,76 @@
+{
+  "description": "Frozen held-out result for the immediately preceding refine4_yolo11n_08 detector-only winner after the multi_person ground-truth correction and before the generic identity-safety changes.",
+  "base_commit": "797306911f3dc1fa2171ee41750136cbb522dc71",
+  "config_name": "refine4_yolo11n_08",
+  "pipeline": "yolo11n detector-only",
+  "aggregate": {
+    "frames": 651,
+    "visible_target_frames": 581,
+    "identity_switch_events": 0,
+    "wrong_person_frames": 0,
+    "false_tracked_while_target_invisible": 0,
+    "lost_visible_frames": 76,
+    "missing_visible_frames": 12,
+    "identity_safe_continuity_percent": 84.854,
+    "localization_drift_frames": 0,
+    "mean_iou_when_tracked": 0.9243,
+    "jitter_rms_norm": 0.039288
+  },
+  "per_video": {
+    "single_person": {
+      "visible_target_frames": 104,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "lost_visible_frames": 41,
+      "missing_visible_frames": 4,
+      "identity_safe_continuity_percent": 56.731,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9140,
+      "jitter_rms_norm": 0.037454
+    },
+    "multi_person": {
+      "visible_target_frames": 35,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "lost_visible_frames": 0,
+      "missing_visible_frames": 0,
+      "identity_safe_continuity_percent": 100.0,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.8453,
+      "jitter_rms_norm": 0.022874
+    },
+    "courtyard_single_a": {
+      "visible_target_frames": 147,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "lost_visible_frames": 0,
+      "missing_visible_frames": 1,
+      "identity_safe_continuity_percent": 99.320,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9253,
+      "jitter_rms_norm": 0.035555
+    },
+    "courtyard_single_b": {
+      "visible_target_frames": 155,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "lost_visible_frames": 0,
+      "missing_visible_frames": 0,
+      "identity_safe_continuity_percent": 100.0,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9479,
+      "jitter_rms_norm": 0.048201
+    },
+    "courtyard_competitor": {
+      "visible_target_frames": 140,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "lost_visible_frames": 35,
+      "missing_visible_frames": 7,
+      "identity_safe_continuity_percent": 70.0,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9202,
+      "jitter_rms_norm": 0.032999
+    }
+  }
+}

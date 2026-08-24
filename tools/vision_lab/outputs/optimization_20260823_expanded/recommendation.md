@@ -2,10 +2,10 @@
 
 **NOT READY**
 
-Winning offline pipeline: `refine4_yolo11n_08` (`yolo11n`, detector-only, cadence 1).
+Winning offline pipeline: `refine4_yolo11n_35` (`yolo11n`, LK enabled, cadence 1).
 
-Held-out: 1 identity-switch event, 8 wrong-person frames, 83.618% identity-safe continuity, 76 Lost, and 12 Missing.
+Held-out: 0 switch event(s), 0 wrong-person frames, 68.158% identity-safe continuity, 140 Lost, 45 Missing.
 
-Largest blocker: the `multi_person` held-out partition still has one identity-switch event and eight consecutive wrong-person frames at canonical indices 47–54.
+Largest blocker: The conservative identity gates materially reduce held-out continuity (68.158% aggregate; 27.143% on `courtyard_competitor`), below both the previous winner and the 90% port-readiness gate.
 
 No Android production code was changed by this offline decision.

@@ -2818,7 +2818,7 @@
         ]
       ],
       "annotations_file": "multi_person/annotations.json",
-      "annotations_sha256": "8e446ca8cbefc8c39c2be2e402479c9e233c800a8a6027cb6ed775e9a95f5c14",
+      "annotations_sha256": "040830708c39070d0a476dde0fecd620b4cb2201072357e6297609962d3ab5e7",
       "frames": [
         {
           "canonical_index": 0,

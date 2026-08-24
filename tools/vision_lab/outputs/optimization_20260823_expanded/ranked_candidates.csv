@@ -1,13 +1,2 @@
 rank,name,family,detector,switches,wrong_person_frames,false_track_frames,lost_frames,missing_frames,safe_continuity_percent,localization_drift_frames,mean_iou,tracker_ms
-1,refine4_yolo11n_08,yolo11n_refined,yolo11n,1,8,0,76,12,83.618,0,0.9114,0.0
-2,refine5_yolo11n_00,yolo11n_refined,yolo11n,1,8,0,76,12,83.618,0,0.9114,0.0
-3,yolo11n_detector,yolo11n_detector,yolo11n,3,23,0,83,24,77.816,2,0.877,0.0
-4,search_yolo11n_15,yolo11n_searched_hybrid,yolo11n,3,23,0,102,18,75.597,6,0.8519,29.201
-5,efficientdet_hilo_lk,efficientdet_hilo_lk,efficientdet_lite2,3,28,0,230,27,51.365,9,0.7343,23.048
-6,search_efficientdet_lite2_08,efficientdet_lite2_searched_hybrid,efficientdet_lite2,4,28,0,101,32,72.526,8,0.7727,24.604
-7,previous_winner_9f4ea4a,previous_winner,efficientdet_lite2,4,28,0,101,32,72.526,8,0.7727,24.702
-8,search_efficientdet_lite2_16,efficientdet_lite2_searched_hybrid,efficientdet_lite2,4,31,2,172,29,60.41,9,0.7439,23.334
-9,search_yolo11n_13,yolo11n_searched_hybrid,yolo11n,5,34,1,119,29,68.942,3,0.8508,26.981
-10,yolo11n_hilo_lk,yolo11n_hilo_lk,yolo11n,6,49,0,81,22,74.061,3,0.8146,22.853
-11,efficientdet_lk,efficientdet_lk,efficientdet_lite2,2,16,0,480,31,10.068,0,0.6575,23.834
-12,efficientdet_baseline,efficientdet_baseline,efficientdet_lite2,3,7,0,523,42,2.389,0,0.6399,0.0
+1,refine4_yolo11n_35,yolo11n_refined,yolo11n,0,0,1,140,45,68.158,1,0.9318,78.842

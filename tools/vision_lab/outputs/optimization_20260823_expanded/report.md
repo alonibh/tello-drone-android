@@ -10,23 +10,33 @@
 
 ## Winner
 
-`refine4_yolo11n_08`: `yolo11n` + detector-only.
+`refine4_yolo11n_35`: `yolo11n` + fail-closed LK.
 
-Held-out: **1 identity-switch events**, **8 wrong-person frames**, 0 false-track frames, 76 Lost frames, 12 Missing frames, **83.618% identity-safe continuity**, 0 localization-drift frames, mean tracked IoU 0.9114.
-Previous winner on the enlarged held-out set: 4 switches, 28 wrong-person frames, 101 Lost, 32 Missing, 72.526% identity-safe continuity, 8 drift frames, mean IoU 0.7727.
+Held-out: **0 identity-switch events**, **0 wrong-person frames**, 1 false-track frames, 140 Lost frames, 45 Missing frames, **68.158% identity-safe continuity**, 1 localization-drift frames, mean tracked IoU 0.9318.
+Previous winner on the enlarged held-out set: 0 switches, 0 wrong-person frames, 76 Lost, 12 Missing, 84.854% identity-safe continuity, 0 drift frames, mean IoU 0.9243.
+
+## Root cause of the reported multi_person takeover
+
+- Canonical frames 47-54 were not a runtime identity takeover. The old annotations had switched the selected identity to the central gray-shirt competitor at frames 37-46, so held-out initialization at frame 40 selected that competitor. The tracker then consistently followed the initialized person while the metric treated the corrected target boxes at frames 47-54 as a wrong-person run.
+- The corrected review keeps the shirtless target selected at frames 37-54 and 60-69, and marks the target invisible at frames 55-59 and 70-77. The corrected manifest and review artifacts are retained with the benchmark.
+
+## Generic identity-safety change
+
+- Association now retains an immutable selection-time appearance histogram alongside the adaptive appearance model, applies scale-aware persistent-appearance conflict gating, and detects overlapping low-confidence competitor evidence before accepting a merged person box.
+- After a competitor or appearance ambiguity, LK cannot override the fail-closed decision and reacquisition requires two consistent frames. Ordinary unambiguous one-frame detector misses can still use LK immediately. Uncertain cases remain Lost/Missing instead of selecting a competitor.
 
 ## Search and rejection reasons
 
-- 184 tuning experiments were recorded. Search stopped because: loaded converged tuning history; refinement round 5 had produced no meaningful tuning improvement
+- 188 tuning experiments were recorded. Search stopped because: user-directed early stop after completed refinement round 4; froze the best tuning candidate found so far
 - The winner was selected only by tuning rank. Held-out outcomes did not alter parameters, architecture, or winner selection.
-- After the 50% tuning eligibility floor, ranking is strict lexicographic priority: identity switches, wrong-person/false-track frames, Lost, Missing, identity-safe continuity, localization drift, IoU, jitter, then compute. Therefore no further continuity gain can compensate for an identity switch among eligible configurations.
+- After the 50% tuning eligibility floor, ranking is strict lexicographic priority: identity switches, wrong-person/false-track frames, per-section continuity shortfall, Lost, Missing, identity-safe continuity, localization drift, IoU, jitter, then compute. Therefore no further continuity gain can compensate for an identity switch among eligible configurations.
 - Rejected candidates rank lower for the first differing item in that tuple; detailed configurations and per-video metrics are in `experiment_history.jsonl` and `ranked_candidates.json`.
 
 ## Desktop cost
 
-- EfficientDet-Lite2: {"frames": 1365, "mean_ms": 147.672, "median_ms": 135.745, "p95_ms": 236.917}
-- YOLO11n 320 CPU/PyTorch: {"frames": 1365, "mean_ms": 172.967, "median_ms": 134.544, "p95_ms": 346.903}
-- Winner LK mean per processed frame: 0.000 ms.
+- EfficientDet-Lite2: {"frames": 1365, "mean_ms": 96.272, "median_ms": 82.941, "p95_ms": 146.971}
+- YOLO11n 320 CPU/PyTorch: {"frames": 1365, "mean_ms": 104.425, "median_ms": 70.547, "p95_ms": 232.676}
+- Winner LK mean per processed frame: 78.842 ms.
 - These desktop figures are directional only; they are not Teclast LiteRT measurements.
 
 ## Decision

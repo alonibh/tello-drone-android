@@ -134,14 +134,14 @@ single_person,131,26.189822,held_out,True,Tracked,detector,accepted detector ass
 single_person,132,26.407466,held_out,True,Tracked,detector,accepted detector association
 single_person,133,26.588836,held_out,True,Tracked,detector,accepted detector association
 single_person,134,26.80648,held_out,True,Tracked,detector,accepted detector association
-single_person,135,26.98785,held_out,True,Tracked,detector,accepted detector association
-single_person,136,27.205494,held_out,True,Missing,none,no identity-safe association; LK disabled
-single_person,137,27.386864,held_out,True,Missing,none,no identity-safe association; LK disabled
-single_person,138,27.604508,held_out,True,Lost,none,no identity-safe association; Lost latched
-single_person,139,27.785878,held_out,True,Lost,none,Lost latched; explicit reselection required
-single_person,140,28.003522,held_out,True,Lost,none,Lost latched; explicit reselection required
-single_person,141,28.184892,held_out,True,Lost,none,Lost latched; explicit reselection required
-single_person,142,28.402536,held_out,True,Lost,none,Lost latched; explicit reselection required
+single_person,135,26.98785,held_out,True,Missing,none,overlapping competitor ambiguity; accepted LK
+single_person,136,27.205494,held_out,True,Missing,none,reacquisition confirmation 1/2; accepted LK
+single_person,137,27.386864,held_out,True,Tracked,LK,no identity-safe association; accepted LK
+single_person,138,27.604508,held_out,True,Missing,none,reacquisition confirmation 1/2; accepted LK
+single_person,139,27.785878,held_out,True,Missing,none,no identity-safe association; weak LK consensus
+single_person,140,28.003522,held_out,True,Missing,none,no identity-safe association; too few LK features
+single_person,141,28.184892,held_out,True,Missing,none,no identity-safe association; too few LK features
+single_person,142,28.402536,held_out,True,Lost,none,no identity-safe association; Lost latched
 single_person,143,28.583906,held_out,True,Lost,none,Lost latched; explicit reselection required
 single_person,144,28.80155,held_out,True,Lost,none,Lost latched; explicit reselection required
 single_person,145,28.98292,held_out,True,Lost,none,Lost latched; explicit reselection required
@@ -228,9 +228,9 @@ single_person,225,45.016024,held_out,True,Tracked,explicit selection,fixed user 
 single_person,226,45.197394,held_out,True,Tracked,detector,accepted detector association
 single_person,227,45.415038,held_out,True,Tracked,detector,accepted detector association
 single_person,228,45.596408,held_out,True,Tracked,detector,accepted detector association
-single_person,229,45.814052,held_out,True,Tracked,detector,accepted detector association
-single_person,230,45.995422,held_out,True,Tracked,detector,accepted detector association
-single_person,231,46.213066,held_out,True,Tracked,detector,accepted detector association
+single_person,229,45.814052,held_out,True,Missing,none,overlapping competitor ambiguity; accepted LK
+single_person,230,45.995422,held_out,True,Missing,none,reacquisition confirmation 1/2; accepted LK
+single_person,231,46.213066,held_out,True,Tracked,detector,confirmed detector reacquisition
 single_person,232,46.394436,held_out,True,Tracked,detector,accepted detector association
 single_person,233,46.61208,held_out,True,Tracked,detector,accepted detector association
 single_person,234,46.79345,held_out,True,Tracked,detector,accepted detector association
@@ -243,16 +243,16 @@ single_person,240,47.990491,held_out,True,Tracked,detector,accepted detector ass
 single_person,241,48.208135,held_out,True,Tracked,detector,accepted detector association
 single_person,242,48.389505,held_out,True,Tracked,detector,accepted detector association
 single_person,243,48.607149,held_out,True,Tracked,detector,accepted detector association
-single_person,244,48.788519,held_out,True,Tracked,detector,accepted detector association
-single_person,245,49.006163,held_out,True,Tracked,detector,accepted detector association
-single_person,246,49.187533,held_out,True,Missing,none,no identity-safe association; LK disabled
-single_person,247,49.405177,held_out,True,Missing,none,no identity-safe association; LK disabled
-single_person,248,49.586547,held_out,True,Tracked,detector,accepted detector association
-single_person,249,49.804191,held_out,True,Tracked,detector,accepted detector association
-single_person,250,49.985561,held_out,True,Tracked,detector,accepted detector association
-single_person,251,50.203205,held_out,False,Missing,none,no identity-safe association; LK disabled
-single_person,252,50.384575,held_out,False,Missing,none,no identity-safe association; LK disabled
-single_person,253,50.602219,held_out,False,Lost,none,no identity-safe association; Lost latched
+single_person,244,48.788519,held_out,True,Missing,none,overlapping competitor ambiguity; accepted LK
+single_person,245,49.006163,held_out,True,Missing,none,overlapping competitor ambiguity; accepted LK
+single_person,246,49.187533,held_out,True,Tracked,LK,no identity-safe association; accepted LK
+single_person,247,49.405177,held_out,True,Missing,none,reacquisition confirmation 1/2; accepted LK
+single_person,248,49.586547,held_out,True,Missing,none,overlapping competitor ambiguity; accepted LK
+single_person,249,49.804191,held_out,True,Missing,none,reacquisition confirmation 1/2; accepted LK
+single_person,250,49.985561,held_out,True,Missing,none,reacquisition confirmation 1/2; too few LK features
+single_person,251,50.203205,held_out,False,Lost,none,no identity-safe association; Lost latched
+single_person,252,50.384575,held_out,False,Lost,none,Lost latched; explicit reselection required
+single_person,253,50.602219,held_out,False,Lost,none,Lost latched; explicit reselection required
 single_person,254,50.783589,held_out,False,Lost,none,Lost latched; explicit reselection required
 single_person,255,51.001233,held_out,False,Lost,none,Lost latched; explicit reselection required
 single_person,256,51.182603,held_out,False,Lost,none,Lost latched; explicit reselection required
@@ -394,15 +394,15 @@ multi_person,47,9.4,held_out,True,Tracked,detector,accepted detector association
 multi_person,48,9.6,held_out,True,Tracked,detector,accepted detector association
 multi_person,49,9.8,held_out,True,Tracked,detector,accepted detector association
 multi_person,50,10.0,held_out,True,Tracked,detector,accepted detector association
-multi_person,51,10.2,held_out,True,Tracked,detector,accepted detector association
-multi_person,52,10.4,held_out,True,Tracked,detector,accepted detector association
-multi_person,53,10.6,held_out,True,Tracked,detector,accepted detector association
+multi_person,51,10.2,held_out,True,Missing,none,overlapping competitor ambiguity; weak LK consensus
+multi_person,52,10.4,held_out,True,Missing,none,reacquisition confirmation 1/2; too few LK features
+multi_person,53,10.6,held_out,True,Tracked,detector,confirmed detector reacquisition
 multi_person,54,10.8,held_out,True,Tracked,detector,accepted detector association
-multi_person,55,11.0,held_out,True,Tracked,detector,accepted detector association
-multi_person,56,11.2,held_out,True,Tracked,detector,accepted detector association
-multi_person,57,11.4,held_out,True,Tracked,detector,accepted detector association
-multi_person,58,11.6,held_out,True,Tracked,detector,accepted detector association
-multi_person,59,11.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,55,11.0,held_out,False,Tracked,low-confidence association,accepted detector association
+multi_person,56,11.2,held_out,False,Missing,none,persistent identity ambiguity; accepted LK
+multi_person,57,11.4,held_out,False,Missing,none,competitor ambiguity; accepted LK
+multi_person,58,11.6,held_out,False,Missing,none,persistent identity ambiguity; accepted LK
+multi_person,59,11.8,held_out,False,Missing,none,competitor ambiguity; accepted LK
 multi_person,60,12.0,tuning,True,Unselected,none,outside evaluated section
 multi_person,61,12.2,tuning,True,Unselected,none,outside evaluated section
 multi_person,62,12.4,tuning,True,Unselected,none,outside evaluated section
@@ -413,14 +413,14 @@ multi_person,66,13.2,tuning,True,Unselected,none,outside evaluated section
 multi_person,67,13.4,tuning,True,Unselected,none,outside evaluated section
 multi_person,68,13.6,tuning,True,Unselected,none,outside evaluated section
 multi_person,69,13.8,tuning,True,Unselected,none,outside evaluated section
-multi_person,70,14.0,tuning,True,Unselected,none,outside evaluated section
-multi_person,71,14.2,tuning,True,Unselected,none,outside evaluated section
-multi_person,72,14.4,tuning,True,Unselected,none,outside evaluated section
-multi_person,73,14.6,tuning,True,Unselected,none,outside evaluated section
-multi_person,74,14.8,tuning,True,Unselected,none,outside evaluated section
-multi_person,75,15.0,tuning,True,Unselected,none,outside evaluated section
-multi_person,76,15.2,tuning,True,Unselected,none,outside evaluated section
-multi_person,77,15.4,tuning,True,Unselected,none,outside evaluated section
+multi_person,70,14.0,tuning,False,Unselected,none,outside evaluated section
+multi_person,71,14.2,tuning,False,Unselected,none,outside evaluated section
+multi_person,72,14.4,tuning,False,Unselected,none,outside evaluated section
+multi_person,73,14.6,tuning,False,Unselected,none,outside evaluated section
+multi_person,74,14.8,tuning,False,Unselected,none,outside evaluated section
+multi_person,75,15.0,tuning,False,Unselected,none,outside evaluated section
+multi_person,76,15.2,tuning,False,Unselected,none,outside evaluated section
+multi_person,77,15.4,tuning,False,Unselected,none,outside evaluated section
 multi_person,78,15.6,tuning,True,Unselected,none,outside evaluated section
 multi_person,79,15.8,tuning,True,Unselected,none,outside evaluated section
 multi_person,80,16.0,held_out,True,Tracked,explicit selection,fixed user selection
@@ -438,11 +438,11 @@ multi_person,91,18.2,held_out,True,Tracked,detector,accepted detector associatio
 multi_person,92,18.4,held_out,True,Tracked,detector,accepted detector association
 multi_person,93,18.6,held_out,True,Tracked,detector,accepted detector association
 multi_person,94,18.8,held_out,True,Tracked,detector,accepted detector association
-multi_person,95,19.0,held_out,True,Tracked,detector,accepted detector association
-multi_person,96,19.2,held_out,True,Tracked,detector,accepted detector association
-multi_person,97,19.4,held_out,True,Tracked,detector,accepted detector association
-multi_person,98,19.6,held_out,True,Tracked,detector,accepted detector association
-multi_person,99,19.8,held_out,True,Tracked,detector,accepted detector association
+multi_person,95,19.0,held_out,True,Missing,none,competitor ambiguity; too few LK features
+multi_person,96,19.2,held_out,True,Missing,none,competitor ambiguity; too few LK features
+multi_person,97,19.4,held_out,True,Missing,none,competitor ambiguity; too few LK features
+multi_person,98,19.6,held_out,True,Missing,none,reacquisition confirmation 1/2; too few LK features
+multi_person,99,19.8,held_out,True,Tracked,detector,confirmed detector reacquisition
 courtyard_single_a,0,0.0,outside,False,Unselected,none,outside evaluated section
 courtyard_single_a,1,0.203425,outside,True,Unselected,none,outside evaluated section
 courtyard_single_a,2,0.406849,outside,True,Unselected,none,outside evaluated section
@@ -595,30 +595,30 @@ courtyard_single_a,148,29.61863,held_out,True,Tracked,detector,accepted detector
 courtyard_single_a,149,29.78137,held_out,True,Tracked,detector,accepted detector association
 courtyard_single_a,150,29.984795,held_out,True,Tracked,detector,accepted detector association
 courtyard_single_a,151,30.188219,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,152,30.391644,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,153,30.595068,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,154,30.798493,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,155,31.001918,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,156,31.205342,held_out,True,Missing,none,competitor ambiguity; LK disabled
-courtyard_single_a,157,31.408767,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,158,31.612192,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,159,31.815616,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,160,32.019041,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,161,32.181781,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,162,32.385205,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,163,32.58863,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,164,32.792055,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,165,32.995479,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,166,33.198904,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,167,33.402329,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,168,33.605753,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,169,33.809178,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,170,34.012603,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,171,34.216027,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,172,34.419452,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,173,34.582192,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,174,34.785616,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,175,34.989041,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,152,30.391644,held_out,True,Missing,none,overlapping competitor ambiguity; weak LK consensus
+courtyard_single_a,153,30.595068,held_out,True,Missing,none,competitor ambiguity; weak LK consensus
+courtyard_single_a,154,30.798493,held_out,True,Missing,none,competitor ambiguity; accepted LK
+courtyard_single_a,155,31.001918,held_out,True,Missing,none,reacquisition confirmation 1/2; accepted LK
+courtyard_single_a,156,31.205342,held_out,True,Lost,none,reacquisition confirmation 1/2; Lost latched
+courtyard_single_a,157,31.408767,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,158,31.612192,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,159,31.815616,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,160,32.019041,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,161,32.181781,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,162,32.385205,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,163,32.58863,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,164,32.792055,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,165,32.995479,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,166,33.198904,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,167,33.402329,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,168,33.605753,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,169,33.809178,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,170,34.012603,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,171,34.216027,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,172,34.419452,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,173,34.582192,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,174,34.785616,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_single_a,175,34.989041,held_out,True,Lost,none,Lost latched; explicit reselection required
 courtyard_single_a,176,35.192466,tuning,True,Unselected,none,outside evaluated section
 courtyard_single_a,177,35.39589,tuning,True,Unselected,none,outside evaluated section
 courtyard_single_a,178,35.599315,tuning,False,Unselected,none,outside evaluated section
@@ -692,9 +692,9 @@ courtyard_single_a,245,48.984658,held_out,True,Tracked,detector,accepted detecto
 courtyard_single_a,246,49.188082,held_out,True,Tracked,detector,accepted detector association
 courtyard_single_a,247,49.391507,held_out,True,Tracked,detector,accepted detector association
 courtyard_single_a,248,49.594932,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,249,49.798356,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,250,50.001781,held_out,True,Tracked,detector,accepted detector association
-courtyard_single_a,251,50.205205,held_out,True,Tracked,detector,accepted detector association
+courtyard_single_a,249,49.798356,held_out,True,Missing,none,overlapping competitor ambiguity; weak LK consensus
+courtyard_single_a,250,50.001781,held_out,True,Missing,none,reacquisition confirmation 1/2; too few LK features
+courtyard_single_a,251,50.205205,held_out,True,Tracked,detector,confirmed detector reacquisition
 courtyard_single_a,252,50.40863,held_out,True,Tracked,detector,accepted detector association
 courtyard_single_a,253,50.612055,held_out,True,Tracked,detector,accepted detector association
 courtyard_single_a,254,50.815479,held_out,True,Tracked,detector,accepted detector association
@@ -1161,10 +1161,10 @@ courtyard_competitor,88,17.606639,tuning,True,Unselected,none,outside evaluated 
 courtyard_competitor,89,17.81042,tuning,True,Unselected,none,outside evaluated section
 courtyard_competitor,90,18.0142,held_out,True,Tracked,explicit selection,fixed user selection
 courtyard_competitor,91,18.217981,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,92,18.381005,held_out,True,Missing,none,competitor ambiguity; LK disabled
-courtyard_competitor,93,18.584786,held_out,True,Missing,none,competitor ambiguity; LK disabled
-courtyard_competitor,94,18.788566,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,95,18.992347,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,92,18.381005,held_out,True,Missing,none,competitor ambiguity; too few LK features
+courtyard_competitor,93,18.584786,held_out,True,Missing,none,competitor ambiguity; too few LK features
+courtyard_competitor,94,18.788566,held_out,True,Missing,none,reacquisition confirmation 1/2; too few LK features
+courtyard_competitor,95,18.992347,held_out,True,Tracked,detector,confirmed detector reacquisition
 courtyard_competitor,96,19.196127,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,97,19.399908,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,98,19.603688,held_out,True,Tracked,detector,accepted detector association
@@ -1174,9 +1174,9 @@ courtyard_competitor,101,20.21503,held_out,True,Tracked,detector,accepted detect
 courtyard_competitor,102,20.418811,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,103,20.581835,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,104,20.785615,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,105,20.989396,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,106,21.193177,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,107,21.396957,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,105,20.989396,held_out,True,Missing,none,persistent identity ambiguity; weak LK consensus
+courtyard_competitor,106,21.193177,held_out,True,Missing,none,reacquisition confirmation 1/2; too few LK features
+courtyard_competitor,107,21.396957,held_out,True,Tracked,detector,confirmed detector reacquisition
 courtyard_competitor,108,21.600738,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,109,21.804518,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,110,22.008299,held_out,True,Tracked,detector,accepted detector association
@@ -1186,16 +1186,16 @@ courtyard_competitor,113,22.61964,held_out,True,Tracked,detector,accepted detect
 courtyard_competitor,114,22.782665,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,115,22.986445,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,116,23.190226,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,117,23.394006,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,118,23.597787,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,119,23.801568,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,117,23.394006,held_out,True,Missing,none,persistent identity ambiguity; weak LK consensus
+courtyard_competitor,118,23.597787,held_out,True,Missing,none,reacquisition confirmation 1/2; weak LK consensus
+courtyard_competitor,119,23.801568,held_out,True,Tracked,detector,confirmed detector reacquisition
 courtyard_competitor,120,24.005348,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,121,24.209129,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,122,24.412909,held_out,True,Missing,none,no identity-safe association; LK disabled
-courtyard_competitor,123,24.61669,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,124,24.779714,held_out,True,Missing,none,competitor ambiguity; LK disabled
-courtyard_competitor,125,24.983495,held_out,True,Missing,none,competitor ambiguity; LK disabled
-courtyard_competitor,126,25.187275,held_out,True,Lost,none,competitor ambiguity; Lost latched
+courtyard_competitor,121,24.209129,held_out,True,Missing,none,overlapping competitor ambiguity; weak LK consensus
+courtyard_competitor,122,24.412909,held_out,True,Missing,none,no identity-safe association; too few LK features
+courtyard_competitor,123,24.61669,held_out,True,Missing,none,reacquisition confirmation 1/2; too few LK features
+courtyard_competitor,124,24.779714,held_out,True,Missing,none,persistent identity ambiguity; weak LK consensus
+courtyard_competitor,125,24.983495,held_out,True,Missing,none,competitor ambiguity; weak LK consensus
+courtyard_competitor,126,25.187275,held_out,True,Lost,none,persistent identity ambiguity; Lost latched
 courtyard_competitor,127,25.391056,held_out,True,Lost,none,Lost latched; explicit reselection required
 courtyard_competitor,128,25.594836,held_out,True,Lost,none,Lost latched; explicit reselection required
 courtyard_competitor,129,25.798617,held_out,True,Lost,none,Lost latched; explicit reselection required
@@ -1308,59 +1308,59 @@ courtyard_competitor,235,46.991793,held_out,True,Tracked,detector,accepted detec
 courtyard_competitor,236,47.195574,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,237,47.399355,held_out,True,Tracked,detector,accepted detector association
 courtyard_competitor,238,47.603135,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,239,47.806916,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,240,48.010696,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,241,48.214477,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,242,48.418257,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,243,48.581282,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,244,48.785062,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,245,48.988843,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,246,49.192623,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,247,49.396404,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,248,49.600184,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,249,49.803965,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,250,50.007746,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,251,50.211526,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,252,50.415307,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,253,50.619087,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,254,50.782112,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,255,50.985892,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,256,51.189673,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,257,51.393453,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,258,51.597234,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,259,51.801014,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,260,52.004795,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,261,52.208575,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,262,52.412356,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,263,52.616136,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,264,52.819917,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,265,52.982941,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,266,53.186722,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,267,53.390503,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,268,53.594283,held_out,True,Missing,none,competitor ambiguity; LK disabled
-courtyard_competitor,269,53.798064,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,270,54.001844,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,271,54.205625,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,272,54.409405,held_out,True,Missing,none,competitor ambiguity; LK disabled
-courtyard_competitor,273,54.613186,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,274,54.816966,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,275,54.979991,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,276,55.183771,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,277,55.387552,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,278,55.591332,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,279,55.795113,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,280,55.998893,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,281,56.202674,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,282,56.406455,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,283,56.610235,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,284,56.814016,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,285,57.017796,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,286,57.180821,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,287,57.384601,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,288,57.588382,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,289,57.792162,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,290,57.995943,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,291,58.199723,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,292,58.403504,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,293,58.607284,held_out,True,Tracked,detector,accepted detector association
-courtyard_competitor,294,58.811065,held_out,True,Tracked,detector,accepted detector association
+courtyard_competitor,239,47.806916,held_out,True,Missing,none,overlapping competitor ambiguity; weak LK consensus
+courtyard_competitor,240,48.010696,held_out,True,Missing,none,reacquisition confirmation 1/2; weak LK consensus
+courtyard_competitor,241,48.214477,held_out,True,Tracked,detector,confirmed detector reacquisition
+courtyard_competitor,242,48.418257,held_out,True,Missing,none,competitor ambiguity; weak LK consensus
+courtyard_competitor,243,48.581282,held_out,True,Missing,none,competitor ambiguity; weak LK consensus
+courtyard_competitor,244,48.785062,held_out,True,Missing,none,persistent identity ambiguity; weak LK consensus
+courtyard_competitor,245,48.988843,held_out,True,Missing,none,persistent identity ambiguity; weak LK consensus
+courtyard_competitor,246,49.192623,held_out,True,Missing,none,persistent identity ambiguity; weak LK consensus
+courtyard_competitor,247,49.396404,held_out,True,Lost,none,persistent identity ambiguity; Lost latched
+courtyard_competitor,248,49.600184,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,249,49.803965,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,250,50.007746,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,251,50.211526,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,252,50.415307,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,253,50.619087,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,254,50.782112,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,255,50.985892,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,256,51.189673,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,257,51.393453,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,258,51.597234,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,259,51.801014,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,260,52.004795,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,261,52.208575,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,262,52.412356,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,263,52.616136,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,264,52.819917,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,265,52.982941,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,266,53.186722,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,267,53.390503,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,268,53.594283,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,269,53.798064,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,270,54.001844,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,271,54.205625,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,272,54.409405,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,273,54.613186,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,274,54.816966,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,275,54.979991,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,276,55.183771,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,277,55.387552,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,278,55.591332,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,279,55.795113,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,280,55.998893,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,281,56.202674,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,282,56.406455,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,283,56.610235,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,284,56.814016,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,285,57.017796,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,286,57.180821,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,287,57.384601,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,288,57.588382,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,289,57.792162,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,290,57.995943,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,291,58.199723,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,292,58.403504,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,293,58.607284,held_out,True,Lost,none,Lost latched; explicit reselection required
+courtyard_competitor,294,58.811065,held_out,True,Lost,none,Lost latched; explicit reselection required

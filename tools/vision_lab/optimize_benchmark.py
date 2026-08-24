@@ -32,6 +32,7 @@ from ultralytics import YOLO  # noqa: E402
 YOLO11N_SHA256 = "0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1"
 EFFICIENTDET_SHA256 = "6fd32c84ab1eb0f7e7f3a7a20a20d7df1530daa8378728f7c79571096286bd52"
 MIN_IDENTITY_SAFE_CONTINUITY_PERCENT = 50.0
+MIN_TUNING_SECTION_CONTINUITY_PERCENT = 40.0
 
 
 @dataclass(frozen=True)
@@ -103,6 +104,9 @@ class Config:
     distance_gate: float = 0.12
     appearance_gate: float = 0.45
     ambiguity_margin: float = 0.10
+    persistent_appearance_weight: float = 0.60
+    persistent_conflict_margin: float = 0.06
+    reacquire_confirmation_frames: int = 2
     lk_fb_error: float = 1.2
     lk_inlier_ratio: float = 0.58
     lk_min_features: int = 10
@@ -110,6 +114,10 @@ class Config:
     motion_alpha: float = 0.0
     camera_compensation: bool = False
     missing_ttl_s: float = 0.8
+
+    def __post_init__(self) -> None:
+        if self.reacquire_confirmation_frames < 2:
+            raise ValueError("identity-safe reacquisition requires at least two confirmations")
 
 
 @dataclass
@@ -381,21 +389,41 @@ def associate(
     detections: Sequence[Detection],
     predicted: Box,
     image: np.ndarray,
-    target_hist: np.ndarray | None,
+    adaptive_hist: np.ndarray | None,
+    persistent_hist: np.ndarray | None,
     config: Config,
+    strict_persistent: bool = False,
 ) -> tuple[Detection | None, float | None, str]:
     height, width = image.shape[:2]
-    eligible: list[tuple[float, Detection, float, float]] = []
+    eligible: list[tuple[float, Detection, float, float, float]] = []
+    persistent_hypotheses: list[tuple[float, Detection, float, float]] = []
     for detection in detections:
         if detection.confidence < config.low_confidence:
             continue
         overlap = iou(predicted, detection.box)
         distance = center_distance(predicted, detection.box, width, height)
-        appearance = hist_similarity(target_hist, histogram(image, detection.box))
+        candidate_hist = histogram(image, detection.box)
+        adaptive_appearance = hist_similarity(adaptive_hist, candidate_hist)
+        persistent_appearance = hist_similarity(persistent_hist, candidate_hist)
+        appearance = (
+            (1.0 - config.persistent_appearance_weight) * adaptive_appearance
+            + config.persistent_appearance_weight * persistent_appearance
+        )
         area_ratio = detection.box.area / max(predicted.area, 1.0)
+        if 0.35 <= area_ratio <= 2.8 and persistent_appearance >= config.appearance_gate:
+            persistent_hypotheses.append(
+                (persistent_appearance, detection, overlap, distance)
+            )
         if not (overlap >= config.iou_gate or distance <= config.distance_gate):
             continue
-        if not 0.35 <= area_ratio <= 2.8 or appearance < config.appearance_gate:
+        if (
+            not 0.35 <= area_ratio <= 2.8
+            or appearance < config.appearance_gate
+            or (
+                strict_persistent
+                and persistent_appearance < max(0.0, config.appearance_gate - 0.10)
+            )
+        ):
             continue
         if detection.confidence < config.high_confidence and not (
             appearance >= config.appearance_gate + 0.06
@@ -403,14 +431,48 @@ def associate(
         ):
             continue
         score = 0.42 * overlap + 0.23 * (1.0 - min(1.0, distance / max(config.distance_gate, 0.01))) + 0.27 * appearance + 0.08 * detection.confidence
-        eligible.append((score, detection, appearance, overlap))
+        eligible.append((score, detection, appearance, overlap, persistent_appearance))
     if not eligible:
         return None, None, "no identity-safe association"
     eligible.sort(key=lambda item: item[0], reverse=True)
     margin = eligible[0][0] - eligible[1][0] if len(eligible) > 1 else 1.0
     if margin < config.ambiguity_margin:
         return None, margin, "competitor ambiguity"
-    return eligible[0][1], margin, "accepted detector association"
+    chosen = eligible[0]
+    for persistent_appearance, detection, alternative_overlap, alternative_distance in persistent_hypotheses:
+        if detection is chosen[1]:
+            continue
+        spatially_distinct = (
+            iou(chosen[1].box, detection.box) < 0.20
+            and center_distance(chosen[1].box, detection.box, width, height) > 0.04
+        )
+        if (
+            spatially_distinct
+            and persistent_appearance >= chosen[4] + config.persistent_conflict_margin
+            and (
+                chosen[4] < config.appearance_gate + 0.08
+                or alternative_overlap >= config.iou_gate
+                or alternative_distance <= config.distance_gate
+            )
+        ):
+            return None, chosen[4] - persistent_appearance, "persistent identity ambiguity"
+    for detection in detections:
+        if detection is chosen[1] or detection.confidence < 0.03:
+            continue
+        area_ratio = detection.box.area / max(predicted.area, 1.0)
+        overlap_with_chosen = iou(chosen[1].box, detection.box)
+        if not (0.35 <= area_ratio <= 2.8 and 0.15 <= overlap_with_chosen <= 0.65):
+            continue
+        persistent_appearance = hist_similarity(
+            persistent_hist,
+            histogram(image, detection.box),
+        )
+        if persistent_appearance >= max(
+            config.appearance_gate,
+            chosen[4] - 0.10,
+        ):
+            return None, chosen[4] - persistent_appearance, "overlapping competitor ambiguity"
+    return chosen[1], margin, "accepted detector association"
 
 
 def run_pipeline(
@@ -429,7 +491,8 @@ def run_pipeline(
         raise ValueError(f"{video.id} selection frame {selection_index} has no visible target")
     selected_box = Box.from_normalized(selected_annotation["target_box_norm"], video.frames[0].shape[1], video.frames[0].shape[0])
     box = selected_box
-    target_hist = histogram(video.frames[selection_index], box)
+    persistent_hist = histogram(video.frames[selection_index], box)
+    target_hist = None if persistent_hist is None else persistent_hist.copy()
     tracker = LkTracker(config)
     tracker.reset(video.frames[selection_index], box)
     results[selection_index] = Result("Tracked", "explicit selection", box, "fixed user selection")
@@ -438,6 +501,9 @@ def run_pipeline(
     velocity = np.zeros(2, dtype=np.float64)
     previous_center = np.array(box.center)
     tracker_times: list[float] = []
+    pending_box: Box | None = None
+    pending_count = 0
+    confirmation_required = False
     lost = False
     for index in range(selection_index + 1, stop_index):
         frame = video.frames[index]
@@ -462,8 +528,51 @@ def run_pipeline(
         margin = None
         association_note = "detector cadence skipped"
         if should_detect:
-            chosen, margin, association_note = associate(detections[index], predicted, frame, target_hist, config)
-        explicit_ambiguity = association_note == "competitor ambiguity"
+            chosen, margin, association_note = associate(
+                detections[index],
+                predicted,
+                frame,
+                target_hist,
+                persistent_hist,
+                config,
+                strict_persistent=confirmation_required,
+            )
+        safety_rejection = association_note in {
+            "competitor ambiguity",
+            "overlapping competitor ambiguity",
+            "persistent identity ambiguity",
+        }
+        if safety_rejection:
+            confirmation_required = True
+        if (
+            chosen is not None
+            and confirmation_required
+            and config.reacquire_confirmation_frames > 1
+        ):
+            consistent_pending = pending_box is not None and (
+                iou(pending_box, chosen.box) >= 0.20
+                or center_distance(pending_box, chosen.box, width, height) <= 0.04
+            )
+            if consistent_pending:
+                pending_count += 1
+            else:
+                pending_box = chosen.box
+                pending_count = 1
+            if pending_count < config.reacquire_confirmation_frames:
+                chosen = None
+                association_note = (
+                    f"reacquisition confirmation {pending_count}/"
+                    f"{config.reacquire_confirmation_frames}"
+                )
+                safety_rejection = True
+            else:
+                pending_box = None
+                pending_count = 0
+                confirmation_required = False
+                association_note = "confirmed detector reacquisition"
+        elif chosen is None and not association_note.startswith("reacquisition confirmation"):
+            pending_box = None
+            pending_count = 0
         if chosen is not None:
             old_center = np.array(box.center)
             box = chosen.box.clipped(width, height)
@@ -477,7 +586,7 @@ def run_pipeline(
             source = "low-confidence association" if chosen.confidence < config.high_confidence else "detector"
             results[index] = Result("Tracked", source, box, association_note, chosen.confidence, margin)
             continue
-        if flow_box is not None and not explicit_ambiguity:
+        if flow_box is not None and not safety_rejection:
             displacement = np.array(flow_box.center) - previous_center
             velocity = (1.0 - config.motion_alpha) * velocity + config.motion_alpha * displacement
             previous_center = np.array(flow_box.center)
@@ -501,8 +610,14 @@ def in_intervals(timestamp: float, intervals: Sequence[Sequence[float]]) -> bool
     return any(start <= timestamp < end for start, end in intervals)
 
 
-def evaluate_results(video: VideoData, results: list[Result], partition: str) -> dict[str, Any]:
-    intervals = video.tuning_intervals if partition == "tuning" else video.held_out_intervals
+def evaluate_results(
+    video: VideoData,
+    results: list[Result],
+    partition: str,
+    intervals: Sequence[Sequence[float]] | None = None,
+) -> dict[str, Any]:
+    if intervals is None:
+        intervals = video.tuning_intervals if partition == "tuning" else video.held_out_intervals
     indices = [index for index, timestamp in enumerate(video.timestamps) if in_intervals(timestamp, intervals)]
     visible = localized = wrong_person = drift = tracked = safe_tracked = missing = lost = false_track = 0
     ious: list[float] = []
@@ -570,7 +685,11 @@ def evaluate_results(video: VideoData, results: list[Result], partition: str) ->
     }
 
 
-def aggregate(per_video: dict[str, dict[str, Any]], tracker_ms: dict[str, float]) -> dict[str, Any]:
+def aggregate(
+    per_video: dict[str, dict[str, Any]],
+    tracker_ms: dict[str, float],
+    section_metrics: Sequence[dict[str, Any]] = (),
+) -> dict[str, Any]:
     summed = {
         key: sum(item[key] for item in per_video.values())
         for key in (
@@ -600,6 +719,29 @@ def aggregate(per_video: dict[str, dict[str, Any]], tracker_ms: dict[str, float]
     summed["continuity_shortfall_frames"] = max(
         0, minimum_safe_frames - summed["identity_safe_tracked_frames"]
     )
+    summed["tuning_section_continuity_shortfall_frames"] = sum(
+        max(
+            0,
+            math.ceil(
+                item["visible_target_frames"]
+                * MIN_TUNING_SECTION_CONTINUITY_PERCENT
+                / 100.0
+            )
+            - item["identity_safe_tracked_frames"],
+        )
+        for item in section_metrics
+    )
+    summed["worst_section_continuity_percent"] = round(
+        min(
+            (
+                item["identity_safe_continuity_percent"]
+                for item in section_metrics
+                if item["visible_target_frames"]
+            ),
+            default=summed["identity_safe_continuity_percent"],
+        ),
+        3,
+    )
     summed["mean_iou_when_tracked"] = round(
         summed["iou_sum"] / max(1, summed["iou_sample_count"]), 4
     )
@@ -612,6 +754,7 @@ def aggregate(per_video: dict[str, dict[str, Any]], tracker_ms: dict[str, float]
         summed["continuity_shortfall_frames"],
         summed["identity_switch_events"],
         summed["wrong_person_frames"] + summed["false_tracked_while_target_invisible"],
+        summed["tuning_section_continuity_shortfall_frames"],
         summed["lost_visible_frames"],
         summed["missing_visible_frames"],
         -summed["identity_safe_tracked_frames"],
@@ -633,6 +776,7 @@ def evaluate_config(
     per_video: dict[str, dict[str, Any]] = {}
     all_results: dict[str, list[Result]] = {}
     tracker_ms: dict[str, float] = {}
+    section_metrics: list[dict[str, Any]] = []
     for video in videos:
         intervals = video.tuning_intervals if partition == "tuning" else video.held_out_intervals
         combined = [Result("Unselected", "none", None, "outside evaluated section") for _ in video.frames]
@@ -650,10 +794,23 @@ def evaluate_config(
             )
             combined[start_index:stop_index] = section_results[start_index:stop_index]
             costs.append(section_cost)
+            section_metrics.append(
+                evaluate_results(
+                    video,
+                    section_results,
+                    partition,
+                    intervals=[[start_s, end_s]],
+                )
+            )
         all_results[video.id] = combined
         tracker_ms[video.id] = statistics.mean(costs) if costs else 0.0
         per_video[video.id] = evaluate_results(video, combined, partition)
-    return {"config": asdict(config), "partition": partition, "per_video": per_video, "aggregate": aggregate(per_video, tracker_ms)}, all_results
+    return {
+        "config": asdict(config),
+        "partition": partition,
+        "per_video": per_video,
+        "aggregate": aggregate(per_video, tracker_ms, section_metrics),
+    }, all_results
 
 
 def seed_configs() -> list[Config]:
@@ -700,6 +857,9 @@ def seed_configs() -> list[Config]:
                     distance_gate=rng.choice([0.08, 0.12, 0.17]),
                     appearance_gate=rng.choice([0.38, 0.46, 0.54]),
                     ambiguity_margin=rng.choice([0.06, 0.10, 0.15]),
+                    persistent_appearance_weight=rng.choice([0.40, 0.60, 0.80]),
+                    persistent_conflict_margin=rng.choice([0.04, 0.08, 0.12]),
+                    reacquire_confirmation_frames=rng.choice([2, 3]),
                     lk_fb_error=rng.choice([0.8, 1.2, 1.8]),
                     lk_inlier_ratio=rng.choice([0.50, 0.60, 0.70]),
                     lk_min_features=rng.choice([8, 10, 14]),
@@ -722,6 +882,9 @@ def local_variants(best: Config, iteration: int) -> list[Config]:
         ("distance_gate", [max(0.05, best.distance_gate - 0.04), min(0.24, best.distance_gate + 0.04)]),
         ("appearance_gate", [max(0.30, best.appearance_gate - 0.05), min(0.65, best.appearance_gate + 0.05)]),
         ("ambiguity_margin", [max(0.04, best.ambiguity_margin - 0.03), min(0.20, best.ambiguity_margin + 0.03)]),
+        ("persistent_appearance_weight", [0.40, 0.60, 0.80]),
+        ("persistent_conflict_margin", [0.03, 0.06, 0.10, 0.14]),
+        ("reacquire_confirmation_frames", [2, 3]),
         ("lk_fb_error", [max(0.6, best.lk_fb_error - 0.3), min(2.2, best.lk_fb_error + 0.3)]),
         ("lk_inlier_ratio", [max(0.45, best.lk_inlier_ratio - 0.05), min(0.78, best.lk_inlier_ratio + 0.05)]),
         ("lk_min_features", [8, 10, 14, 18]),
@@ -794,12 +957,14 @@ def render_cell(video: VideoData, index: int, result: Result, title: str, detect
 
 
 def render_video(path: Path, video: VideoData, results: list[Result], detections: list[list[Detection]], title: str) -> None:
-    writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 5.0, (960, 540))
+    temporary = path.with_name(f"{path.stem}.tmp{path.suffix}")
+    writer = cv2.VideoWriter(str(temporary), cv2.VideoWriter_fourcc(*"mp4v"), 5.0, (960, 540))
     if not writer.isOpened():
-        raise RuntimeError(f"could not write {path}")
+        raise RuntimeError(f"could not write {temporary}")
     for index, result in enumerate(results):
         writer.write(render_cell(video, index, result, title, detections[index], (960, 540)))
     writer.release()
+    replace_rendered_video(temporary, path)
 
 
 def render_comparison(
@@ -807,13 +972,26 @@ def render_comparison(
     video: VideoData,
     named_results: Sequence[tuple[str, list[Result], list[list[Detection]]]],
 ) -> None:
-    writer = cv2.VideoWriter(str(path), cv2.VideoWriter_fourcc(*"mp4v"), 5.0, (960, 540))
+    temporary = path.with_name(f"{path.stem}.tmp{path.suffix}")
+    writer = cv2.VideoWriter(str(temporary), cv2.VideoWriter_fourcc(*"mp4v"), 5.0, (960, 540))
     if not writer.isOpened():
-        raise RuntimeError(f"could not write {path}")
+        raise RuntimeError(f"could not write {temporary}")
     for index in range(len(video.frames)):
         cells = [render_cell(video, index, results[index], name, detections[index], (480, 270)) for name, results, detections in named_results]
         writer.write(cv2.vconcat([cv2.hconcat(cells[:2]), cv2.hconcat(cells[2:4])]))
     writer.release()
+    replace_rendered_video(temporary, path)
+
+
+def replace_rendered_video(temporary: Path, path: Path) -> None:
+    for attempt in range(20):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.25)
 
 
 def write_outputs(
@@ -824,6 +1002,7 @@ def write_outputs(
     finalists: list[dict[str, Any]],
     winner: dict[str, Any],
     winner_results: dict[str, list[Result]],
+    fixed_metrics: dict[str, dict[str, Any]],
     fixed_results: dict[str, dict[str, list[Result]]],
     detector_data: dict[str, dict[str, list[list[Detection]]]],
     detector_timing: dict[str, Any],
@@ -860,10 +1039,17 @@ def write_outputs(
         comparison.append(("winner", winner_results[video.id], winner_detector))
         render_comparison(output_dir / f"comparison_{video.id}.mp4", video, comparison)
     held = winner["aggregate"]
-    previous_winner = next(
-        item for item in finalists if item["config"]["name"] == "previous_winner_9f4ea4a"
+    previous_reference_path = output_dir / "previous_winner_reference.json"
+    previous_reference = (
+        json.loads(previous_reference_path.read_text(encoding="utf-8"))
+        if previous_reference_path.is_file()
+        else None
     )
-    previous = previous_winner["aggregate"]
+    previous = (
+        previous_reference["aggregate"]
+        if previous_reference is not None
+        else fixed_metrics["previous_winner_9f4ea4a"]["aggregate"]
+    )
     report = [
         "# Offline identity-first tracker optimization",
         "",
@@ -882,11 +1068,21 @@ def write_outputs(
         f"Held-out: **{held['identity_switch_events']} identity-switch events**, **{held['wrong_person_frames']} wrong-person frames**, {held['false_tracked_while_target_invisible']} false-track frames, {held['lost_visible_frames']} Lost frames, {held['missing_visible_frames']} Missing frames, **{held['identity_safe_continuity_percent']:.3f}% identity-safe continuity**, {held['localization_drift_frames']} localization-drift frames, mean tracked IoU {held['mean_iou_when_tracked']:.4f}.",
         f"Previous winner on the enlarged held-out set: {previous['identity_switch_events']} switches, {previous['wrong_person_frames']} wrong-person frames, {previous['lost_visible_frames']} Lost, {previous['missing_visible_frames']} Missing, {previous['identity_safe_continuity_percent']:.3f}% identity-safe continuity, {previous['localization_drift_frames']} drift frames, mean IoU {previous['mean_iou_when_tracked']:.4f}.",
         "",
+        "## Root cause of the reported multi_person takeover",
+        "",
+        "- Canonical frames 47-54 were not a runtime identity takeover. The old annotations had switched the selected identity to the central gray-shirt competitor at frames 37-46, so held-out initialization at frame 40 selected that competitor. The tracker then consistently followed the initialized person while the metric treated the corrected target boxes at frames 47-54 as a wrong-person run.",
+        "- The corrected review keeps the shirtless target selected at frames 37-54 and 60-69, and marks the target invisible at frames 55-59 and 70-77. The corrected manifest and review artifacts are retained with the benchmark.",
+        "",
+        "## Generic identity-safety change",
+        "",
+        "- Association now retains an immutable selection-time appearance histogram alongside the adaptive appearance model, applies scale-aware persistent-appearance conflict gating, and detects overlapping low-confidence competitor evidence before accepting a merged person box.",
+        "- After a competitor or appearance ambiguity, LK cannot override the fail-closed decision and reacquisition requires two consistent frames. Ordinary unambiguous one-frame detector misses can still use LK immediately. Uncertain cases remain Lost/Missing instead of selecting a competitor.",
+        "",
         "## Search and rejection reasons",
         "",
         f"- {len(history)} tuning experiments were recorded. Search stopped because: {stop_reason}",
         "- The winner was selected only by tuning rank. Held-out outcomes did not alter parameters, architecture, or winner selection.",
-        f"- After the {MIN_IDENTITY_SAFE_CONTINUITY_PERCENT:.0f}% tuning eligibility floor, ranking is strict lexicographic priority: identity switches, wrong-person/false-track frames, Lost, Missing, identity-safe continuity, localization drift, IoU, jitter, then compute. Therefore no further continuity gain can compensate for an identity switch among eligible configurations.",
+        f"- After the {MIN_IDENTITY_SAFE_CONTINUITY_PERCENT:.0f}% tuning eligibility floor, ranking is strict lexicographic priority: identity switches, wrong-person/false-track frames, per-section continuity shortfall, Lost, Missing, identity-safe continuity, localization drift, IoU, jitter, then compute. Therefore no further continuity gain can compensate for an identity switch among eligible configurations.",
         "- Rejected candidates rank lower for the first differing item in that tuple; detailed configurations and per-video metrics are in `experiment_history.jsonl` and `ranked_candidates.json`.",
         "",
         "## Desktop cost",
@@ -922,7 +1118,16 @@ def write_outputs(
             f"indices {worst_video['wrong_indices']}."
         )
     else:
-        blocker = "Held-out identity-safe continuity remains below the 90% port-readiness gate."
+        worst_continuity_id, worst_continuity = min(
+            winner["per_video"].items(),
+            key=lambda item: item[1]["identity_safe_continuity_percent"],
+        )
+        blocker = (
+            "The conservative identity gates materially reduce held-out continuity "
+            f"({held['identity_safe_continuity_percent']:.3f}% aggregate; "
+            f"{worst_continuity['identity_safe_continuity_percent']:.3f}% on `{worst_continuity_id}`), "
+            "below both the previous winner and the 90% port-readiness gate."
+        )
     recommendation = [
         "# Android port decision",
         "",
@@ -945,11 +1150,9 @@ def write_outputs(
     rejection = [
         "# Rejection reasons",
         "",
-        f"- The previous winner was rejected on the enlarged held-out set: {previous['identity_switch_events']} switches, "
-        f"{previous['wrong_person_frames']} wrong-person frames, and {previous['identity_safe_continuity_percent']:.3f}% continuity, "
-        f"versus {held['identity_switch_events']}, {held['wrong_person_frames']}, and {held['identity_safe_continuity_percent']:.3f}% for the frozen tuning winner.",
+        f"- The frozen best-so-far candidate meets the 0-switch/0-wrong identity threshold but fails the no-material-continuity-regression criterion: {held['identity_safe_continuity_percent']:.3f}% versus {previous['identity_safe_continuity_percent']:.3f}% for the previous winner.",
         f"- Configurations below {MIN_IDENTITY_SAFE_CONTINUITY_PERCENT:.0f}% tuning continuity were ineligible, preventing a never-track configuration from winning by suppressing identity exposure.",
-        "- Among eligible configurations, the first differing strict rank item rejects a candidate: switches, wrong/false-track frames, Lost, Missing, safe continuity, drift, IoU, jitter, then compute.",
+        "- Among eligible configurations, the first differing strict rank item rejects a candidate: switches, wrong/false-track frames, per-section continuity shortfall, Lost, Missing, safe continuity, drift, IoU, jitter, then compute.",
         "- Full configurations and metrics for all tuning experiments and held-out architecture controls are retained in `experiment_history.jsonl` and `ranked_candidates.json`.",
     ]
     (output_dir / "rejection_reasons.md").write_text(
@@ -974,6 +1177,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="with --resume-tuning, keep the converged tuning winner and regenerate held-out artifacts",
     )
+    parser.add_argument(
+        "--best-so-far",
+        action="store_true",
+        help="with --validation-only, freeze the best tuning candidate in the current checkpoint instead of a previously persisted winner",
+    )
+    parser.add_argument(
+        "--winner-only",
+        action="store_true",
+        help="with --validation-only, validate only the frozen tuning winner rather than additional architecture finalists",
+    )
     return parser.parse_args()
 
 
@@ -981,6 +1194,8 @@ def main() -> int:
     args = parse_args()
     if args.validation_only and not args.resume_tuning:
         raise ValueError("--validation-only requires --resume-tuning")
+    if (args.best_so_far or args.winner_only) and not args.validation_only:
+        raise ValueError("--best-so-far and --winner-only require --validation-only")
     print("loading and verifying frozen benchmark", flush=True)
     manifest, videos = load_benchmark(args.benchmark_dir)
     benchmark_sha256 = sha256(args.benchmark_dir / "manifest.json")
@@ -1005,6 +1220,14 @@ def main() -> int:
     }
     seeds = seed_configs()
     history_path = args.output_dir / "experiment_history.jsonl"
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def checkpoint_tuning(items: Sequence[dict[str, Any]]) -> None:
+        history_path.write_text(
+            "".join(json.dumps(item) + "\n" for item in items),
+            encoding="utf-8",
+        )
+
     if args.resume_tuning:
         if not history_path.is_file():
             raise ValueError("--resume-tuning requires an existing experiment_history.jsonl")
@@ -1037,7 +1260,18 @@ def main() -> int:
             metrics["iteration"] = 0
             history.append(metrics)
             tune_results.append(metrics)
+        checkpoint_tuning(history)
     best_tuning = min(tune_results, key=lambda item: tuple(item["aggregate"]["rank_tuple"]))
+    if args.validation_only and not args.best_so_far:
+        frozen_path = args.output_dir / "winning_config.json"
+        if frozen_path.is_file():
+            frozen = json.loads(frozen_path.read_text(encoding="utf-8"))
+            frozen_signature = config_signature(Config(**frozen["config"]))
+            best_tuning = next(
+                item
+                for item in tune_results
+                if config_signature(Config(**item["config"])) == frozen_signature
+            )
     seen = {config_signature(Config(**item["config"])) for item in tune_results}
     stop_reason = ""
     refinement_iterations: Sequence[int] = (
@@ -1064,6 +1298,7 @@ def main() -> int:
             history.append(metrics)
             tune_results.append(metrics)
             refinement_results.append(metrics)
+        checkpoint_tuning(history)
         candidate = min(refinement_results, key=lambda item: tuple(item["aggregate"]["rank_tuple"]))
         if not meaningful_improvement(best_tuning, candidate):
             stop_reason = f"refinement round {iteration} produced no meaningful tuning improvement"
@@ -1074,8 +1309,13 @@ def main() -> int:
     if args.validation_only:
         final_iteration = max(item["iteration"] for item in tune_results)
         stop_reason = (
-            f"loaded converged tuning history; refinement round {final_iteration} "
-            "had produced no meaningful tuning improvement"
+            f"user-directed early stop after completed refinement round {final_iteration}; "
+            "froze the best tuning candidate found so far"
+            if args.best_so_far
+            else (
+                f"loaded converged tuning history; refinement round {final_iteration} "
+                "had produced no meaningful tuning improvement"
+            )
         )
     finalists_by_family: dict[str, list[dict[str, Any]]] = {}
     for item in sorted(tune_results, key=lambda value: tuple(value["aggregate"]["rank_tuple"])):
@@ -1084,7 +1324,17 @@ def main() -> int:
             finalists_by_family[family].append(item)
     heldout: list[dict[str, Any]] = []
     heldout_results: dict[tuple[Any, ...], dict[str, list[Result]]] = {}
-    tuning_finalists = [item for values in finalists_by_family.values() for item in values]
+    tuning_finalists = (
+        [best_tuning]
+        if args.winner_only
+        else [item for values in finalists_by_family.values() for item in values]
+    )
+    best_signature = config_signature(Config(**best_tuning["config"]))
+    if all(
+        config_signature(Config(**item["config"])) != best_signature
+        for item in tuning_finalists
+    ):
+        tuning_finalists.append(best_tuning)
     for index, tuning_item in enumerate(tuning_finalists, 1):
         config = Config(**tuning_item["config"])
         print(
@@ -1103,16 +1353,26 @@ def main() -> int:
         if config_signature(Config(**item["config"])) == winning_signature
     )
     named_seed_configs = {config.name: config for config in seeds}
+    fixed_metrics: dict[str, dict[str, Any]] = {}
     fixed_results: dict[str, dict[str, list[Result]]] = {}
     for name in ("efficientdet_baseline", "previous_winner_9f4ea4a", "yolo11n_detector"):
         config = named_seed_configs[name]
-        fixed_results[name] = heldout_results.get(config_signature(config)) or evaluate_config(
-            config, videos, detector_data, camera_motion, "held_out"
-        )[1]
+        signature = config_signature(config)
+        if signature in heldout_results:
+            fixed_metrics[name] = next(
+                item
+                for item in heldout
+                if config_signature(Config(**item["config"])) == signature
+            )
+            fixed_results[name] = heldout_results[signature]
+        else:
+            fixed_metrics[name], fixed_results[name] = evaluate_config(
+                config, videos, detector_data, camera_motion, "held_out"
+            )
     winning_config = Config(**winner["config"])
     winner_results = heldout_results[config_signature(winning_config)]
     output_dir = args.output_dir.resolve()
-    write_outputs(output_dir, manifest, videos, history, heldout, winner, winner_results, fixed_results, detector_data, detector_timing, stop_reason)
+    write_outputs(output_dir, manifest, videos, history, heldout, winner, winner_results, fixed_metrics, fixed_results, detector_data, detector_timing, stop_reason)
     print(json.dumps({"output_dir": str(output_dir), "experiments": len(history), "finalists": len(heldout), "winner": winner}, indent=2))
     return 0
 

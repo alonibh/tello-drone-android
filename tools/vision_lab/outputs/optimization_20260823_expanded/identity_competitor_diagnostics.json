@@ -1,17 +1,8 @@
 {
-  "winner": "refine4_yolo11n_08",
+  "winner": "refine4_yolo11n_35",
   "wrong_or_switch_indices": {
     "single_person": [],
-    "multi_person": [
-      47,
-      48,
-      49,
-      50,
-      51,
-      52,
-      53,
-      54
-    ],
+    "multi_person": [],
     "courtyard_single_a": [],
     "courtyard_single_b": [],
     "courtyard_competitor": []
