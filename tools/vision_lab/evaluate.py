@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
 """Evaluate detector and fail-closed single-target tracking on a vision ZIP."""
 
 from __future__ import annotations

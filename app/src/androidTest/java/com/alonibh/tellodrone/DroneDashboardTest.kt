@@ -86,3 +86,4 @@ class DroneDashboardTest {
         ).forEach { label -> compose.onNodeWithText(label).assertDoesNotExist() }
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

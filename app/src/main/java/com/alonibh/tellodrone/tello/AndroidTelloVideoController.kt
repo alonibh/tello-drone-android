@@ -14,7 +14,7 @@ import com.alonibh.tellodrone.vision.FallbackPersonDetectorFactory
 import com.alonibh.tellodrone.vision.PersonDetectionPipeline
 import com.alonibh.tellodrone.vision.PersonDetectionSnapshot
 import com.alonibh.tellodrone.vision.PersonDetectionStore
-import com.alonibh.tellodrone.vision.TfliteTaskPersonDetector
+import com.alonibh.tellodrone.vision.Yolo11nLiteRtPersonDetector
 import com.alonibh.tellodrone.vision.VisionTraceFeature
 import com.alonibh.tellodrone.vision.startProductionDetection
 import java.net.DatagramPacket
@@ -66,7 +66,7 @@ class AndroidTelloVideoController(
     override val state: StateFlow<VideoState> = mutableState.asStateFlow()
     private val decodedFrameSource: DecodedFrameSource = PixelCopyDecodedFrameSource(::updateAnalysisDiagnostics)
     private val detectorFactory = FallbackPersonDetectorFactory { model, backend ->
-        TfliteTaskPersonDetector(context.applicationContext, model, backend)
+        Yolo11nLiteRtPersonDetector(context.applicationContext, model, backend)
     }
     private val visionRecorder = VisionTraceFeature.recorder(context.applicationContext)
     private val detectionPipeline = PersonDetectionPipeline(
@@ -498,6 +498,8 @@ class AndroidTelloVideoController(
                 analysisFrameWidth = diagnostics.width,
                 analysisFrameHeight = diagnostics.height,
                 analysisLatestSequence = diagnostics.latestSequence,
+                analysisCapturedFrames = diagnostics.capturedFrames,
+                analysisDroppedFrames = diagnostics.droppedFrames,
             )
         }
     }
@@ -519,6 +521,10 @@ class AndroidTelloVideoController(
                 personDetectionState = snapshot.state,
                 detectorMeasuredFps = snapshot.measuredFps,
                 detectorInferenceMillis = snapshot.inferenceMillis,
+                detectorInitializationMillis = snapshot.initializationMillis,
+                detectorInferenceP50Millis = snapshot.inferenceP50Millis,
+                detectorInferenceP95Millis = snapshot.inferenceP95Millis,
+                detectorAnalyzedFrames = snapshot.analyzedFrames,
                 detectorBackend = snapshot.backend,
                 detectorModelName = snapshot.modelName,
                 detectorFellBackFromGpu = snapshot.fellBackFromGpu,
@@ -595,3 +601,4 @@ class AndroidTelloVideoController(
         private const val MAX_CODEC_INPUT_STALL_NANOS = 500_000_000L
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

@@ -56,3 +56,4 @@ class VideoOverlayCoordinateMapperTest {
         assertNull(VideoOverlayCoordinateMapper.mapFillBounds(NormalizedBoundingBox(.5f, 0f, .5f, 1f), 10f, 10f))
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

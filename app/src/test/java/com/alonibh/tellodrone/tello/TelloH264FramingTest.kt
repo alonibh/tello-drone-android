@@ -219,3 +219,4 @@ class TelloH264FramingTest {
     private fun BoundedAccessUnitBuffer.pollUnit(): H264AccessUnit? =
         (poll() as? H264DecodeInput.AccessUnit)?.value
 }
+// SPDX-License-Identifier: AGPL-3.0-only

@@ -100,3 +100,4 @@ class DryRunFollowPlanner(config: FollowPlannerConfig) {
 
     private fun zero(reason: DryRunControlReason) = DryRunControlIntent(reason = reason)
 }
+// SPDX-License-Identifier: AGPL-3.0-only

@@ -61,3 +61,4 @@ class AnalysisDiagnosticsPresentationTest {
         assertEquals(first.length, unavailable.length)
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

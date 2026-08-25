@@ -31,3 +31,4 @@ class ManualJoystickTest {
         assertEquals(ManualControlVector(vertical = .6f, yaw = .4f), manualVectorFromSticks(left, JoystickVector()))
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

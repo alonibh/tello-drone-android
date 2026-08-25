@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
 """Bounded temporary IdentityGuard experiment using the fixed 0288 ReID model."""
 
 from __future__ import annotations

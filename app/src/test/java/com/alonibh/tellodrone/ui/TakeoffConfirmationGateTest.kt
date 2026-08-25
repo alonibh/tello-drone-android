@@ -37,3 +37,4 @@ class TakeoffConfirmationGateTest {
         telemetry = TelemetrySnapshot(isFresh = true),
     )
 }
+// SPDX-License-Identifier: AGPL-3.0-only

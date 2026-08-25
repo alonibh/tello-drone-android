@@ -218,3 +218,4 @@ class Api28WifiScanPolicyTest {
         assertEquals("TELLO-MIXED", secured.ssid)
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

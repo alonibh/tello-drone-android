@@ -41,3 +41,4 @@ fun DroneSessionState.withPersonDetectionVideoState(nextVideo: VideoState): Dron
         } else lastMessage,
     )
 }
+// SPDX-License-Identifier: AGPL-3.0-only

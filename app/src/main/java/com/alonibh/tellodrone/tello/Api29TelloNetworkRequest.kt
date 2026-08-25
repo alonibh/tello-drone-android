@@ -25,3 +25,4 @@ internal object Api29TelloNetworkRequest {
         connectivityManager.requestNetwork(request, callback, TelloWifiNetworkManager.NETWORK_REQUEST_TIMEOUT_MILLIS)
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

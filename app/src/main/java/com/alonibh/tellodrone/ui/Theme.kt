@@ -10,3 +10,4 @@ val TelloGreen = Color(0xFF53D65C)
 val TelloGreenDark = Color(0xFF1E5B2A)
 val TelloRed = Color(0xFFDE3632)
 val TelloTextMuted = Color(0xFFAEB7BF)
+// SPDX-License-Identifier: AGPL-3.0-only

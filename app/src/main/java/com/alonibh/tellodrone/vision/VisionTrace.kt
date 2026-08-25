@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import com.alonibh.tellodrone.domain.CompetitorDiagnostic
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
+import com.alonibh.tellodrone.domain.HsvAppearanceHistogram
 import com.alonibh.tellodrone.domain.TargetAssociationDiagnostics
 import com.alonibh.tellodrone.domain.TargetAssociationMetrics
 import com.alonibh.tellodrone.domain.TargetAssociationState
@@ -78,6 +79,7 @@ internal object VisionTraceJson {
             if (index > 0) comma()
             append('{'); name("box"); box(detection.boundingBox)
             comma(); field("confidence", detection.confidence)
+            comma(); name("appearance"); appearance(detection.appearance)
             append('}')
         }
         append(']')
@@ -92,6 +94,7 @@ internal object VisionTraceJson {
         comma(); field("lastSeenFrameSequence", value.lastSeenFrameSequence)
         comma(); field("lastSeenSourceTimestampNanos", value.lastSeenSourceTimestampNanos)
         comma(); field("identityUncertain", value.identityUncertain)
+        comma(); name("appearance"); appearance(value.appearance)
         comma(); field("competitorCount", value.competingPeople.size)
         append('}')
     }
@@ -152,6 +155,16 @@ internal object VisionTraceJson {
             .append(value.right).append(',').append(value.bottom).append(']')
     }
 
+    private fun StringBuilder.appearance(value: HsvAppearanceHistogram?) {
+        if (value == null) { append("null"); return }
+        append('[')
+        value.bins.forEachIndexed { index, bin ->
+            if (index > 0) comma()
+            append(bin)
+        }
+        append(']')
+    }
+
     private fun StringBuilder.name(value: String) { string(value); append(':') }
     private fun StringBuilder.comma() { append(',') }
     private fun StringBuilder.field(name: String, value: String?) { name(name); if (value == null) append("null") else string(value) }
@@ -175,3 +188,4 @@ internal object VisionTraceJson {
         append('"')
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

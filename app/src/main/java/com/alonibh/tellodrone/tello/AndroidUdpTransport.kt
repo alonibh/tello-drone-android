@@ -106,3 +106,4 @@ class NetworkTelloTransport(
         const val STATE_PORT = 8_890
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

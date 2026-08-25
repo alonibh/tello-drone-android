@@ -36,3 +36,4 @@ class ShadowAutonomyGateTest {
     }
     private fun healthy(arm: Boolean = false, neutral: Boolean = true, hover: Boolean = false, association: TargetAssociationState = TargetAssociationState.Matched, telemetry: Boolean = true, video: VideoAvailability = VideoAvailability.Streaming, detector: PersonDetectionState = PersonDetectionState.Detecting, flight: FlightState = FlightState.Flying, fresh: Boolean = true, intent: Boolean = true) = ShadowAutonomyInput(DroneConnectionState.Connected, flight, telemetry, video, detector, true, association, TrackingErrors(targetPresent = true, targetFresh = fresh), DryRunControlIntent(actionable = intent, reason = DryRunControlReason.TARGET_MATCHED), neutral, hover, armRequested = arm)
 }
+// SPDX-License-Identifier: AGPL-3.0-only

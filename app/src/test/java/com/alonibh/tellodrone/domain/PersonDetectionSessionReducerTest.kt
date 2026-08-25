@@ -79,3 +79,4 @@ class PersonDetectionSessionReducerTest {
         assertNull(result.dryRunControlIntent)
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

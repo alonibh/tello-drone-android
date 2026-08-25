@@ -99,8 +99,8 @@ data class RawObjectDetection(
     val bottomPixels: Float,
 )
 
-const val DEFAULT_PERSON_CONFIDENCE_THRESHOLD = 0.55f
-const val MIN_PERSON_CONFIDENCE_THRESHOLD = 0.50f
+const val DEFAULT_PERSON_CONFIDENCE_THRESHOLD = 0.30f
+const val MIN_PERSON_CONFIDENCE_THRESHOLD = 0.20f
 const val MAX_PERSON_CONFIDENCE_THRESHOLD = 0.90f
 
 fun normalizeConfidenceThreshold(value: Float): Float {
@@ -110,7 +110,7 @@ fun normalizeConfidenceThreshold(value: Float): Float {
 }
 
 internal object ProductionPersonDetectorConfiguration {
-    val model = DetectorModel.EfficientDetLite2Int8
+    val model = DetectorModel.Yolo11nLiteRtFloat32
     val backendPreference = DetectorBackendPreference.Cpu
     const val confidenceThreshold = DEFAULT_PERSON_CONFIDENCE_THRESHOLD
 }
@@ -235,3 +235,4 @@ object PersonDetectionDeduplicator {
     private fun centerX(box: NormalizedBoundingBox): Float = (box.left + box.right) / 2f
     private fun centerY(box: NormalizedBoundingBox): Float = (box.top + box.bottom) / 2f
 }
+// SPDX-License-Identifier: AGPL-3.0-only

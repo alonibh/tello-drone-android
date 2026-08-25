@@ -111,3 +111,4 @@ class RealDroneController(context: Context) : DroneController {
         )
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

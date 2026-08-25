@@ -1,0 +1,13 @@
+Ultralytics YOLO11n model notice
+
+The production model yolo11n_320_float32.tflite is an export of the official
+Ultralytics YOLO11n checkpoint. Ultralytics code and models are used under the
+GNU Affero General Public License v3.0 (AGPL-3.0-only).
+
+Ultralytics: https://www.ultralytics.com/
+Source and license: https://github.com/ultralytics/ultralytics
+Checkpoint SHA-256: 0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1
+Exported model SHA-256: 3a4b2e9604487942c92ac1d00e0990e50dff55a1879a66c40906a579dad706e9
+
+Ultralytics names and trademarks remain the property of their respective
+owners. This notice does not claim ownership of the upstream code or model.

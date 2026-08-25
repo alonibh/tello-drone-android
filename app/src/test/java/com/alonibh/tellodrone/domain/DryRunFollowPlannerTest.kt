@@ -93,5 +93,12 @@ class DryRunFollowPlannerTest {
     private fun reference() = FollowDistanceReference(.3f, 1L, 1L, 7)
     private fun target(centerX: Float, frame: Long = 1L, timestamp: Long = 1L) = TargetSelection.select(detection(centerX, frame, timestamp))
     private fun detection(centerX: Float = .5f, frame: Long = 1L, timestamp: Long = 1L) =
-        PersonDetection(NormalizedBoundingBox(centerX - .1f, .3f, centerX + .1f, .7f), .9f, frame, timestamp)
+        PersonDetection(
+            NormalizedBoundingBox(centerX - .1f, .3f, centerX + .1f, .7f),
+            .9f,
+            frame,
+            timestamp,
+            HsvAppearanceHistogram(List(HsvAppearanceHistogram.BIN_COUNT) { if (it == 0) 1f else 0f }),
+        )
 }
+// SPDX-License-Identifier: AGPL-3.0-only

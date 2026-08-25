@@ -19,7 +19,7 @@ import org.junit.Test
 import kotlin.concurrent.thread
 
 class PersonDetectionPipelineTest {
-    @Test fun `production start uses EfficientDet Lite2 INT8 CPU at fifty five percent`() {
+    @Test fun `production start uses YOLO11n LiteRT FP32 CPU at thirty percent`() {
         val requests = mutableListOf<Pair<DetectorModel, DetectorBackendPreference>>()
         val snapshots = mutableListOf<PersonDetectionSnapshot>()
         val pipeline = PersonDetectionPipeline(
@@ -27,8 +27,8 @@ class PersonDetectionPipelineTest {
                 requests += model to preference
                 FakePersonDetector(backendFor(preference), model.displayName) {
                     listOf(
-                        detection(sourceTimestamp = 100L, confidence = .54f),
-                        detection(sourceTimestamp = 100L, confidence = .55f),
+                        detection(sourceTimestamp = 100L, confidence = .29f),
+                        detection(sourceTimestamp = 100L, confidence = .30f),
                     )
                 }
             },
@@ -39,12 +39,12 @@ class PersonDetectionPipelineTest {
         pipeline.process(frame())
 
         assertEquals(
-            listOf(DetectorModel.EfficientDetLite2Int8 to DetectorBackendPreference.Cpu),
+            listOf(DetectorModel.Yolo11nLiteRtFloat32 to DetectorBackendPreference.Cpu),
             requests,
         )
         assertEquals(DetectorBackend.Cpu, snapshots.last().backend)
-        assertEquals(DetectorModel.EfficientDetLite2Int8.displayName, snapshots.last().modelName)
-        assertEquals(listOf(.55f), snapshots.last().detections.map { it.confidence })
+        assertEquals(DetectorModel.Yolo11nLiteRtFloat32.displayName, snapshots.last().modelName)
+        assertEquals(listOf(.30f), snapshots.last().detections.map { it.confidence })
     }
 
     @Test fun `fake detector result is published and zero result clears immediately`() {
@@ -285,34 +285,6 @@ class PersonDetectionPipelineTest {
         assertEquals(0, activeDetector.closeCount)
     }
 
-    @Test fun `switching model recreates detector only when detection next starts`() {
-        val createdModels = mutableListOf<DetectorModel>()
-        val snapshots = mutableListOf<PersonDetectionSnapshot>()
-        val pipeline = PersonDetectionPipeline(
-            detectorFactory = { model, pref ->
-                createdModels += model
-                FakePersonDetector(backendFor(pref), modelName = model.displayName) { emptyList() }
-            },
-            onSnapshot = snapshots::add,
-        )
-
-        pipeline.start(DetectorModel.MobileNetV1)
-        pipeline.process(frame())
-        assertEquals(listOf(DetectorModel.MobileNetV1), createdModels)
-        assertEquals(DetectorModel.MobileNetV1.displayName, snapshots.last().modelName)
-
-        pipeline.stop()
-        pipeline.setDetectorModel(DetectorModel.EfficientDetLite0)
-        // Detector was not recreated immediately while stopped
-        assertEquals(listOf(DetectorModel.MobileNetV1), createdModels)
-
-        pipeline.start()
-        pipeline.process(frame())
-        // Recreated on start when processing frame
-        assertEquals(listOf(DetectorModel.MobileNetV1, DetectorModel.EfficientDetLite0), createdModels)
-        assertEquals(DetectorModel.EfficientDetLite0.displayName, snapshots.last().modelName)
-    }
-
     @Test fun `capture hook receives the exact frame object passed to detection`() {
         var captured: PersonDetectorFrame? = null
         var detected: PersonDetectorFrame? = null
@@ -366,3 +338,4 @@ class PersonDetectionPipelineTest {
         override fun close() { closeCount++ }
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

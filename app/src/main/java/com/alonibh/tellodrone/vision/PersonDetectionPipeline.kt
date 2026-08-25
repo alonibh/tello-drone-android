@@ -16,6 +16,10 @@ data class PersonDetectionSnapshot(
     val detections: List<PersonDetection> = emptyList(),
     val measuredFps: Float? = null,
     val inferenceMillis: Long? = null,
+    val initializationMillis: Long? = null,
+    val inferenceP50Millis: Float? = null,
+    val inferenceP95Millis: Float? = null,
+    val analyzedFrames: Long = 0,
     val modelName: String? = null,
     val backend: DetectorBackend? = null,
     val fellBackFromGpu: Boolean = false,
@@ -60,6 +64,10 @@ class PersonDetectionStore(
         inferenceMillis: Long,
         descriptor: PersonDetectorDescriptor,
         confidenceThreshold: Float,
+        initializationMillis: Long? = null,
+        inferenceP50Millis: Float? = null,
+        inferenceP95Millis: Float? = null,
+        analyzedFrames: Long = 0,
     ): PersonDetectionSnapshot {
         snapshot = PersonDetectionSnapshot(
             state = PersonDetectionState.Detecting,
@@ -67,6 +75,10 @@ class PersonDetectionStore(
             detections = detections.toList(),
             measuredFps = measuredFps,
             inferenceMillis = inferenceMillis,
+            initializationMillis = initializationMillis,
+            inferenceP50Millis = inferenceP50Millis,
+            inferenceP95Millis = inferenceP95Millis,
+            analyzedFrames = analyzedFrames,
             modelName = descriptor.modelName,
             backend = descriptor.backend,
             fellBackFromGpu = descriptor.fellBackFromGpu,
@@ -143,6 +155,7 @@ class PersonDetectionPipeline(
     private val generation = AtomicLong()
     private val store = PersonDetectionStore()
     private val frameRate = DetectionFrameRate()
+    private val timing = DetectionTiming()
     @Volatile private var enabled = false
     @Volatile private var model = defaultModel
     @Volatile private var preference = DetectorBackendPreference.Cpu
@@ -163,6 +176,7 @@ class PersonDetectionPipeline(
             generation.incrementAndGet()
             enabled = true
             frameRate.reset()
+            timing.reset()
             onSnapshot(store.start(model.displayName))
         }
     }
@@ -189,6 +203,7 @@ class PersonDetectionPipeline(
             enabled = false
             generation.incrementAndGet()
             frameRate.reset()
+            timing.reset()
             onSnapshot(store.stop())
         }
     }
@@ -200,9 +215,8 @@ class PersonDetectionPipeline(
     fun process(frame: PersonDetectorFrame) {
         val request = activeRequestSnapshot() ?: return
         try {
-            val startedAt = clockNanos()
             var creationNanos: Long? = null
-            val (detections, descriptor) = synchronized(detectorLock) {
+            val (detections, descriptor, inferenceNanos) = synchronized(detectorLock) {
                 if (!isRequestCurrent(request)) return
                 if (detectorModel != request.model || detectorPreference != request.preference) {
                     runCatching { detector?.close() }
@@ -225,11 +239,14 @@ class PersonDetectionPipeline(
                 }
                 if (!isRequestCurrent(request)) return
                 onAnalyzedFrame(frame)
-                activeDetector.detect(frame) to activeDetector.descriptor
+                val inferenceStartedAt = clockNanos()
+                val detected = activeDetector.detect(frame)
+                Triple(detected, activeDetector.descriptor, (clockNanos() - inferenceStartedAt).coerceAtLeast(0L))
             }
             val filteredDetections = detections.filter { it.confidence >= request.confidenceThreshold }
             val finishedAt = clockNanos()
             val measuredFps = frameRate.onResult(finishedAt)
+            val timingSnapshot = timing.onInference(inferenceNanos, creationNanos)
             synchronized(stateLock) {
                 if (!isRequestCurrentLocked(request)) return
                 onSnapshot(
@@ -239,15 +256,19 @@ class PersonDetectionPipeline(
                         processedFrameSequence = frame.metadata.sequence,
                         processedSourceTimestampNanos = frame.metadata.captureTimestampNanos,
                         measuredFps = measuredFps,
-                        inferenceMillis = ((finishedAt - startedAt).coerceAtLeast(0L) / 1_000_000L),
+                        inferenceMillis = inferenceNanos / 1_000_000L,
                         descriptor = descriptor,
                         confidenceThreshold = request.confidenceThreshold,
+                        initializationMillis = timingSnapshot.initializationMillis,
+                        inferenceP50Millis = timingSnapshot.p50Millis,
+                        inferenceP95Millis = timingSnapshot.p95Millis,
+                        analyzedFrames = timingSnapshot.frames,
                     ),
                 )
                 onInferenceMeasurement(
                     DetectorInferenceMeasurement(
                         completedAtNanos = finishedAt,
-                        inferenceNanos = (finishedAt - startedAt).coerceAtLeast(0L),
+                        inferenceNanos = inferenceNanos,
                         startupNanos = creationNanos,
                         descriptor = descriptor,
                     ),
@@ -343,6 +364,41 @@ class PersonDetectionPipeline(
             measured = null
         }
     }
+
+    private class DetectionTiming {
+        private val samples = ArrayDeque<Long>()
+        private var initializationMillis: Long? = null
+        private var frames = 0L
+
+        @Synchronized fun onInference(inferenceNanos: Long, startupNanos: Long?): Snapshot {
+            if (startupNanos != null) initializationMillis = startupNanos / 1_000_000L
+            samples += inferenceNanos
+            if (samples.size > MAX_SAMPLES) samples.removeFirst()
+            frames++
+            val ordered = samples.sorted()
+            fun percentile(fraction: Float): Float? {
+                if (ordered.isEmpty()) return null
+                val index = ((ordered.lastIndex) * fraction).toInt().coerceIn(0, ordered.lastIndex)
+                return ordered[index] / 1_000_000f
+            }
+            return Snapshot(initializationMillis, percentile(.50f), percentile(.95f), frames)
+        }
+
+        @Synchronized fun reset() {
+            samples.clear()
+            initializationMillis = null
+            frames = 0
+        }
+
+        data class Snapshot(
+            val initializationMillis: Long?,
+            val p50Millis: Float?,
+            val p95Millis: Float?,
+            val frames: Long,
+        )
+
+        companion object { const val MAX_SAMPLES = 300 }
+    }
 }
 
 internal fun PersonDetectionPipeline.startProductionDetection() = start(
@@ -350,3 +406,4 @@ internal fun PersonDetectionPipeline.startProductionDetection() = start(
     preference = ProductionPersonDetectorConfiguration.backendPreference,
     confidenceThreshold = ProductionPersonDetectorConfiguration.confidenceThreshold,
 )
+// SPDX-License-Identifier: AGPL-3.0-only

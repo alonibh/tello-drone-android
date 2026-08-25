@@ -32,3 +32,4 @@ class OperationalWindowPolicyTest {
         assertEquals(CompactHeightContent.Tracking, compactHeightContent("Tracking"))
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

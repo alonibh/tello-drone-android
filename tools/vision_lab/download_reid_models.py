@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
 """Download and verify the bounded experiment's Open Model Zoo artifacts."""
 
 from __future__ import annotations

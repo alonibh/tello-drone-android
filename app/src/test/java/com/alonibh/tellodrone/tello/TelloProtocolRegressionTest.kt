@@ -8,3 +8,4 @@ class TelloProtocolRegressionTest {
         assertEquals("rc 1 2 3 4", RcVector(1, 2, 3, 4).asCommand())
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

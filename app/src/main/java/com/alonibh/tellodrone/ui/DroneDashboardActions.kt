@@ -39,3 +39,4 @@ object NoOpDroneDashboardActions : DroneDashboardActions {
     override fun attachVideoSurface(surface: Surface) = Unit
     override fun detachVideoSurface(surface: Surface) = Unit
 }
+// SPDX-License-Identifier: AGPL-3.0-only

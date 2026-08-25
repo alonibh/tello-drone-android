@@ -78,17 +78,11 @@ class FallbackPersonDetectorFactoryTest {
             FakeDetector(backend, modelName = model.displayName)
         }
 
-        val detectorMobileNet = factory.create(DetectorModel.MobileNetV1, DetectorBackendPreference.Cpu)
-        assertEquals(DetectorModel.MobileNetV1.displayName, detectorMobileNet.descriptor.modelName)
-
-        val detectorEfficient = factory.create(DetectorModel.EfficientDetLite0, DetectorBackendPreference.Cpu)
-        assertEquals(DetectorModel.EfficientDetLite0.displayName, detectorEfficient.descriptor.modelName)
+        val detector = factory.create(DetectorModel.Yolo11nLiteRtFloat32, DetectorBackendPreference.Cpu)
+        assertEquals(DetectorModel.Yolo11nLiteRtFloat32.displayName, detector.descriptor.modelName)
 
         assertEquals(
-            listOf(
-                DetectorModel.MobileNetV1 to DetectorBackend.Cpu,
-                DetectorModel.EfficientDetLite0 to DetectorBackend.Cpu,
-            ),
+            listOf(DetectorModel.Yolo11nLiteRtFloat32 to DetectorBackend.Cpu),
             created,
         )
     }
@@ -119,3 +113,4 @@ class FallbackPersonDetectorFactoryTest {
         sourceTimestampNanos = 1L,
     )
 }
+// SPDX-License-Identifier: AGPL-3.0-only

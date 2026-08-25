@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
 """Fetch and hash-check the exact SOT research sources and checkpoints."""
 
 from __future__ import annotations

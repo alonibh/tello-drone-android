@@ -76,3 +76,4 @@ class LatestAnalysisFrameBuffer<T : OrderedAnalysisFrame> : AutoCloseable {
         released?.close()
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

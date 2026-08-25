@@ -42,3 +42,4 @@ class DroneViewModel(private val controller: DroneController) : ViewModel(), Dro
         override fun <T : ViewModel> create(modelClass: Class<T>): T = DroneViewModel(controller) as T
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

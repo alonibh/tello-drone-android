@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
 """Run a bounded, identity-first search on the fixed offline benchmark."""
 
 from __future__ import annotations

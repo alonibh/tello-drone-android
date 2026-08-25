@@ -70,3 +70,4 @@ class TrackingErrorEngine {
         const val VERTICAL_DISTANCE_EMA_ALPHA = .4f
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

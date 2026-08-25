@@ -12,3 +12,4 @@ object TelloSessionStore {
     fun set(value: DroneSessionState) { mutableState.value = value }
     fun update(transform: (DroneSessionState) -> DroneSessionState) { mutableState.value = transform(mutableState.value) }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

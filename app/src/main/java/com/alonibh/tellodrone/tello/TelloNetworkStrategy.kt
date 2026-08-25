@@ -10,3 +10,4 @@ enum class TelloNetworkStrategy {
             if (sdkInt >= 29) WifiNetworkSpecifier else Api28ScanAndConnect
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

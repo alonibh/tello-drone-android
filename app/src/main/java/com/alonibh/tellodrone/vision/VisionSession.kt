@@ -2,6 +2,7 @@ package com.alonibh.tellodrone.vision
 
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
+import com.alonibh.tellodrone.domain.HsvAppearanceHistogram
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TargetAssociationEngine
 import com.alonibh.tellodrone.domain.TargetAssociationResult
@@ -278,6 +279,11 @@ object VisionSessionArchive {
                 lastSeenFrameSequence = value.long("lastSeenFrameSequence"),
                 lastSeenSourceTimestampNanos = value.long("lastSeenSourceTimestampNanos"),
                 identityUncertain = value.boolean("identityUncertain"),
+                appearance = (value["appearance"] as? List<*>)?.let { bins ->
+                    val decoded = bins.map { it.asFloat("appearance bin") }
+                    if (decoded.size != HsvAppearanceHistogram.BIN_COUNT) malformed("Invalid appearance histogram")
+                    HsvAppearanceHistogram(decoded)
+                },
             )
         }
         return VisionSessionTraceSeed(
@@ -322,7 +328,6 @@ class VisionReplayAssociation(
     private var target: TrackedTarget? = null
     private var state = TargetAssociationState.None
     private var activeOriginalSelection: Pair<Long, Long>? = null
-    private var identityUncertainLatched = false
     private var lostLatched = false
 
     fun evaluate(
@@ -336,10 +341,17 @@ class VisionReplayAssociation(
         var violation = false
         val explicitReselection = originalSelection != null && originalSelection != activeOriginalSelection
         if (explicitReselection) {
-            target = recordedSelection
+            target = if (recordedSelection.appearance != null) recordedSelection else {
+                val matching = detections.minByOrNull { detection ->
+                    kotlin.math.abs(detection.boundingBox.left - recordedSelection.boundingBox.left) +
+                        kotlin.math.abs(detection.boundingBox.top - recordedSelection.boundingBox.top) +
+                        kotlin.math.abs(detection.boundingBox.right - recordedSelection.boundingBox.right) +
+                        kotlin.math.abs(detection.boundingBox.bottom - recordedSelection.boundingBox.bottom)
+                }
+                recordedSelection.copy(appearance = matching?.appearance)
+            }
             activeOriginalSelection = originalSelection
             state = TargetAssociationState.Selected
-            identityUncertainLatched = false
             lostLatched = false
         }
         val selectionIsThisFrame = explicitReselection && originalSelection == (frameSequence to sourceTimestampNanos)
@@ -354,7 +366,7 @@ class VisionReplayAssociation(
             selectedIndex = evaluation.diagnostics.selectedDetectionIndex
             when (val associated = evaluation.result) {
                 is TargetAssociationResult.Matched -> {
-                    violation = identityUncertainLatched || lostLatched
+                    violation = lostLatched
                     target = associated.target
                     state = TargetAssociationState.Matched
                 }
@@ -365,7 +377,6 @@ class VisionReplayAssociation(
                 is TargetAssociationResult.Ambiguous -> {
                     target = associated.target
                     state = TargetAssociationState.Ambiguous
-                    identityUncertainLatched = true
                 }
                 is TargetAssociationResult.Lost -> {
                     target = null
@@ -694,3 +705,4 @@ private fun Map<String, Any?>.optionalLong(name: String) = get(name)?.let {
 private fun Map<String, Any?>.optionalString(name: String) = get(name)?.let {
     it as? String ?: throw MalformedVisionSessionException("$name must be a string")
 }
+// SPDX-License-Identifier: AGPL-3.0-only

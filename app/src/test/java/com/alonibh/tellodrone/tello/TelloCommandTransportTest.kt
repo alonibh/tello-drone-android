@@ -48,3 +48,4 @@ class TelloCommandTransportTest {
         override suspend fun close() = Unit
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

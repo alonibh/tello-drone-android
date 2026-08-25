@@ -22,8 +22,7 @@ internal data class ReplayModelConfiguration(
 )
 
 internal val DEBUG_REPLAY_MODELS = listOf(
-    ReplayModelConfiguration(DetectorModel.EfficientDetLite0, "INT8 post-training quantized"),
-    ReplayModelConfiguration(DetectorModel.EfficientDetLite2Int8, "INT8 post-training quantized"),
+    ReplayModelConfiguration(DetectorModel.Yolo11nLiteRtFloat32, "FP32"),
 )
 
 internal class DebugVisionReplayManager(private val context: Context) {
@@ -126,7 +125,7 @@ internal class DebugVisionReplayManager(private val context: Context) {
         configuration: ReplayModelConfiguration,
     ): VisionReplayModelResult {
         val startupStarted = System.nanoTime()
-        val detector = TfliteTaskPersonDetector(context, configuration.model, DetectorBackend.Cpu)
+        val detector = Yolo11nLiteRtPersonDetector(context, configuration.model, DetectorBackend.Cpu)
         val startupNanos = (System.nanoTime() - startupStarted).coerceAtLeast(0L)
         return detector.use {
             val results = mutableListOf<VisionReplayFrameResult>()
@@ -190,3 +189,4 @@ internal class DebugVisionReplayManager(private val context: Context) {
         private const val MAX_IMPORTED_SESSION_BYTES = 256L * 1024L * 1024L
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

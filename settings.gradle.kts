@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "tello-drone-android"
 include(":app")
+// SPDX-License-Identifier: AGPL-3.0-only

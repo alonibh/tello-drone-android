@@ -13,3 +13,4 @@ class TelloNetworkStrategyTest {
         assertEquals(TelloNetworkStrategy.WifiNetworkSpecifier, TelloNetworkStrategy.forSdk(37))
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

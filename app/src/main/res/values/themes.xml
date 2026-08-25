@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.TelloDrone" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans</item>

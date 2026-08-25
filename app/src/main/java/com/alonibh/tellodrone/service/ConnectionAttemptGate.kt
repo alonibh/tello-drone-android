@@ -45,3 +45,4 @@ internal class ConnectionAttemptGate {
         clearSession()
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

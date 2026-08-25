@@ -174,3 +174,4 @@ class RcControlLoop(
         const val AUTONOMOUS_YAW_RC_CAP = ProductionYawController.ABSOLUTE_YAW_RC_CAP
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

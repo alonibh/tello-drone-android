@@ -299,3 +299,4 @@ class BoundedAccessUnitBuffer(
         private const val MIN_RECOVERY_CAPACITY = 3
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

@@ -20,3 +20,4 @@ internal fun manualVectorFromSticks(left: JoystickVector, right: JoystickVector)
     vertical = left.vertical,
     yaw = left.horizontal,
 )
+// SPDX-License-Identifier: AGPL-3.0-only

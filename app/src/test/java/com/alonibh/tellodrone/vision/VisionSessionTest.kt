@@ -192,17 +192,17 @@ class VisionSessionTest {
         }
     }
 
-    @Test fun `production detector configuration is Lite2 INT8 CPU point fifty five`() {
-        assertEquals(DetectorModel.EfficientDetLite2Int8, DetectorModel.Default)
-        assertEquals(DetectorModel.EfficientDetLite2Int8, ProductionPersonDetectorConfiguration.model)
+    @Test fun `production detector configuration is YOLO11n LiteRT FP32 CPU point thirty`() {
+        assertEquals(DetectorModel.Yolo11nLiteRtFloat32, DetectorModel.Default)
+        assertEquals(DetectorModel.Yolo11nLiteRtFloat32, ProductionPersonDetectorConfiguration.model)
         assertEquals(DetectorBackendPreference.Cpu, ProductionPersonDetectorConfiguration.backendPreference)
-        assertEquals(4, TfliteTaskPersonDetector.CPU_THREADS)
-        assertEquals(.55f, ProductionPersonDetectorConfiguration.confidenceThreshold)
+        assertEquals(4, Yolo11nLiteRtPersonDetector.CPU_THREADS)
+        assertEquals(.30f, ProductionPersonDetectorConfiguration.confidenceThreshold)
         assertEquals(
-            listOf(DetectorModel.EfficientDetLite0, DetectorModel.EfficientDetLite2Int8),
+            listOf(DetectorModel.Yolo11nLiteRtFloat32),
             DEBUG_REPLAY_MODELS.map { it.model },
         )
-        assertTrue(DEBUG_REPLAY_MODELS.all { it.quantization.startsWith("INT8") })
+        assertTrue(DEBUG_REPLAY_MODELS.all { it.quantization == "FP32" })
     }
 
     private fun manifest(
@@ -299,3 +299,4 @@ class VisionSessionTest {
         selectedSourceTimestampNanos = selectedTimestamp,
     )
 }
+// SPDX-License-Identifier: AGPL-3.0-only

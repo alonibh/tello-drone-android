@@ -320,3 +320,4 @@ class TelloWifiNetworkManager(private val context: Context) {
         const val NETWORK_REQUEST_TIMEOUT_MILLIS = 45_000
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

@@ -15,21 +15,13 @@ enum class DetectorModel(
     val assetFileName: String,
     val displayName: String,
 ) {
-    MobileNetV1(
-        assetFileName = "ssd_mobilenet_v1_metadata_v2.tflite",
-        displayName = "SSD MobileNet V1 COCO metadata v2",
-    ),
-    EfficientDetLite0(
-        assetFileName = "efficientdet_lite0_v1.tflite",
-        displayName = "EfficientDet-Lite0 COCO metadata v1",
-    ),
-    EfficientDetLite2Int8(
-        assetFileName = "efficientdet_lite2_metadata_v1_int8.tflite",
-        displayName = "EfficientDet-Lite2 INT8 COCO metadata v1",
+    Yolo11nLiteRtFloat32(
+        assetFileName = "yolo11n_320_float32.tflite",
+        displayName = "Ultralytics YOLO11n 320px LiteRT FP32",
     );
 
     companion object {
-        val Default = EfficientDetLite2Int8
+        val Default = Yolo11nLiteRtFloat32
     }
 }
 enum class FollowDistanceCalibrationState { NotSet, Calibrating, Set }
@@ -48,7 +40,21 @@ data class PersonDetection(
     val confidence: Float,
     val frameSequence: Long,
     val sourceTimestampNanos: Long,
+    val appearance: HsvAppearanceHistogram? = null,
 )
+
+/** Normalized 24x16 hue/saturation histogram extracted from the benchmark-defined body crop. */
+data class HsvAppearanceHistogram(val bins: List<Float>) {
+    init {
+        require(bins.size == BIN_COUNT)
+    }
+
+    companion object {
+        const val HUE_BINS = 24
+        const val SATURATION_BINS = 16
+        const val BIN_COUNT = HUE_BINS * SATURATION_BINS
+    }
+}
 
 /**
  * A real telemetry sample. Nullable fields were not present in the aircraft state packet and must
@@ -80,6 +86,12 @@ data class VideoState(
     val personDetectionState: PersonDetectionState = PersonDetectionState.Off,
     val detectorMeasuredFps: Float? = null,
     val detectorInferenceMillis: Long? = null,
+    val detectorInitializationMillis: Long? = null,
+    val detectorInferenceP50Millis: Float? = null,
+    val detectorInferenceP95Millis: Float? = null,
+    val detectorAnalyzedFrames: Long = 0,
+    val analysisCapturedFrames: Long = 0,
+    val analysisDroppedFrames: Long = 0,
     val detectorBackend: DetectorBackend? = null,
     val detectorModelName: String? = null,
     val detectorFellBackFromGpu: Boolean = false,
@@ -116,6 +128,7 @@ data class TrackedTarget(
     val competingPeople: List<CompetingPersonTrack> = emptyList(),
     /** Once set, association cannot match again; only explicit selection creates a new identity. */
     val identityUncertain: Boolean = false,
+    val appearance: HsvAppearanceHistogram? = null,
 )
 
 /** Brief geometry history for a separately observed non-target person. */
@@ -141,6 +154,7 @@ object TargetSelection {
         confidence = detection.confidence,
         selectedFrameSequence = detection.frameSequence,
         selectedSourceTimestampNanos = detection.sourceTimestampNanos,
+        appearance = detection.appearance,
     )
 }
 
@@ -176,7 +190,16 @@ data class DroneSessionState(
     /** App command state only: STOP/HOVER completed its explicit RC-zero action. */
     val hoverActive: Boolean = false,
     val lastMessage: String? = null,
+    val trackingStateTransitions: List<TrackingStateTransition> = emptyList(),
+)
+
+data class TrackingStateTransition(
+    val from: TargetAssociationState,
+    val to: TargetAssociationState,
+    val frameSequence: Long?,
+    val sourceTimestampNanos: Long?,
 )
 
 fun ManualControlVector.isZero(): Boolean =
     lateral == 0f && forward == 0f && vertical == 0f && yaw == 0f
+// SPDX-License-Identifier: AGPL-3.0-only

@@ -391,6 +391,7 @@ class TelloFlightSession(
                             authority = ControlAuthority.Manual,
                             personDetections = emptyList(),
                             target = null,
+                            trackingStateTransitions = emptyList(),
                             lastMessage = "Starting on-device person detection",
                         )
                     }
@@ -429,6 +430,12 @@ class TelloFlightSession(
                     target = target,
                     trackingErrors = errors,
                     targetAssociationState = TargetAssociationState.Selected,
+                    trackingStateTransitions = state.trackingStateTransitions.appendTransition(
+                        from = state.targetAssociationState,
+                        to = TargetAssociationState.Selected,
+                        frameSequence = detection.frameSequence,
+                        sourceTimestampNanos = detection.sourceTimestampNanos,
+                    ),
                     // A selection has no preceding detector-result interval. The planner fail-closes.
                     dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Selected, Float.NaN),
                     followDistanceReference = null,
@@ -736,13 +743,36 @@ class TelloFlightSession(
             }
             is TargetAssociationResult.Ignored -> baseline
         }
-        return AssociationUpdate(state, evaluation.diagnostics)
+        val instrumented = state.copy(
+            trackingStateTransitions = baseline.trackingStateTransitions.appendTransition(
+                from = baseline.targetAssociationState,
+                to = state.targetAssociationState,
+                frameSequence = frame.sequence,
+                sourceTimestampNanos = frame.sourceTimestampNanos,
+            ),
+        )
+        return AssociationUpdate(instrumented, evaluation.diagnostics)
     }
 
     private data class AssociationUpdate(
         val state: DroneSessionState,
         val diagnostics: TargetAssociationDiagnostics,
     )
+
+    private fun List<com.alonibh.tellodrone.domain.TrackingStateTransition>.appendTransition(
+        from: TargetAssociationState,
+        to: TargetAssociationState,
+        frameSequence: Long?,
+        sourceTimestampNanos: Long?,
+    ): List<com.alonibh.tellodrone.domain.TrackingStateTransition> {
+        if (from == to) return this
+        return (this + com.alonibh.tellodrone.domain.TrackingStateTransition(
+            from,
+            to,
+            frameSequence,
+            sourceTimestampNanos,
+        )).takeLast(MAX_TRACKING_TRANSITIONS)
+    }
 
     private fun resetRealTracking() = synchronized(trackingLock) { resetRealTrackingLocked() }
 
@@ -1017,5 +1047,7 @@ class TelloFlightSession(
         const val CONNECTION_LOST_MILLIS = 4_000L
         const val HEALTH_CHECK_PERIOD_MILLIS = 250L
         const val GROUNDED_HEIGHT_THRESHOLD_METERS = 0.20f
+        const val MAX_TRACKING_TRANSITIONS = 100
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

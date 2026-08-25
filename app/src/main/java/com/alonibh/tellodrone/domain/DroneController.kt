@@ -29,3 +29,4 @@ interface DroneController {
     fun detachVideoSurface(surface: Surface) = Unit
     fun onNetworkPermissionsResult(granted: Boolean) = Unit
 }
+// SPDX-License-Identifier: AGPL-3.0-only

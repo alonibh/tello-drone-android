@@ -15,3 +15,4 @@ interface TelloVideoController {
         else Result.success(Unit)
     suspend fun close()
 }
+// SPDX-License-Identifier: AGPL-3.0-only

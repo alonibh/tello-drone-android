@@ -20,9 +20,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.alonibh.tellodrone.domain.DroneSessionState
+import java.util.Locale
 
 @Composable
-fun VisionSessionControls() {
+fun VisionSessionControls(state: DroneSessionState) {
     val context = LocalContext.current
     val replay = remember { DebugVisionReplayManager(context.applicationContext) }
     var status by remember {
@@ -85,12 +87,18 @@ fun VisionSessionControls() {
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        DiagnosticButton("COPY GROUNDED DEVICE BENCHMARK") {
+            val report = deviceBenchmarkReport(state)
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("Tello grounded detector benchmark", report))
+            status = "Grounded device benchmark copied (${state.video.detectorAnalyzedFrames} analyzed frames)."
+        }
         DiagnosticButton("EXPORT VISION SESSION") { exportSession.launch("tello-vision-session.zip") }
         DiagnosticButton("IMPORT / SELECT SESSION") {
             importSession.launch(arrayOf("application/zip", "application/octet-stream"))
         }
         DiagnosticButton("RUN MODEL COMPARISON", enabled = sessionSelected) {
-            status = "Running Lite0 and Lite2 on the stored frames…"
+            status = "Running YOLO11n LiteRT on the stored frames…"
             reportReady = false
             replay.runComparison { result ->
                 result.onSuccess { report ->
@@ -119,9 +127,28 @@ fun VisionSessionControls() {
     }
 }
 
+private fun deviceBenchmarkReport(state: DroneSessionState): String = buildString {
+    fun Float?.metric(): String = this?.let { String.format(Locale.US, "%.3f", it) } ?: "null"
+    appendLine("model=${state.video.detectorModelName ?: "unknown"}")
+    appendLine("model_initialization_ms=${state.video.detectorInitializationMillis ?: "null"}")
+    appendLine("detector_inference_p50_ms=${state.video.detectorInferenceP50Millis.metric()}")
+    appendLine("detector_inference_p95_ms=${state.video.detectorInferenceP95Millis.metric()}")
+    appendLine("detector_fps=${state.video.detectorMeasuredFps.metric()}")
+    appendLine("analysis_fps=${state.video.analysisMeasuredFps.metric()}")
+    appendLine("preview_fps=${state.video.measuredFps.metric()}")
+    appendLine("captured_frames=${state.video.analysisCapturedFrames}")
+    appendLine("analyzed_frames=${state.video.detectorAnalyzedFrames}")
+    appendLine("dropped_frames=${state.video.analysisDroppedFrames}")
+    appendLine("tracking_transitions=${state.trackingStateTransitions.size}")
+    state.trackingStateTransitions.forEach { transition ->
+        appendLine("${transition.frameSequence ?: -1},${transition.sourceTimestampNanos ?: -1},${transition.from}->${transition.to}")
+    }
+}
+
 @Composable
 private fun DiagnosticButton(label: String, enabled: Boolean = true, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
         Text(label)
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

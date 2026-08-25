@@ -219,3 +219,4 @@ class PersonDetectionMapperTest {
     private fun raw(category: String, confidence: Float, left: Float, top: Float, right: Float, bottom: Float) =
         RawObjectDetection(category, confidence, left, top, right, bottom)
 }
+// SPDX-License-Identifier: AGPL-3.0-only

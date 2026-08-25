@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
 """Extract canonical frames and bootstrap a fixed, reviewable identity benchmark."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+
 # Tello Drone Android
 
 Native Android control station for a Ryze/DJI Tello, designed for adaptive Android windows on
@@ -30,3 +32,22 @@ propellers, or real-world flight safety.
 
 The original [Python repository](https://github.com/alonibh/tello-drone-mcp) is behavioral history
 and reference only; it is not modified or embedded here.
+
+## Person detector
+
+Production person detection uses the official Ultralytics YOLO11n checkpoint exported at a fixed
+320 × 320 input size to an FP32 LiteRT/TFLite model for fully local Android CPU inference. The app
+does not contain or execute Python, PyTorch, or the Ultralytics Python runtime. Ultralytics YOLO
+code and models are provided by Ultralytics and are used under the GNU Affero General Public
+License v3.0. Ultralytics names and trademarks remain the property of their respective owners.
+
+## License
+
+Project-owned source code, tests, documentation, and assets in this repository are licensed under
+the [GNU Affero General Public License v3.0](LICENSE), identified by
+`SPDX-License-Identifier: AGPL-3.0-only`. This license decision does not transfer ownership of any
+third-party component. Third-party dependencies, tools, and model artifacts remain copyrighted by
+their respective owners and are distributed or referenced under their own compatible terms.
+
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the dependency, asset, and model audit and
+the notices that must be preserved in redistributions.

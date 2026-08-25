@@ -35,6 +35,7 @@ class PixelCopyDecodedFrameSource(
     private val consumer = AtomicReference<DecodedFrameConsumer?>()
     private val consumerDrainScheduled = AtomicBoolean()
     private val sequence = AtomicLong()
+    private val capturedFrames = AtomicLong()
     private val frameRate = SuccessfulFrameRate()
     private val closeComplete = CompletableDeferred<Unit>()
 
@@ -54,6 +55,7 @@ class PixelCopyDecodedFrameSource(
             frameRate.reset()
         }
         latestFrame.reset()
+        capturedFrames.set(0)
         onDiagnostics(AnalysisFrameDiagnostics())
     }
 
@@ -135,6 +137,7 @@ class PixelCopyDecodedFrameSource(
                 if (result == PixelCopy.SUCCESS && isCurrent(generation)) {
                     val nowNanos = System.nanoTime()
                     val frameSequence = sequence.incrementAndGet()
+                    val capturedCount = capturedFrames.incrementAndGet()
                     val metadata = AnalysisFrameMetadata(
                         width = bitmap.width,
                         height = bitmap.height,
@@ -153,6 +156,8 @@ class PixelCopyDecodedFrameSource(
                                 width = bitmap.width,
                                 height = bitmap.height,
                                 latestSequence = frameSequence,
+                                capturedFrames = capturedCount,
+                                droppedFrames = latestFrame.droppedFrames,
                             ),
                         )
                         scheduleConsumerDrain()
@@ -308,3 +313,4 @@ class PixelCopyDecodedFrameSource(
         private const val CONSUMER_CLOSE_WAIT_MILLIS = 5_000L
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

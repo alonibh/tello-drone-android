@@ -47,3 +47,4 @@ class VisionTraceJsonTest {
         assertFalse(line.contains('\n'))
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

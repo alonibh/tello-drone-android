@@ -58,3 +58,4 @@ class SerializedTelloCommandTransport(
 
     companion object { private const val CANCELLATION_MARGIN_MILLIS = 250L }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

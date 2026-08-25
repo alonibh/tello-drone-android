@@ -36,3 +36,4 @@ class TargetedContinuityOptimizationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+# SPDX-License-Identifier: AGPL-3.0-only

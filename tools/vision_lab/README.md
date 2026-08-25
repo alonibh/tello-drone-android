@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+
 # Offline vision lab
 
 This development-only harness evaluates recorded vision sessions without being
@@ -5,8 +7,8 @@ referenced by the Android Gradle build. It never opens a drone connection and
 does not alter the production detector, association engine, or flight state.
 
 The input ZIP is canonical. `manifest.json` defines frame order and source
-timestamps, `trace.jsonl` supplies the exact recorded EfficientDet-Lite2
-baseline, and `frames/*.jpg` are the only evaluated pixels. A screen recording
+timestamps, `trace.jsonl` supplies the recorded historical detector baseline,
+and `frames/*.jpg` are the only evaluated pixels. A screen recording
 may be inspected separately, but is never decoded as evaluation input.
 
 The five-video optimizer is a separate reproducible benchmark path. It samples
@@ -22,6 +24,7 @@ From the repository root in PowerShell:
 ```powershell
 C:\path\to\python.exe -m venv tools\vision_lab\.venv
 tools\vision_lab\.venv\Scripts\python.exe -m pip install -r tools\vision_lab\requirements.txt
+tools\vision_lab\.venv\Scripts\python.exe -m pip install -r tools\vision_lab\requirements-export.txt
 New-Item -ItemType Directory -Force tools\vision_lab\.cache | Out-Null
 Push-Location tools\vision_lab\.cache
 ..\.venv\Scripts\python.exe -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
@@ -33,27 +36,32 @@ The official `yolo11n.pt` used for the recorded result has SHA-256
 After setup, evaluation is local/offline; the script refuses to run if the
 checkpoint is absent or has the wrong hash.
 
-## Run
+## Exported production model
 
 ```powershell
-tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\evaluate.py `
-  --session-zip "C:\path\to\tello-vision-session.zip" `
-  --baseline-model app\src\main\assets\efficientdet_lite2_metadata_v1_int8.tflite `
-  --output-dir tools\vision_lab\outputs\my_run
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\export_yolo11n_litert.py `
+  --checkpoint tools\vision_lab\.cache\yolo11n.pt `
+  --output tools\vision_lab\work\yolo11n_320_float32.tflite
 ```
 
-For the fixed five-video identity benchmark:
+The selected artifact is FP32, 10,593,560 bytes, SHA-256
+`3a4b2e9604487942c92ac1d00e0990e50dff55a1879a66c40906a579dad706e9`.
+FP16 was rejected because the tested full-FP16 graph could not allocate on the
+LiteRT CPU fallback. Strict INT8 conversion did not produce a valid artifact.
+
+Run the exact exported model through the frozen five-video benchmark:
 
 ```powershell
-tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\prepare_benchmark.py `
-  --video-dir "C:\path\to\videos" `
-  --output-dir tools\vision_lab\work\benchmark
-
-tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\optimize_benchmark.py `
-  --benchmark-dir tools\vision_lab\work\benchmark `
-  --output-dir tools\vision_lab\work\optimization `
-  --baseline-model app\src\main\assets\efficientdet_lite2_metadata_v1_int8.tflite
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\exported_model_benchmark.py `
+  --benchmark-dir tools\vision_lab\work\benchmark_expanded `
+  --model app\src\main\assets\yolo11n_320_float32.tflite `
+  --output-dir tools\vision_lab\outputs\yolo11n_litert_20260825
 ```
+
+The committed result is the held-out safety gate: 0 identity switches, 0
+wrong-person frames, 0 false tracks while invisible, and 84.682% identity-safe
+continuity, 0.172 percentage points below the 84.854% YOLO11n reference. Desktop
+timings in that report are not Teclast performance claims.
 
 The benchmark spec, reviewed annotation snapshot, split explanation, experiment
 history, ranked finalists, winning config, timelines, annotated winner videos,
@@ -69,13 +77,13 @@ tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\detector_bakeoff.py `
   --max-experiments 8
 ```
 
-This path considers only official YOLOX-Nano and NanoDet-Plus artifacts. It
+This historical path considers only official YOLOX-Nano and NanoDet-Plus artifacts. It
 separately gates source-code and pretrained-weight licensing before any model
 download or inference, enforces two families/four configurations per family/
 eight experiments total, and reproduces the corrected YOLO11n safe reference.
 An unclear pretrained-weight license is a mandatory pre-evaluation rejection;
 research availability is not treated as permission to bundle a model in a
-proprietary Android app. The detector swap never changes the frozen association,
+Android app. The detector swap never changes the frozen association,
 tracking, Lost latch, or explicit-reselection semantics.
 
 For the bounded persistent single-object-tracker architecture experiment:

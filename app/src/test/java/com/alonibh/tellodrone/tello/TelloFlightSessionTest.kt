@@ -4,6 +4,7 @@ package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.FlightState
+import com.alonibh.tellodrone.domain.HsvAppearanceHistogram
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
@@ -907,5 +908,12 @@ class TelloFlightSessionTest {
         box: NormalizedBoundingBox = NormalizedBoundingBox(.30f, .20f, .50f, .80f),
         frame: Long,
         timestamp: Long,
-    ) = PersonDetection(box, .9f, frame, timestamp)
+    ) = PersonDetection(
+        box,
+        .9f,
+        frame,
+        timestamp,
+        HsvAppearanceHistogram(List(HsvAppearanceHistogram.BIN_COUNT) { if (it == 0) 1f else 0f }),
+    )
 }
+// SPDX-License-Identifier: AGPL-3.0-only

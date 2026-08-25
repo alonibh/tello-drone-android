@@ -37,6 +37,8 @@ data class AnalysisFrameDiagnostics(
     val width: Int? = null,
     val height: Int? = null,
     val latestSequence: Long? = null,
+    val capturedFrames: Long = 0,
+    val droppedFrames: Long = 0,
 )
 
 /**
@@ -52,3 +54,4 @@ interface DecodedFrameSource {
     fun executeOnConsumerThread(action: () -> Unit): Boolean
     suspend fun close()
 }
+// SPDX-License-Identifier: AGPL-3.0-only

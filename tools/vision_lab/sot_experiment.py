@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-only
 """Bounded persistent single-object-tracker identity experiment.
 
 LightTrack-Mobile and NanoTrackV3 own target localization after an explicit

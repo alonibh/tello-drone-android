@@ -55,3 +55,4 @@ class ShadowAutonomyGate {
 class ShadowAutonomyReplay(private val gate: ShadowAutonomyGate = ShadowAutonomyGate()) {
     fun replay(inputs: List<ShadowAutonomyInput>): List<ShadowAutonomyDecision> = inputs.map(gate::evaluate)
 }
+// SPDX-License-Identifier: AGPL-3.0-only

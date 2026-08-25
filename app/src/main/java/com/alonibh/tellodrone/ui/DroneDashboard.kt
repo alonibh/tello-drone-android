@@ -666,7 +666,7 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneDashboardActions, m
         state.video.availability == VideoAvailability.Streaming &&
         state.video.analysisLatestSequence != null
     RealPersonDetectionAction(state, vm, canStart)
-    VisionSessionControls()
+    VisionSessionControls(state)
     val targetStatus = when (state.targetAssociationState) {
         TargetAssociationState.None -> null
         TargetAssociationState.Selected, TargetAssociationState.Matched -> "TARGET SELECTED"
@@ -1021,3 +1021,4 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
     }
 }
 private fun tabletPreviewState(flight: FlightState, hoverActive: Boolean = false) = DroneSessionState(connection = DroneConnectionState.Connected, flight = flight, telemetry = com.alonibh.tellodrone.domain.TelemetrySnapshot(isFresh = true), hoverActive = hoverActive)
+// SPDX-License-Identifier: AGPL-3.0-only

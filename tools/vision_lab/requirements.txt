@@ -4,3 +4,4 @@ opencv-python==5.0.0.93
 openvino==2026.0.0
 torch==2.13.0
 ultralytics==8.3.191
+# SPDX-License-Identifier: AGPL-3.0-only

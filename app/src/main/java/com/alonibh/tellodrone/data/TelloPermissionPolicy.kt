@@ -23,3 +23,4 @@ object TelloPermissionPolicy {
         ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

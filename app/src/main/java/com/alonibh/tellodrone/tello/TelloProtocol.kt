@@ -89,3 +89,4 @@ sealed interface TelloCommandResult {
     data object Timeout : TelloCommandResult
     data class Failure(val cause: Throwable) : TelloCommandResult
 }
+// SPDX-License-Identifier: AGPL-3.0-only

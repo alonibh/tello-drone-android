@@ -120,3 +120,4 @@ class FollowDistanceCalibrationTest {
     private fun boxForScale(scale: Float) = NormalizedBoundingBox(.5f - scale / 2, .5f - scale / 2, .5f + scale / 2, .5f + scale / 2)
     private fun target(box: NormalizedBoundingBox) = TrackedTarget(box, .9f, 1L, 1L)
 }
+// SPDX-License-Identifier: AGPL-3.0-only

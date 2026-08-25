@@ -134,3 +134,4 @@ class RcControlLoopTest {
 
     internal class FakeClock(var value: Long) : MonotonicClock { override fun nowMillis() = value }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

@@ -388,3 +388,4 @@ object TelloServiceGateway {
     fun disconnect() = service?.disconnect()
     fun isAvailable(): Boolean = service != null
 }
+// SPDX-License-Identifier: AGPL-3.0-only

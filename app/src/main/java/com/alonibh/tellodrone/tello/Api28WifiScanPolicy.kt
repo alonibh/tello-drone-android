@@ -123,3 +123,4 @@ class Api28NetworkAcceptanceGate<TNetwork>(
         retainedNetwork = null
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only

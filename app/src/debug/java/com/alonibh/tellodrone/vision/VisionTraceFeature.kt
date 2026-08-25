@@ -313,3 +313,4 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         internal const val MAX_PENDING_BITMAPS = 8
     }
 }
+// SPDX-License-Identifier: AGPL-3.0-only
