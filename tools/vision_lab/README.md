@@ -60,6 +60,31 @@ history, ranked finalists, winning config, timelines, annotated winner videos,
 and baseline comparisons are retained under `tools/vision_lab/benchmark` and
 `tools/vision_lab/outputs/optimization_20260823_expanded`.
 
+For the bounded persistent single-object-tracker architecture experiment:
+
+```powershell
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\fetch_sot_models.py
+
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\sot_experiment.py `
+  --benchmark-dir tools\vision_lab\work\benchmark_expanded `
+  --output-dir tools\vision_lab\outputs\sot_20260825 `
+  --max-experiments 12
+```
+
+This path evaluates only LightTrack-Mobile and NanoTrackV3. At each explicit
+selection it freezes the neural template and original appearance evidence. The
+SOT owns every target box; cached YOLO person detections can suppress an
+unreliable or ambiguous SOT prediction but can never replace, correct, or
+reinitialize it. Missing may recover only while the same SOT continues; Lost
+is latched until explicit reselection. The script enforces two tracker families,
+eight configurations per family, 16 experiments total, and at most one
+refinement pass. Tuning candidates are frozen before held-out evaluation.
+
+`sot_models.json` pins source commits, model hashes, and separate code/weight
+license findings. The supplied pretrained-weight grants are unclear for a
+proprietary app, so the assets are research-only unless their owners clarify
+the model-weight terms.
+
 For the reproducible corrected-winner Missing/Lost diagnosis and bounded
 continuity search:
 

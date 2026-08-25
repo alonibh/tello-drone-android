@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "lighttrack_mobile": {
+    "repository": "https://github.com/researchmm/LightTrack.git",
+    "commit": "39c426f48ee674795cdf0e00301a0b4ad0785d2a",
+    "code_license": "MIT",
+    "code_license_url": "https://github.com/researchmm/LightTrack/blob/39c426f48ee674795cdf0e00301a0b4ad0785d2a/LICENSE",
+    "weight_path": "snapshot/LightTrackM/LightTrackM.pth",
+    "weight_sha256": "b3ee9358386c0cb97948b1f68c8499f38929e9914663a6ef039c6ffa9117bef3",
+    "weight_license": "unclear; no separate explicit model-weight license or provenance terms",
+    "proprietary_deployable": false
+  },
+  "nanotrack_v3": {
+    "repository": "https://github.com/HonglinChu/SiamTrackers.git",
+    "commit": "248663fde6bf7c40190cf10ee396d5662919ecd3",
+    "code_license": "Apache-2.0 in NanoTrack/LICENSE",
+    "code_license_url": "https://github.com/HonglinChu/SiamTrackers/blob/248663fde6bf7c40190cf10ee396d5662919ecd3/NanoTrack/LICENSE",
+    "backbone_path": "NanoTrack/models/nanotrackv3/nanotrack_backbone.onnx",
+    "backbone_sha256": "50be1320abf9384fd3479ea829f95e244cf3f3838190c5ab60c750fb8c1ce828",
+    "head_path": "NanoTrack/models/nanotrackv3/nanotrack_head.onnx",
+    "head_sha256": "75357903be3f4817c965af16cb5a11fd32b1467f597a408405a98635ac63f61d",
+    "weight_license": "unclear; no separate explicit model-weight license or provenance grant",
+    "proprietary_deployable": false
+  }
+}
