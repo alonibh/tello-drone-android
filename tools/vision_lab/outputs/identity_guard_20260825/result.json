@@ -1,0 +1,730 @@
+{
+  "limits": {
+    "maximum_experiments": 12,
+    "maximum_refinement_rounds": 1,
+    "actual_experiments": 12,
+    "actual_rounds": 1,
+    "models_tested": [
+      "person-reidentification-retail-0288"
+    ],
+    "global_optimizer_run": false,
+    "stop_reason": "all bounded candidates violated tuning identity safety; stop lightweight tuning",
+    "safety_eligible_tuning_candidates": 0
+  },
+  "normal_tracking_config": {
+    "name": "previous_corrected_winner",
+    "family": "previous_corrected_winner",
+    "detector": "yolo11n",
+    "use_lk": false,
+    "detector_cadence": 1,
+    "high_confidence": 0.3,
+    "low_confidence": 0.3,
+    "iou_gate": 0.15,
+    "distance_gate": 0.24,
+    "appearance_gate": 0.45,
+    "ambiguity_margin": 0.1,
+    "low_confidence_appearance_margin": 0.06,
+    "low_confidence_iou_margin": 0.08,
+    "low_confidence_distance_scale": 0.7,
+    "persistent_appearance_weight": 0.6,
+    "persistent_conflict_margin": 0.06,
+    "reacquire_confirmation_frames": 2,
+    "persistent_identity_safety": false,
+    "lk_fb_error": 1.2,
+    "lk_inlier_ratio": 0.58,
+    "lk_min_features": 10,
+    "lk_feature_count": 120,
+    "motion_alpha": 0.0,
+    "camera_compensation": false,
+    "missing_ttl_s": 0.4
+  },
+  "fixed_reacquisition_config": {
+    "name": "fixed_0288_reacquisition",
+    "model": "person-reidentification-retail-0288",
+    "identity_threshold": 0.64,
+    "selection_floor": 0.42,
+    "competitor_margin": 0.04,
+    "score_margin": 0.02,
+    "confirmation_frames": 2,
+    "max_center_distance": 0.58,
+    "max_scale_ratio": 6.0,
+    "gallery_admission_similarity": 0.62,
+    "gallery_min_confidence": 0.55,
+    "gallery_size": 10
+  },
+  "detector_timing": {
+    "frames": 1365,
+    "mean_ms": 104.425,
+    "median_ms": 70.547,
+    "p95_ms": 232.676
+  },
+  "embedding_timing": {
+    "uncached_inferences": 1320,
+    "mean_ms": 7.058,
+    "median_ms": 4.165,
+    "p95_ms": 16.734
+  },
+  "baseline_heldout": {
+    "aggregate": {
+      "visible_target_frames": 581,
+      "identity_safe_tracked_frames": 493,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "false_tracked_while_target_invisible": 0,
+      "identity_safe_continuity_percent": 84.854,
+      "lost_visible_frames": 76,
+      "missing_visible_frames": 12,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9243,
+      "jitter_rms_norm": 0.039288
+    },
+    "per_video": {
+      "single_person": {
+        "visible_target_frames": 104,
+        "identity_safe_tracked_frames": 59,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 56.731,
+        "lost_visible_frames": 41,
+        "missing_visible_frames": 4,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.914,
+        "jitter_rms_norm": 0.037454,
+        "wrong_indices": []
+      },
+      "multi_person": {
+        "visible_target_frames": 35,
+        "identity_safe_tracked_frames": 35,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.8453,
+        "jitter_rms_norm": 0.022874,
+        "wrong_indices": []
+      },
+      "courtyard_single_a": {
+        "visible_target_frames": 147,
+        "identity_safe_tracked_frames": 146,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 99.32,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 1,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9253,
+        "jitter_rms_norm": 0.035555,
+        "wrong_indices": []
+      },
+      "courtyard_single_b": {
+        "visible_target_frames": 155,
+        "identity_safe_tracked_frames": 155,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9479,
+        "jitter_rms_norm": 0.048201,
+        "wrong_indices": []
+      },
+      "courtyard_competitor": {
+        "visible_target_frames": 140,
+        "identity_safe_tracked_frames": 98,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 70.0,
+        "lost_visible_frames": 35,
+        "missing_visible_frames": 7,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9202,
+        "jitter_rms_norm": 0.032999,
+        "wrong_indices": []
+      }
+    }
+  },
+  "frozen_guard_config": {
+    "name": "guard_identity0.70_separation0.06_exit3",
+    "identity_threshold": 0.7,
+    "selection_floor": 0.5399999999999999,
+    "competitor_margin": 0.06,
+    "exit_clear_frames": 3,
+    "exit_association_margin": 0.15,
+    "gallery_admission_similarity": 0.62,
+    "gallery_min_confidence": 0.55,
+    "gallery_size": 10
+  },
+  "frozen_guard_was_tuning_eligible": false,
+  "frozen_guard_heldout": {
+    "aggregate": {
+      "visible_target_frames": 581,
+      "identity_safe_tracked_frames": 532,
+      "identity_switch_events": 1,
+      "wrong_person_frames": 9,
+      "false_tracked_while_target_invisible": 0,
+      "identity_safe_continuity_percent": 91.566,
+      "lost_visible_frames": 22,
+      "missing_visible_frames": 18,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9079,
+      "jitter_rms_norm": 0.038242
+    },
+    "per_video": {
+      "single_person": {
+        "visible_target_frames": 104,
+        "identity_safe_tracked_frames": 83,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 79.808,
+        "lost_visible_frames": 10,
+        "missing_visible_frames": 11,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.8997,
+        "jitter_rms_norm": 0.033513,
+        "wrong_indices": []
+      },
+      "multi_person": {
+        "visible_target_frames": 35,
+        "identity_safe_tracked_frames": 35,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.8453,
+        "jitter_rms_norm": 0.022874,
+        "wrong_indices": []
+      },
+      "courtyard_single_a": {
+        "visible_target_frames": 147,
+        "identity_safe_tracked_frames": 146,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 99.32,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 1,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9253,
+        "jitter_rms_norm": 0.035555,
+        "wrong_indices": []
+      },
+      "courtyard_single_b": {
+        "visible_target_frames": 155,
+        "identity_safe_tracked_frames": 155,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9479,
+        "jitter_rms_norm": 0.048201,
+        "wrong_indices": []
+      },
+      "courtyard_competitor": {
+        "visible_target_frames": 140,
+        "identity_safe_tracked_frames": 113,
+        "identity_switch_events": 1,
+        "wrong_person_frames": 9,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 80.714,
+        "lost_visible_frames": 12,
+        "missing_visible_frames": 6,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.8598,
+        "jitter_rms_norm": 0.030959,
+        "wrong_indices": [
+          152,
+          153,
+          154,
+          155,
+          156,
+          157,
+          158,
+          159,
+          160
+        ]
+      }
+    }
+  },
+  "heldout_guard_diagnostics": {
+    "single_person": [
+      {
+        "entries": [
+          {
+            "frame": 135,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 143,
+            "reason": "ReID-confirmed reacquisition"
+          },
+          {
+            "frame": 147,
+            "reason": "ReID-confirmed reacquisition"
+          },
+          {
+            "frame": 150,
+            "reason": "ReID-confirmed reacquisition"
+          }
+        ],
+        "exits": [],
+        "vetoes": [
+          {
+            "frame": 135,
+            "identity_similarity": 0.160277,
+            "selection_similarity": 0.145839,
+            "best_competitor_similarity": 0.109773,
+            "competitor_separation": 0.050504,
+            "association_margin": 0.14770222258616683,
+            "strong_overlap": true,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 136,
+            "identity_similarity": 0.582176,
+            "selection_similarity": 0.487288,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.582176,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 144,
+            "identity_similarity": 0.670995,
+            "selection_similarity": 0.547732,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.670995,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 145,
+            "identity_similarity": 0.658422,
+            "selection_similarity": 0.555134,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.658422,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 146,
+            "identity_similarity": 0.67732,
+            "selection_similarity": 0.581323,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.67732,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 148,
+            "identity_similarity": 0.665722,
+            "selection_similarity": 0.562672,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.665722,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 149,
+            "identity_similarity": 0.671539,
+            "selection_similarity": 0.559912,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.671539,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          }
+        ],
+        "reacquisitions": [
+          143,
+          147,
+          150
+        ],
+        "fail_closed_reacquisition_frames": 4
+      },
+      {
+        "entries": [
+          {
+            "frame": 259,
+            "reason": "ReID-confirmed reacquisition"
+          },
+          {
+            "frame": 277,
+            "reason": "strong competitor overlap"
+          }
+        ],
+        "exits": [
+          262,
+          282
+        ],
+        "vetoes": [
+          {
+            "frame": 277,
+            "identity_similarity": 0.815853,
+            "selection_similarity": 0.654994,
+            "best_competitor_similarity": 0.874183,
+            "competitor_separation": -0.05833,
+            "association_margin": 0.12226671528279776,
+            "strong_overlap": true,
+            "reason": "identity veto"
+          }
+        ],
+        "reacquisitions": [
+          259
+        ],
+        "fail_closed_reacquisition_frames": 63
+      }
+    ],
+    "multi_person": [
+      {
+        "entries": [],
+        "exits": [],
+        "vetoes": [],
+        "reacquisitions": [],
+        "fail_closed_reacquisition_frames": 3
+      },
+      {
+        "entries": [],
+        "exits": [],
+        "vetoes": [],
+        "reacquisitions": [],
+        "fail_closed_reacquisition_frames": 0
+      }
+    ],
+    "courtyard_single_a": [
+      {
+        "entries": [
+          {
+            "frame": 147,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 156,
+            "reason": "competitor ambiguity"
+          }
+        ],
+        "exits": [
+          150,
+          159
+        ],
+        "vetoes": [],
+        "reacquisitions": [],
+        "fail_closed_reacquisition_frames": 0
+      },
+      {
+        "entries": [],
+        "exits": [],
+        "vetoes": [],
+        "reacquisitions": [],
+        "fail_closed_reacquisition_frames": 0
+      }
+    ],
+    "courtyard_single_b": [
+      {
+        "entries": [],
+        "exits": [],
+        "vetoes": [],
+        "reacquisitions": [],
+        "fail_closed_reacquisition_frames": 0
+      },
+      {
+        "entries": [],
+        "exits": [],
+        "vetoes": [],
+        "reacquisitions": [],
+        "fail_closed_reacquisition_frames": 0
+      }
+    ],
+    "courtyard_competitor": [
+      {
+        "entries": [
+          {
+            "frame": 92,
+            "reason": "competitor ambiguity"
+          },
+          {
+            "frame": 103,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 121,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 125,
+            "reason": "ReID-confirmed reacquisition"
+          },
+          {
+            "frame": 130,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 138,
+            "reason": "ReID-confirmed reacquisition"
+          }
+        ],
+        "exits": [
+          96,
+          106,
+          128,
+          141
+        ],
+        "vetoes": [
+          {
+            "frame": 123,
+            "identity_similarity": 0.237259,
+            "selection_similarity": 0.204028,
+            "best_competitor_similarity": 0.250362,
+            "competitor_separation": -0.013103,
+            "association_margin": 0.18781411828436612,
+            "strong_overlap": true,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 132,
+            "identity_similarity": 0.204201,
+            "selection_similarity": 0.160274,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.204201,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          }
+        ],
+        "reacquisitions": [
+          125,
+          138
+        ],
+        "fail_closed_reacquisition_frames": 5
+      },
+      {
+        "entries": [
+          {
+            "frame": 227,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 238,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 266,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 274,
+            "reason": "ReID-confirmed reacquisition"
+          },
+          {
+            "frame": 278,
+            "reason": "strong competitor overlap"
+          },
+          {
+            "frame": 285,
+            "reason": "strong competitor overlap"
+          }
+        ],
+        "exits": [
+          230,
+          241,
+          277,
+          284,
+          290
+        ],
+        "vetoes": [
+          {
+            "frame": 267,
+            "identity_similarity": 0.2664,
+            "selection_similarity": 0.262378,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.2664,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 269,
+            "identity_similarity": 0.269846,
+            "selection_similarity": 0.269957,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.269846,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          },
+          {
+            "frame": 270,
+            "identity_similarity": 0.29764,
+            "selection_similarity": 0.299034,
+            "best_competitor_similarity": null,
+            "competitor_separation": 1.29764,
+            "association_margin": 1.0,
+            "strong_overlap": false,
+            "reason": "identity veto"
+          }
+        ],
+        "reacquisitions": [
+          274
+        ],
+        "fail_closed_reacquisition_frames": 2
+      }
+    ]
+  },
+  "known_sequences": {
+    "single_person": {
+      "canonical_frames": [
+        251,
+        343
+      ],
+      "state_counts": {
+        "Missing": 7,
+        "Lost": 64,
+        "Tracked": 22
+      },
+      "source_counts": {
+        "none": 71,
+        "ReID-confirmed reacquisition": 1,
+        "detector+IdentityGuard": 5,
+        "detector": 16
+      },
+      "wrong_indices": []
+    },
+    "courtyard_competitor": {
+      "canonical_frames": [
+        124,
+        160
+      ],
+      "state_counts": {
+        "Lost": 7,
+        "Tracked": 29,
+        "Missing": 1
+      },
+      "source_counts": {
+        "none": 8,
+        "ReID-confirmed reacquisition": 2,
+        "detector+IdentityGuard": 5,
+        "detector": 22
+      },
+      "wrong_indices": [
+        152,
+        153,
+        154,
+        155,
+        156,
+        157,
+        158,
+        159,
+        160
+      ]
+    }
+  },
+  "identity_guard_accepted": false,
+  "winner": {
+    "aggregate": {
+      "visible_target_frames": 581,
+      "identity_safe_tracked_frames": 493,
+      "identity_switch_events": 0,
+      "wrong_person_frames": 0,
+      "false_tracked_while_target_invisible": 0,
+      "identity_safe_continuity_percent": 84.854,
+      "lost_visible_frames": 76,
+      "missing_visible_frames": 12,
+      "localization_drift_frames": 0,
+      "mean_iou_when_tracked": 0.9243,
+      "jitter_rms_norm": 0.039288
+    },
+    "per_video": {
+      "single_person": {
+        "visible_target_frames": 104,
+        "identity_safe_tracked_frames": 59,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 56.731,
+        "lost_visible_frames": 41,
+        "missing_visible_frames": 4,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.914,
+        "jitter_rms_norm": 0.037454,
+        "wrong_indices": []
+      },
+      "multi_person": {
+        "visible_target_frames": 35,
+        "identity_safe_tracked_frames": 35,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.8453,
+        "jitter_rms_norm": 0.022874,
+        "wrong_indices": []
+      },
+      "courtyard_single_a": {
+        "visible_target_frames": 147,
+        "identity_safe_tracked_frames": 146,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 99.32,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 1,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9253,
+        "jitter_rms_norm": 0.035555,
+        "wrong_indices": []
+      },
+      "courtyard_single_b": {
+        "visible_target_frames": 155,
+        "identity_safe_tracked_frames": 155,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 100.0,
+        "lost_visible_frames": 0,
+        "missing_visible_frames": 0,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9479,
+        "jitter_rms_norm": 0.048201,
+        "wrong_indices": []
+      },
+      "courtyard_competitor": {
+        "visible_target_frames": 140,
+        "identity_safe_tracked_frames": 98,
+        "identity_switch_events": 0,
+        "wrong_person_frames": 0,
+        "false_tracked_while_target_invisible": 0,
+        "identity_safe_continuity_percent": 70.0,
+        "lost_visible_frames": 35,
+        "missing_visible_frames": 7,
+        "localization_drift_frames": 0,
+        "mean_iou_when_tracked": 0.9202,
+        "jitter_rms_norm": 0.032999,
+        "wrong_indices": []
+      }
+    }
+  },
+  "ready_to_port": false,
+  "stop_further_lightweight_tuning": true
+}

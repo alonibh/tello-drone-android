@@ -78,6 +78,25 @@ of 40 new configurations and two rounds. Candidates with any tuning identity
 switch, wrong-person frame, or false track while the target is invisible are
 ineligible; held-out data never changes the frozen candidate.
 
+For the fixed-model ReID and temporary IdentityGuard experiments, first fetch
+and hash-check the Apache-2.0 Open Model Zoo artifacts, then run the guard:
+
+```powershell
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\download_reid_models.py
+
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\identity_guard_experiment.py `
+  --benchmark-dir tools\vision_lab\work\benchmark_expanded `
+  --output-dir tools\vision_lab\outputs\identity_guard_20260825 `
+  --max-experiments 12
+```
+
+This path fixes ReID to `person-reidentification-retail-0288`, keeps ordinary
+detector association unchanged outside guarded periods, enforces one tuning
+round and 12 experiments, and freezes the diagnostic configuration before
+opening held-out data. ReID confirms Lost recovery; during IdentityGuard it can
+only veto the normal association proposal. The output records every guard
+entry, exit, veto, and reacquisition.
+
 The run produces four annotated MP4 videos, `metrics.json`, `per_frame.csv`,
 and `report.md`:
 

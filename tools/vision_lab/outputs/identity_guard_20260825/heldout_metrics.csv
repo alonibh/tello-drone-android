@@ -1,0 +1,6 @@
+video,visible,switches,wrong,false_invisible,continuity_percent,lost,missing,drift,mean_iou,jitter
+single_person,104,0,0,0,56.731,41,4,0,0.914,0.037454
+multi_person,35,0,0,0,100.0,0,0,0,0.8453,0.022874
+courtyard_single_a,147,0,0,0,99.32,0,1,0,0.9253,0.035555
+courtyard_single_b,155,0,0,0,100.0,0,0,0,0.9479,0.048201
+courtyard_competitor,140,0,0,0,70.0,35,7,0,0.9202,0.032999
