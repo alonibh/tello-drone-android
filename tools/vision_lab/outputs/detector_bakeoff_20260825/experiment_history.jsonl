@@ -1,0 +1,2 @@
+{"event": "license_gate", "family": "yolox_nano", "eligible": false, "status": "rejected_pre_evaluation", "reason": "pretrained-weight license is unclear"}
+{"event": "license_gate", "family": "nanodet_plus", "eligible": false, "status": "rejected_pre_evaluation", "reason": "pretrained-weight license is unclear"}

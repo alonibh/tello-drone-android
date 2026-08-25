@@ -1,0 +1,114 @@
+{
+  "audited_at": "2026-08-25",
+  "decisions": [
+    {
+      "family": "yolox_nano",
+      "eligible": false,
+      "status": "rejected_pre_evaluation",
+      "reason": "pretrained-weight license is unclear"
+    },
+    {
+      "family": "nanodet_plus",
+      "eligible": false,
+      "status": "rejected_pre_evaluation",
+      "reason": "pretrained-weight license is unclear"
+    }
+  ],
+  "candidates": [
+    {
+      "family": "yolox_nano",
+      "display_name": "YOLOX-Nano 416",
+      "configuration_count": 1,
+      "input_size": [
+        416,
+        416
+      ],
+      "official_repository": "https://github.com/Megvii-BaseDetection/YOLOX",
+      "audited_repository_commit": "6ddff4824372906469a7fae2dc3206c7aa4bbaee",
+      "pretrained_release_tag": "0.1.1rc0",
+      "pretrained_release_commit": "e1052df71842031413f6030723c3607b839c80ce",
+      "source_code": {
+        "license_spdx": "Apache-2.0",
+        "license_url": "https://github.com/Megvii-BaseDetection/YOLOX/blob/6ddff4824372906469a7fae2dc3206c7aa4bbaee/LICENSE",
+        "proprietary_distribution_reasonably_permitted": true,
+        "notes": "The repository source is under Apache-2.0. The official ncnn C++ detector file also carries BSD-3-Clause notices; attribution and notice obligations would apply."
+      },
+      "pretrained_weights": {
+        "artifact_name": "yolox_nano.onnx",
+        "artifact_url": "https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_nano.onnx",
+        "artifact_size_bytes": 3659407,
+        "pytorch_artifact_name": "yolox_nano.pth",
+        "pytorch_artifact_size_bytes": 7694953,
+        "release_url": "https://github.com/Megvii-BaseDetection/YOLOX/releases/tag/0.1.1rc0",
+        "license_spdx": null,
+        "license_url": null,
+        "commercial_redistribution_explicit": false,
+        "status": "unclear",
+        "notes": "The official README and release distribute the assets but do not attach a weight-specific license or state that commercial app bundling/redistribution is allowed. Upstream issue #1865 asks this exact question and remains open without a maintainer answer."
+      },
+      "official_model_facts": {
+        "parameters_millions": 0.91,
+        "flops_gigaflops": 1.08,
+        "published_fp16_model_size_mb": 1.8,
+        "published_desktop_latency_ms": null,
+        "published_arm_latency_ms": 23.08,
+        "latency_context": "The YOLOX repository does not publish a desktop CPU figure for Nano. The 23.08 ms comparison is NanoDet's ncnn measurement on a Kirin 980 4xA76 CPU, not this desktop bake-off and not the Teclast."
+      },
+      "android_deployment": {
+        "preferred_runtime": "ncnn",
+        "alternative_runtime": "ONNX Runtime Mobile",
+        "path": "Use the official YOLOX ONNX export/output contract, convert to ncnn, and integrate a proprietary JNI wrapper; alternatively bundle the official ONNX graph with ONNX Runtime Mobile.",
+        "official_evidence_url": "https://github.com/Megvii-BaseDetection/YOLOX/tree/6ddff4824372906469a7fae2dc3206c7aa4bbaee/demo/ncnn/android",
+        "teclast_assessment": "Compute is plausibly mobile-suitable, but the P50Ai must be benchmarked directly; published 4xA76 timing cannot predict its 2xA76+6xA55 SoC performance. Deployment is blocked by weight terms."
+      }
+    },
+    {
+      "family": "nanodet_plus",
+      "display_name": "NanoDet-Plus-m 416",
+      "configuration_count": 1,
+      "input_size": [
+        416,
+        416
+      ],
+      "official_repository": "https://github.com/RangiLyu/nanodet",
+      "audited_repository_commit": "be9b4a9001d7f9b6fc89c2df31ae8d428e35b4f0",
+      "pretrained_release_tag": "v1.0.0-alpha-1",
+      "pretrained_release_commit": "08bad3294608953b1e1a8aacc50f67336420a435",
+      "source_code": {
+        "license_spdx": "Apache-2.0",
+        "license_url": "https://github.com/RangiLyu/nanodet/blob/be9b4a9001d7f9b6fc89c2df31ae8d428e35b4f0/LICENSE",
+        "proprietary_distribution_reasonably_permitted": true,
+        "notes": "The main repository source is Apache-2.0. The bundled demo_android_ncnn subtree has a separate GPL-3.0 LICENSE and must not be copied into a proprietary app; a new wrapper can instead use the Apache-licensed root demo_ncnn logic and ncnn's permissive runtime."
+      },
+      "pretrained_weights": {
+        "artifact_name": "nanodet-plus-m_416.onnx",
+        "artifact_url": "https://github.com/RangiLyu/nanodet/releases/download/v1.0.0-alpha-1/nanodet-plus-m_416.onnx",
+        "artifact_size_bytes": 4793616,
+        "ncnn_artifact_name": "nanodet-plus-m_416_ncnn.zip",
+        "ncnn_artifact_size_bytes": 2218050,
+        "release_url": "https://github.com/RangiLyu/nanodet/releases/tag/v1.0.0-alpha-1",
+        "license_spdx": null,
+        "license_url": null,
+        "commercial_redistribution_explicit": false,
+        "status": "unclear",
+        "notes": "The official model zoo and release provide weights/checkpoints in GitHub assets and Google Drive, but neither location states a pretrained-weight license or commercial redistribution grant."
+      },
+      "official_model_facts": {
+        "parameters_millions": 1.17,
+        "flops_gigaflops": 1.52,
+        "published_fp16_model_size_mb": 2.3,
+        "published_int8_model_size_mb": 1.2,
+        "published_desktop_latency_ms": 8.32,
+        "published_arm_latency_ms": 19.77,
+        "latency_context": "Official published inference figures: OpenVINO on Intel i7-8700 and ncnn on Kirin 980 4xA76. They are not end-to-end measurements from this benchmark and do not predict Teclast latency."
+      },
+      "android_deployment": {
+        "preferred_runtime": "ncnn",
+        "alternative_runtime": "ONNX Runtime Mobile with a new output decoder",
+        "path": "Use the official ONNX-to-ncnn conversion and NanoDet DFL decoder contract in a new proprietary JNI wrapper. Do not reuse the repository's separately GPL-3.0 Android demo subtree.",
+        "official_evidence_url": "https://github.com/RangiLyu/nanodet/blob/be9b4a9001d7f9b6fc89c2df31ae8d428e35b4f0/demo_ncnn/README.md",
+        "teclast_assessment": "The published 19.77 ms 4xA76 ncnn result makes on-device testing technically plausible, but the P50Ai has a different CPU/GPU/NPU and needs direct measurement. Deployment is blocked by weight terms."
+      }
+    }
+  ]
+}

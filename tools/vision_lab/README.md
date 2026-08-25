@@ -60,6 +60,24 @@ history, ranked finalists, winning config, timelines, annotated winner videos,
 and baseline comparisons are retained under `tools/vision_lab/benchmark` and
 `tools/vision_lab/outputs/optimization_20260823_expanded`.
 
+For the license-gated mobile detector replacement bake-off:
+
+```powershell
+tools\vision_lab\.venv\Scripts\python.exe tools\vision_lab\detector_bakeoff.py `
+  --benchmark-dir tools\vision_lab\work\benchmark_expanded `
+  --output-dir tools\vision_lab\outputs\detector_bakeoff_20260825 `
+  --max-experiments 8
+```
+
+This path considers only official YOLOX-Nano and NanoDet-Plus artifacts. It
+separately gates source-code and pretrained-weight licensing before any model
+download or inference, enforces two families/four configurations per family/
+eight experiments total, and reproduces the corrected YOLO11n safe reference.
+An unclear pretrained-weight license is a mandatory pre-evaluation rejection;
+research availability is not treated as permission to bundle a model in a
+proprietary Android app. The detector swap never changes the frozen association,
+tracking, Lost latch, or explicit-reselection semantics.
+
 For the bounded persistent single-object-tracker architecture experiment:
 
 ```powershell

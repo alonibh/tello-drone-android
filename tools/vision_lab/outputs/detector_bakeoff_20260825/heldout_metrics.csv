@@ -1,0 +1,9 @@
+candidate,video,status,switches,wrong_person_frames,false_invisible_tracks,continuity_percent,reason
+yolo11n_safe_baseline,single_person,reference,0,0,0,56.731,frozen corrected baseline
+yolo11n_safe_baseline,multi_person,reference,0,0,0,100.0,frozen corrected baseline
+yolo11n_safe_baseline,courtyard_single_a,reference,0,0,0,99.32,frozen corrected baseline
+yolo11n_safe_baseline,courtyard_single_b,reference,0,0,0,100.0,frozen corrected baseline
+yolo11n_safe_baseline,courtyard_competitor,reference,0,0,0,70.0,frozen corrected baseline
+yolo11n_safe_baseline,AGGREGATE,reference,0,0,0,84.854,frozen corrected baseline
+yolox_nano,NOT_EVALUATED,rejected_pre_evaluation,,,,,pretrained-weight license is unclear
+nanodet_plus,NOT_EVALUATED,rejected_pre_evaluation,,,,,pretrained-weight license is unclear
