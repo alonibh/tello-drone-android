@@ -51,7 +51,7 @@ class DroneDashboardTest {
         val dashboardState = DroneSessionState(connection = DroneConnectionState.Connected)
         compose.setContent { MaterialTheme { Box(Modifier.size(700.dp, 800.dp)) { DroneDashboard(dashboardState, NoOpDroneDashboardActions) } } }
         compose.onNodeWithTag("layout_medium").assertExists()
-        compose.setContent { MaterialTheme { Box(Modifier.size(900.dp, 360.dp)) { DroneDashboard(dashboardState, NoOpDroneDashboardActions) } } }
+        compose.setContent { MaterialTheme { Box(Modifier.size(1280.dp, 800.dp)) { DroneDashboard(dashboardState, NoOpDroneDashboardActions) } } }
         compose.onNodeWithTag("layout_expanded").assertExists()
         compose.setContent { MaterialTheme { Box(Modifier.size(800.dp, 360.dp)) { DroneDashboard(dashboardState, NoOpDroneDashboardActions) } } }
         compose.onNodeWithTag("layout_compact_height").assertExists()
@@ -67,13 +67,13 @@ class DroneDashboardTest {
         )
         compose.setContent {
             MaterialTheme {
-                Box(Modifier.size(900.dp, 800.dp)) {
+                Box(Modifier.size(1280.dp, 800.dp)) {
                     DroneDashboard(dashboardState, NoOpDroneDashboardActions)
                 }
             }
         }
 
-        compose.onNodeWithText("Tracking").performClick()
+        compose.onNodeWithTag("nav_tab_tracking").performClick()
         compose.onNodeWithText("START PERSON DETECTION").assertExists()
         listOf(
             "ADVANCED DETECTOR",
@@ -103,9 +103,9 @@ class DroneDashboardTest {
         compose.waitUntil(5_000) { actions.attached.size == 1 }
 
         repeat(10) {
-            compose.onNodeWithText("Tracking").performClick()
+            compose.onNodeWithTag("compact_nav_tracking").performClick()
             compose.waitForIdle()
-            compose.onNodeWithText("Dashboard").performClick()
+            compose.onNodeWithTag("compact_nav_flight").performClick()
             compose.waitForIdle()
         }
 
