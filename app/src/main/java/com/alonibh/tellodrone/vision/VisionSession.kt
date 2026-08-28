@@ -191,6 +191,7 @@ object VisionSessionManifestJson {
 object VisionSessionArchive {
     private const val MAX_MANIFEST_BYTES = 1_000_000L
     private const val MAX_TRACE_BYTES = 16_000_000L
+    private const val MAX_CONTROL_TRACE_BYTES = 16_000_000L
     private const val MAX_FRAME_BYTES = 4_000_000L
 
     fun open(file: File): VisionSessionContents {
@@ -200,6 +201,7 @@ object VisionSessionArchive {
             if (entryNames.toSet().size != entryNames.size) malformed("Duplicate ZIP entry")
             val manifestEntry = zip.getEntry("manifest.json") ?: malformed("manifest.json is missing")
             val traceEntry = zip.getEntry("trace.jsonl") ?: malformed("trace.jsonl is missing")
+            val controlEntry = zip.getEntry("control.jsonl")
             if (manifestEntry.size !in 1..MAX_MANIFEST_BYTES) malformed("manifest.json has an unsafe size")
             if (traceEntry.size !in 1..MAX_TRACE_BYTES) malformed("trace.jsonl has an unsafe size")
             val manifest = runCatching {
@@ -207,7 +209,12 @@ object VisionSessionArchive {
                     .let(VisionSessionManifestJson::decode)
             }.getOrElse { malformed("Invalid manifest.json: ${it.message}") }
             validateManifest(manifest)
-            val expectedEntries = setOf("manifest.json", "trace.jsonl") + manifest.frames.map { it.file }
+            if (controlEntry != null && controlEntry.size !in 0..MAX_CONTROL_TRACE_BYTES) {
+                malformed("control.jsonl has an unsafe size")
+            }
+            val expectedEntries = setOf("manifest.json", "trace.jsonl") +
+                (if (controlEntry != null) setOf("control.jsonl") else emptySet()) +
+                manifest.frames.map { it.file }
             if (entryNames.toSet() != expectedEntries) malformed("Unexpected ZIP entries")
             manifest.frames.forEach { frame ->
                 val entry = zip.getEntry(frame.file) ?: malformed("Missing frame ${frame.file}")

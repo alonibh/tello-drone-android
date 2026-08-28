@@ -55,6 +55,14 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
             val droppedBeforeFrame: Long,
             val epoch: CaptureEpoch,
         ) : Command
+        data class ControlMeasurement(
+            val trace: YawControlMeasurementTrace,
+            val epoch: CaptureEpoch,
+        ) : Command
+        data class RcPublication(
+            val trace: RcPublicationTrace,
+            val epoch: CaptureEpoch,
+        ) : Command
         data class ExportTrace(val destinationUri: String, val callback: (Result<VisionTraceExport>) -> Unit) : Command
         data class ExportSession(
             val destinationUri: String,
@@ -79,7 +87,9 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
 
     private var activeDirectory: File? = null
     private var traceFile: File? = null
+    private var controlFile: File? = null
     private var writer: BufferedWriter? = null
+    private var controlWriter: BufferedWriter? = null
     private val frames = mutableListOf<VisionSessionFrameEntry>()
     private var activeEpoch: CaptureEpoch? = null
 
@@ -87,6 +97,8 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         scope.launch {
             for (command in commands) when (command) {
                 is Command.Pair -> write(command)
+                is Command.ControlMeasurement -> write(command)
+                is Command.RcPublication -> write(command)
                 is Command.ExportTrace -> exportTrace(command)
                 is Command.ExportSession -> exportSession(command)
             }
@@ -152,6 +164,16 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         }
     }
 
+    override fun recordControlMeasurement(trace: YawControlMeasurementTrace) {
+        val epoch = currentEpoch
+        commands.trySend(Command.ControlMeasurement(trace, epoch))
+    }
+
+    override fun recordRcPublication(trace: RcPublicationTrace) {
+        val epoch = currentEpoch
+        commands.trySend(Command.RcPublication(trace, epoch))
+    }
+
     override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) {
         scope.launch { commands.send(Command.ExportTrace(destinationUri, onComplete)) }
     }
@@ -212,9 +234,28 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         }
     }
 
+    private fun write(command: Command.ControlMeasurement) {
+        if (command.epoch.generation < currentEpoch.generation) return
+        prepareEpoch(command.epoch)
+        ensureControlWriter().apply {
+            write(VisionTraceJson.encodeControlMeasurement(command.trace))
+            newLine()
+        }
+    }
+
+    private fun write(command: Command.RcPublication) {
+        if (command.epoch.generation < currentEpoch.generation) return
+        prepareEpoch(command.epoch)
+        ensureControlWriter().apply {
+            write(VisionTraceJson.encodeRcPublication(command.trace))
+            newLine()
+        }
+    }
+
     private fun exportTrace(command: Command.ExportTrace) {
         val result = runCatching {
             writer?.flush()
+            controlWriter?.flush()
             val source = traceFile ?: throw IllegalStateException("No captured vision frames are available")
             context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "wt")?.use { output ->
                 source.inputStream().buffered().use { input -> input.copyTo(output) }
@@ -227,6 +268,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     private fun exportSession(command: Command.ExportSession) {
         val result = runCatching {
             writer?.flush()
+            controlWriter?.flush()
             val directory = activeDirectory ?: throw IllegalStateException("No captured vision frames are available")
             val sourceTrace = traceFile ?: throw IllegalStateException("No captured trace is available")
             if (frames.isEmpty()) throw IllegalStateException("No captured vision frames are available")
@@ -245,6 +287,9 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                     zip.closeEntry()
                     zip.putNextEntry(ZipEntry("trace.jsonl"))
                     sourceTrace.inputStream().buffered().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                    zip.putNextEntry(ZipEntry("control.jsonl"))
+                    ensureControlFile().inputStream().buffered().use { it.copyTo(zip) }
                     zip.closeEntry()
                     frames.forEach { frame ->
                         zip.putNextEntry(ZipEntry(frame.file))
@@ -278,6 +323,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         directory.mkdirs()
         activeDirectory = directory
         traceFile = File(directory, "trace.jsonl")
+        controlFile = File(directory, "control.jsonl")
         return directory
     }
 
@@ -286,12 +332,26 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         BufferedWriter(OutputStreamWriter(FileOutputStream(traceFile!!, false), Charsets.UTF_8)).also { writer = it }
     }
 
+    private fun ensureControlFile(): File {
+        ensureSessionDirectory()
+        return requireNotNull(controlFile).also { if (!it.exists()) it.createNewFile() }
+    }
+
+    private fun ensureControlWriter(): BufferedWriter = controlWriter ?: run {
+        BufferedWriter(OutputStreamWriter(FileOutputStream(ensureControlFile(), false), Charsets.UTF_8)).also {
+            controlWriter = it
+        }
+    }
+
     private fun resetWorkerStorage() {
         writer?.close()
         writer = null
+        controlWriter?.close()
+        controlWriter = null
         activeDirectory?.deleteRecursively()
         activeDirectory = null
         traceFile = null
+        controlFile = null
         frames.clear()
     }
 
@@ -309,7 +369,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     }
 
     companion object {
-        internal const val QUEUE_CAPACITY = 24
+        internal const val QUEUE_CAPACITY = 128
         internal const val MAX_PENDING_BITMAPS = 8
     }
 }

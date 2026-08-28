@@ -29,12 +29,15 @@ import com.alonibh.tellodrone.domain.YawFollowGate
 import com.alonibh.tellodrone.domain.YawFollowInput
 import com.alonibh.tellodrone.domain.YawFollowReason
 import com.alonibh.tellodrone.domain.YawFollowState
+import com.alonibh.tellodrone.domain.YawControlSuppressionReason
 import com.alonibh.tellodrone.domain.withPersonDetectionVideoState
 import com.alonibh.tellodrone.domain.isZero
 import com.alonibh.tellodrone.vision.PersonDetectionStore
 import com.alonibh.tellodrone.vision.NoOpVisionTraceRecorder
 import com.alonibh.tellodrone.vision.VisionTraceFrame
 import com.alonibh.tellodrone.vision.VisionTraceRecorder
+import com.alonibh.tellodrone.vision.YawControlMeasurementTrace
+import com.alonibh.tellodrone.vision.RcPublicationTrace
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -101,6 +104,8 @@ class TelloFlightSession(
         sender = transport::sendRc,
         clock = clock,
         onSendFailure = { error -> scope.launch { failConnection("RC transport failed: ${error.safeMessage()}") } },
+        traceClockNanos = sourceNowNanos,
+        onRcSent = ::recordRcPublication,
     )
 
     suspend fun connect(): Boolean = commandStateMutex.withLock {
@@ -333,7 +338,7 @@ class TelloFlightSession(
             if (decision.state == YawFollowState.ACTIVE) {
                 val generation = rcLoop.beginAutonomousYaw()
                 yawFollowGeneration = generation
-                rcLoop.publishAutonomousYaw(decision.yawRc, generation)
+                publishAutonomousYaw(decision, generation, current)
             } else if (!manualWins) {
                 yawFollowGeneration = null
                 zeroGeneration = rcLoop.preemptAutonomy()
@@ -647,8 +652,11 @@ class TelloFlightSession(
                 }
             }
         }
-        traceFrame?.let(visionTrace::record)
-        reconcileYawFollow(publishActive)
+        val decision = reconcileYawFollow(publishActive)
+        traceFrame?.let { frame ->
+            visionTrace.record(frame)
+            recordControlMeasurement(frame, decision)
+        }
     }
 
     private fun applyAssociation(
@@ -781,18 +789,20 @@ class TelloFlightSession(
         yawFollowGate.disarm()
     }
 
-    private fun reconcileYawFollow(publishActive: Boolean = false) {
+    private fun reconcileYawFollow(publishActive: Boolean = false): YawFollowDecision {
         var zeroGeneration: Long? = null
+        lateinit var resolvedDecision: YawFollowDecision
         synchronized(yawFollowLock) {
             val current = mutableState.value
             val previous = current.yawFollowDecision
             val decision = yawFollowGate.evaluate(current.toYawFollowInput())
+            resolvedDecision = decision
             if (decision.state == YawFollowState.ACTIVE) {
                 val generation = yawFollowGeneration
                     ?.takeIf { previous.state == YawFollowState.ACTIVE }
                     ?: rcLoop.beginAutonomousYaw().also { yawFollowGeneration = it }
                 if (publishActive || previous.state != YawFollowState.ACTIVE) {
-                    rcLoop.publishAutonomousYaw(decision.yawRc, generation)
+                    publishAutonomousYaw(decision, generation, current)
                 }
             } else {
                 val newlyStopped = previous.state == YawFollowState.ACTIVE
@@ -811,6 +821,7 @@ class TelloFlightSession(
             }
         }
         zeroGeneration?.let(::sendYawFollowZero)
+        return resolvedDecision
     }
 
     /** Latches a named intervention; the owning safety path performs its own serialized zero. */
@@ -841,6 +852,91 @@ class TelloFlightSession(
         scope.launch { rcLoop.sendZeroIfCurrent(generation) }
     }
 
+    private fun publishAutonomousYaw(
+        decision: YawFollowDecision,
+        generation: Long,
+        state: DroneSessionState,
+    ) {
+        val control = decision.control
+        rcLoop.publishAutonomousYaw(
+            yawRc = control?.safetyFilteredYawRc ?: 0,
+            generation = generation,
+            validForMillis = control?.validForMillis ?: 0L,
+            context = control?.let {
+                AutonomousYawContext(
+                    control = it,
+                    associationState = state.targetAssociationState,
+                    yawFollowState = decision.state,
+                    yawFollowReason = decision.reason,
+                    telemetryHeightMeters = state.telemetry.heightMeters,
+                )
+            },
+        )
+    }
+
+    private fun recordControlMeasurement(frame: VisionTraceFrame, decision: YawFollowDecision) {
+        val current = mutableState.value
+        val control = decision.control
+        val commandTimestampNanos = control?.commandTimestampNanos ?: sourceNowNanos()
+        val ageNanos = commandTimestampNanos - frame.sourceTimestampNanos
+        visionTrace.recordControlMeasurement(
+            YawControlMeasurementTrace(
+                frameSequence = frame.frameSequence,
+                sourceTimestampNanos = frame.sourceTimestampNanos,
+                commandTimestampNanos = commandTimestampNanos,
+                perceptionAgeMillis = ageNanos.takeIf { it >= 0L }?.div(NANOS_PER_MILLISECOND),
+                targetCenterX = current.trackingErrors?.targetCenterX,
+                rawYawError = current.trackingErrors?.rawYawError,
+                filteredYawError = current.trackingErrors?.yawError,
+                associationState = current.targetAssociationState,
+                previousYawRc = control?.previousYawRc ?: 0,
+                requestedYawRc = control?.requestedYawRc ?: 0,
+                safetyFilteredYawRc = control?.safetyFilteredYawRc ?: 0,
+                suppressionReason = control?.suppressionReason ?: YawControlSuppressionReason.GATE_BLOCKED,
+                telemetryHeightMeters = current.telemetry.heightMeters,
+                yawFollowState = decision.state,
+                yawFollowReason = decision.reason,
+            ),
+        )
+    }
+
+    private fun recordRcPublication(publication: RcPublication) {
+        val current = mutableState.value
+        val activeContext = publication.autonomousContext.takeIf {
+            publication.inputKind == RcInputKind.AUTONOMOUS_YAW
+        }
+        val control = publication.autonomousContext?.control ?: current.yawFollowDecision.control
+        val commandTimestampNanos = publication.commandTimestampNanos
+        val frameSequence = publication.autonomousContext?.control?.frameSequence ?:
+            current.video.processedDetectorFrameSequence
+        val sourceTimestampNanos = publication.autonomousContext?.control?.sourceTimestampNanos ?:
+            current.video.processedDetectorSourceTimestampNanos
+        val ageNanos = sourceTimestampNanos?.let { commandTimestampNanos - it }
+        visionTrace.recordRcPublication(
+            RcPublicationTrace(
+                commandTimestampNanos = commandTimestampNanos,
+                frameSequence = frameSequence,
+                sourceTimestampNanos = sourceTimestampNanos,
+                perceptionAgeMillis = ageNanos?.takeIf { it >= 0L }?.div(NANOS_PER_MILLISECOND),
+                targetCenterX = control?.targetCenterX ?: current.trackingErrors?.targetCenterX,
+                rawYawError = control?.rawYawError ?: current.trackingErrors?.rawYawError,
+                filteredYawError = control?.filteredYawError ?: current.trackingErrors?.yawError,
+                associationState = activeContext?.associationState ?: current.targetAssociationState,
+                previousYawRc = control?.previousYawRc ?: 0,
+                requestedYawRc = control?.requestedYawRc ?: 0,
+                safetyFilteredYawRc = control?.safetyFilteredYawRc ?: 0,
+                yawSuppressionReason = control?.suppressionReason,
+                requestedVector = publication.requestedVector,
+                actualSentVector = publication.actualVector,
+                inputKind = publication.inputKind,
+                sendSuppressionReason = publication.suppressionReason,
+                telemetryHeightMeters = activeContext?.telemetryHeightMeters ?: current.telemetry.heightMeters,
+                yawFollowState = activeContext?.yawFollowState ?: current.yawFollowDecision.state,
+                yawFollowReason = activeContext?.yawFollowReason ?: current.yawFollowDecision.reason,
+            ),
+        )
+    }
+
     /** Commits only yaw-follow-owned fields against the latest session state. */
     private fun updateYawFollowState(transform: (DroneSessionState) -> DroneSessionState) {
         beforeYawFollowStateCommit?.invoke(mutableState)
@@ -858,6 +954,7 @@ class TelloFlightSession(
         errors = trackingErrors,
         manualInputNeutral = manualVector.isZero(),
         hoverActive = hoverActive,
+        commandTimestampNanos = sourceNowNanos(),
     )
 
     private fun YawFollowReason.displayName() = name.replace('_', ' ')
@@ -1036,6 +1133,7 @@ class TelloFlightSession(
     private fun Throwable.safeMessage() = message ?: javaClass.simpleName
 
     companion object {
+        private const val NANOS_PER_MILLISECOND = 1_000_000L
         const val COMMAND_MODE_TIMEOUT_MILLIS = 5_000L
         const val FIRST_TELEMETRY_TIMEOUT_MILLIS = 5_000L
         const val FLIGHT_COMMAND_TIMEOUT_MILLIS = 15_000L

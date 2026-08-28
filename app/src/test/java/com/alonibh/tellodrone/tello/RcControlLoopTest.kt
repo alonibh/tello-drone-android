@@ -93,8 +93,8 @@ class RcControlLoopTest {
         loop.setEnabled(true)
         loop.setHealthy(true)
         val generation = loop.beginAutonomousYaw()
-        loop.publishAutonomousYaw(20, generation)
-        assertEquals(RcVector(yaw = 20), loop.currentVector())
+        loop.publishAutonomousYaw(12, generation)
+        assertEquals(RcVector(yaw = 12), loop.currentVector())
 
         loop.publish(ManualControlVector(forward = .5f), 20)
         loop.publishAutonomousYaw(-20, generation)
@@ -102,17 +102,64 @@ class RcControlLoopTest {
         assertEquals(RcVector(forward = 10), loop.currentVector())
     }
 
-    @Test fun `autonomous yaw is capped at twenty with all other axes zero`() = runTest {
+    @Test fun `autonomous yaw is capped at twelve with all other axes zero`() = runTest {
         val loop = RcControlLoop(backgroundScope, {}, FakeClock(1_000))
         loop.setEnabled(true)
         loop.setHealthy(true)
         val generation = loop.beginAutonomousYaw()
 
         loop.publishAutonomousYaw(99, generation)
-        assertEquals(RcVector(yaw = 20), loop.currentVector())
+        assertEquals(RcVector(yaw = 12), loop.currentVector())
 
         loop.publishAutonomousYaw(-99, generation)
-        assertEquals(RcVector(yaw = -20), loop.currentVector())
+        assertEquals(RcVector(yaw = -12), loop.currentVector())
+    }
+
+    @Test fun `autonomous perception validity expires independently before RC TTL`() = runTest {
+        val clock = FakeClock(1_000)
+        val sent = mutableListOf<RcVector>()
+        val publications = mutableListOf<RcPublication>()
+        val loop = RcControlLoop(
+            backgroundScope,
+            { sent += it },
+            clock,
+            inputTtlMillis = 250,
+            onRcSent = { publications += it },
+        )
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+        val generation = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(9, generation, validForMillis = 75)
+
+        clock.value = 1_074
+        assertEquals(RcVector(yaw = 9), loop.currentVector())
+        clock.value = 1_075
+        assertEquals(RcVector.Zero, loop.currentVector())
+        loop.sendCycle()
+        assertEquals(RcVector.Zero, sent.single())
+        assertEquals(RcSendSuppressionReason.PERCEPTION_AGE_EXPIRED, publications.single().suppressionReason)
+    }
+
+    @Test fun `every physically published autonomous vector is structurally yaw only`() = runTest {
+        val publications = mutableListOf<RcPublication>()
+        val loop = RcControlLoop(
+            scope = backgroundScope,
+            sender = {},
+            clock = FakeClock(1_000),
+            onRcSent = { publications += it },
+        )
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+        val generation = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(12, generation)
+        loop.sendCycle()
+
+        val sent = publications.single()
+        assertEquals(RcInputKind.AUTONOMOUS_YAW, sent.inputKind)
+        assertEquals(0, sent.actualVector.lateral)
+        assertEquals(0, sent.actualVector.forward)
+        assertEquals(0, sent.actualVector.vertical)
+        assertEquals(12, sent.actualVector.yaw)
     }
 
     @Test fun `delayed safety zero cannot overwrite newer manual command`() = runTest {

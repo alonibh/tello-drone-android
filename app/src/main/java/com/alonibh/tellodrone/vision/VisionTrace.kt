@@ -9,6 +9,12 @@ import com.alonibh.tellodrone.domain.TargetAssociationDiagnostics
 import com.alonibh.tellodrone.domain.TargetAssociationMetrics
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackedTarget
+import com.alonibh.tellodrone.domain.YawControlSuppressionReason
+import com.alonibh.tellodrone.domain.YawFollowReason
+import com.alonibh.tellodrone.domain.YawFollowState
+import com.alonibh.tellodrone.tello.RcInputKind
+import com.alonibh.tellodrone.tello.RcSendSuppressionReason
+import com.alonibh.tellodrone.tello.RcVector
 
 data class VisionTraceFrame(
     val frameSequence: Long,
@@ -27,6 +33,46 @@ data class VisionTraceFrame(
 
 data class VisionTraceExport(val frameCount: Long, val droppedFrameCount: Long)
 
+data class YawControlMeasurementTrace(
+    val frameSequence: Long,
+    val sourceTimestampNanos: Long,
+    val commandTimestampNanos: Long,
+    val perceptionAgeMillis: Long?,
+    val targetCenterX: Float?,
+    val rawYawError: Float?,
+    val filteredYawError: Float?,
+    val associationState: TargetAssociationState,
+    val previousYawRc: Int,
+    val requestedYawRc: Int,
+    val safetyFilteredYawRc: Int,
+    val suppressionReason: YawControlSuppressionReason,
+    val telemetryHeightMeters: Float?,
+    val yawFollowState: YawFollowState,
+    val yawFollowReason: YawFollowReason,
+)
+
+data class RcPublicationTrace(
+    val commandTimestampNanos: Long,
+    val frameSequence: Long?,
+    val sourceTimestampNanos: Long?,
+    val perceptionAgeMillis: Long?,
+    val targetCenterX: Float?,
+    val rawYawError: Float?,
+    val filteredYawError: Float?,
+    val associationState: TargetAssociationState,
+    val previousYawRc: Int,
+    val requestedYawRc: Int,
+    val safetyFilteredYawRc: Int,
+    val yawSuppressionReason: YawControlSuppressionReason?,
+    val requestedVector: RcVector,
+    val actualSentVector: RcVector,
+    val inputKind: RcInputKind,
+    val sendSuppressionReason: RcSendSuppressionReason,
+    val telemetryHeightMeters: Float?,
+    val yawFollowState: YawFollowState,
+    val yawFollowReason: YawFollowReason,
+)
+
 interface VisionTraceRecorder {
     val capturesFrames: Boolean
     /** Called while the decoded-frame lease is valid; debug implementations must detach it. */
@@ -34,6 +80,8 @@ interface VisionTraceRecorder {
     /** Starts a fresh diagnostic epoch at the explicit user-selection boundary. */
     fun onTargetSelected(target: TrackedTarget) = Unit
     fun record(frame: VisionTraceFrame)
+    fun recordControlMeasurement(trace: YawControlMeasurementTrace) = Unit
+    fun recordRcPublication(trace: RcPublicationTrace) = Unit
     fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit)
 }
 
@@ -70,6 +118,60 @@ internal object VisionTraceJson {
         comma(); field("associationState", frame.associationState.name)
         comma(); name("associationDiagnostics"); diagnostics(frame.associationDiagnostics)
         comma(); field("droppedBeforeFrame", droppedBeforeFrame)
+        append('}')
+    }
+
+    fun encodeControlMeasurement(trace: YawControlMeasurementTrace): String = buildString(512) {
+        append('{'); field("schemaVersion", 2)
+        comma(); field("eventType", "controlMeasurement")
+        comma(); field("frameSequence", trace.frameSequence)
+        comma(); field("sourceTimestampNanos", trace.sourceTimestampNanos)
+        comma(); field("commandTimestampNanos", trace.commandTimestampNanos)
+        comma(); field("perceptionAgeMillis", trace.perceptionAgeMillis)
+        comma(); field("targetCenterX", trace.targetCenterX)
+        comma(); field("rawYawError", trace.rawYawError)
+        comma(); field("filteredYawError", trace.filteredYawError)
+        comma(); field("associationState", trace.associationState.name)
+        comma(); field("previousYawRc", trace.previousYawRc)
+        comma(); field("requestedYawRc", trace.requestedYawRc)
+        comma(); field("safetyFilteredYawRc", trace.safetyFilteredYawRc)
+        comma(); field("suppressionReason", trace.suppressionReason.name)
+        comma(); field("telemetryHeightMeters", trace.telemetryHeightMeters)
+        comma(); field("yawFollowState", trace.yawFollowState.name)
+        comma(); field("yawFollowReason", trace.yawFollowReason.name)
+        append('}')
+    }
+
+    fun encodeRcPublication(trace: RcPublicationTrace): String = buildString(640) {
+        append('{'); field("schemaVersion", 2)
+        comma(); field("eventType", "rcPublication")
+        comma(); field("commandTimestampNanos", trace.commandTimestampNanos)
+        comma(); field("frameSequence", trace.frameSequence)
+        comma(); field("sourceTimestampNanos", trace.sourceTimestampNanos)
+        comma(); field("perceptionAgeMillis", trace.perceptionAgeMillis)
+        comma(); field("targetCenterX", trace.targetCenterX)
+        comma(); field("rawYawError", trace.rawYawError)
+        comma(); field("filteredYawError", trace.filteredYawError)
+        comma(); field("associationState", trace.associationState.name)
+        comma(); field("previousYawRc", trace.previousYawRc)
+        comma(); field("requestedYawRc", trace.requestedYawRc)
+        comma(); field("safetyFilteredYawRc", trace.safetyFilteredYawRc)
+        comma(); field("yawSuppressionReason", trace.yawSuppressionReason?.name)
+        comma(); name("requestedVector"); vector(trace.requestedVector)
+        comma(); name("actualSentVector"); vector(trace.actualSentVector)
+        comma(); field("inputKind", trace.inputKind.name)
+        comma(); field("sendSuppressionReason", trace.sendSuppressionReason.name)
+        comma(); field("telemetryHeightMeters", trace.telemetryHeightMeters)
+        comma(); field("yawFollowState", trace.yawFollowState.name)
+        comma(); field("yawFollowReason", trace.yawFollowReason.name)
+        append('}')
+    }
+
+    private fun StringBuilder.vector(value: RcVector) {
+        append('{'); field("lateral", value.lateral)
+        comma(); field("forward", value.forward)
+        comma(); field("vertical", value.vertical)
+        comma(); field("yaw", value.yaw)
         append('}')
     }
 

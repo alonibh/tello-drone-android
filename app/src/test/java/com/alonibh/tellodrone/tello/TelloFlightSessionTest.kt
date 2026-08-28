@@ -17,6 +17,8 @@ import com.alonibh.tellodrone.domain.YawFollowState
 import com.alonibh.tellodrone.vision.VisionTraceExport
 import com.alonibh.tellodrone.vision.VisionTraceFrame
 import com.alonibh.tellodrone.vision.VisionTraceRecorder
+import com.alonibh.tellodrone.vision.YawControlMeasurementTrace
+import com.alonibh.tellodrone.vision.RcPublicationTrace
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.Flow
@@ -512,8 +514,8 @@ class TelloFlightSessionTest {
         val command = fixture.transport.rc.last()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
         assertTrue(command.yaw > 0)
-        assertEquals(16, command.yaw)
-        assertTrue(kotlin.math.abs(command.yaw) <= 20)
+        assertEquals(3, command.yaw)
+        assertTrue(kotlin.math.abs(command.yaw) <= 12)
         assertEquals(0, command.lateral)
         assertEquals(0, command.forward)
         assertEquals(0, command.vertical)
@@ -522,7 +524,7 @@ class TelloFlightSessionTest {
         leftFixture.session.setYawFollowArmed(true)
         advanceTimeBy(50L)
         runCurrent()
-        assertEquals(-16, leftFixture.transport.rc.last().yaw)
+        assertEquals(-3, leftFixture.transport.rc.last().yaw)
     }
 
     @Test fun `centered matched target sends zero`() = runTest {
@@ -535,7 +537,54 @@ class TelloFlightSessionTest {
         assertEquals(RcVector.Zero, fixture.transport.rc.last())
     }
 
-    @Test fun `temporary missing zeros then predicted same target resumes without another arm`() = runTest {
+    @Test fun `targetFresh does not bypass source age gate`() = runTest {
+        val (fixture, _) = yawReadyFixture()
+        fixture.detectorNowNanos.set(
+            1_100_000_000L +
+                (com.alonibh.tellodrone.domain.ProductionYawController.MAXIMUM_PERCEPTION_AGE_MILLIS + 1L) * 1_000_000L,
+        )
+
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        assertTrue(fixture.session.state.value.trackingErrors!!.targetFresh)
+        assertEquals(
+            com.alonibh.tellodrone.domain.YawControlSuppressionReason.STALE_PERCEPTION,
+            fixture.session.state.value.yawFollowDecision.control?.suppressionReason,
+        )
+        assertEquals(RcVector.Zero, fixture.transport.rc.last())
+    }
+
+    @Test fun `control trace records accepted measurement and actual yaw-only RC publication`() = runTest {
+        val trace = FakeVisionTraceRecorder()
+        val box = NormalizedBoundingBox(.55f, .20f, .85f, .80f)
+        val (fixture, video) = yawReadyFixture(box, trace)
+        fixture.session.setYawFollowArmed(true)
+
+        fixture.detectorNowNanos.set(1_200_000_000L)
+        video.publishDetections(3L, 1_200_000_000L, listOf(detection(box, 3L, 1_200_000_000L)))
+        runCurrent()
+        advanceTimeBy(50L)
+        runCurrent()
+
+        val measurement = trace.controlMeasurements.last()
+        assertEquals(3L, measurement.frameSequence)
+        assertEquals(1_200_000_000L, measurement.sourceTimestampNanos)
+        assertEquals(TargetAssociationState.Matched, measurement.associationState)
+        assertTrue(measurement.perceptionAgeMillis!! >= 0L)
+        assertTrue(measurement.safetyFilteredYawRc > 0)
+
+        val publication = trace.rcPublications.last { it.inputKind == RcInputKind.AUTONOMOUS_YAW }
+        assertEquals(3L, publication.frameSequence)
+        assertEquals(0, publication.actualSentVector.lateral)
+        assertEquals(0, publication.actualSentVector.forward)
+        assertEquals(0, publication.actualSentVector.vertical)
+        assertTrue(publication.actualSentVector.yaw > 0)
+        assertEquals(fixture.session.state.value.telemetry.heightMeters, publication.telemetryHeightMeters)
+    }
+
+    @Test fun `temporary missing zeros then same target requires stable frames without another arm`() = runTest {
         val box = NormalizedBoundingBox(.55f, .20f, .85f, .80f)
         val (fixture, video) = yawReadyFixture(box)
         fixture.session.setYawFollowArmed(true)
@@ -560,18 +609,28 @@ class TelloFlightSessionTest {
         assertEquals(RcVector.Zero, fixture.transport.rc.last())
 
         val sameTarget = detection(
-            box = NormalizedBoundingBox(.24f, .20f, .54f, .80f),
+            box = NormalizedBoundingBox(.40f, .20f, .70f, .80f),
             frame = 5L,
             timestamp = 1_400_000_000L,
         )
         fixture.detectorNowNanos.set(1_400_000_000L)
         video.publishDetections(5L, 1_400_000_000L, listOf(sameTarget))
         runCurrent()
+        assertEquals(0, fixture.session.state.value.yawFollowDecision.yawRc)
+
+        val stableTarget = detection(
+            box = NormalizedBoundingBox(.38f, .20f, .68f, .80f),
+            frame = 6L,
+            timestamp = 1_500_000_000L,
+        )
+        fixture.detectorNowNanos.set(1_500_000_000L)
+        video.publishDetections(6L, 1_500_000_000L, listOf(stableTarget))
+        runCurrent()
         advanceTimeBy(50L)
         runCurrent()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
         assertEquals(TargetAssociationState.Matched, fixture.session.state.value.targetAssociationState)
-        assertEquals(sameTarget.boundingBox, fixture.session.state.value.target?.boundingBox)
+        assertEquals(stableTarget.boundingBox, fixture.session.state.value.target?.boundingBox)
     }
 
     @Test fun `ambiguous and lost association zero and require explicit rearm`() = runTest {
@@ -726,9 +785,10 @@ class TelloFlightSessionTest {
 
     private suspend fun TestScope.yawReadyFixture(
         box: NormalizedBoundingBox = NormalizedBoundingBox(.55f, .20f, .85f, .80f),
+        visionTrace: VisionTraceRecorder = com.alonibh.tellodrone.vision.NoOpVisionTraceRecorder,
     ): Pair<Fixture, FakeVideoController> {
         val video = FakeVideoController()
-        val fixture = fixture(video)
+        val fixture = fixture(video, visionTrace)
         fixture.transport.emitTelemetry(fixture.clock.value)
         assertTrue(fixture.session.connect())
         runCurrent()
@@ -896,11 +956,15 @@ class TelloFlightSessionTest {
     private class FakeVisionTraceRecorder : VisionTraceRecorder {
         override val capturesFrames = true
         val frames = mutableListOf<VisionTraceFrame>()
+        val controlMeasurements = mutableListOf<YawControlMeasurementTrace>()
+        val rcPublications = mutableListOf<RcPublicationTrace>()
         val selectedTargets = mutableListOf<com.alonibh.tellodrone.domain.TrackedTarget>()
         override fun onTargetSelected(target: com.alonibh.tellodrone.domain.TrackedTarget) {
             selectedTargets += target
         }
         override fun record(frame: VisionTraceFrame) { frames += frame }
+        override fun recordControlMeasurement(trace: YawControlMeasurementTrace) { controlMeasurements += trace }
+        override fun recordRcPublication(trace: RcPublicationTrace) { rcPublications += trace }
         override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) = Unit
     }
 

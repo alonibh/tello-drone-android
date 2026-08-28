@@ -13,6 +13,11 @@ data class TrackingErrors(
     val targetPresent: Boolean = false,
     val targetFresh: Boolean = false,
     val distanceCalibrated: Boolean = false,
+    /** Center offset before either deadzone or smoothing. Positive means target-right. */
+    val rawYawError: Float = 0f,
+    val targetCenterX: Float? = null,
+    val measurementFrameSequence: Long? = null,
+    val measurementSourceTimestampNanos: Long? = null,
 )
 
 /**
@@ -31,14 +36,17 @@ class TrackingErrorEngine {
         if (!targetFresh) return previous.copy(targetPresent = true, targetFresh = false)
 
         val box = target.boundingBox
-        val rawYaw = deadzone((box.left + box.right) / 2f - .5f, X_DEADZONE)
+        val centerX = (box.left + box.right) / 2f
+        val rawYaw = centerX - .5f
+        val controlYaw = deadzone(rawYaw, X_DEADZONE)
         val rawVertical = deadzone(.5f - (box.top + box.bottom) / 2f, Y_DEADZONE)
         val rawDistance = distanceReference?.let { reference ->
             val scale = sqrt(area(box))
             deadzone(((reference.visualScale - scale) / reference.visualScale).coerceIn(-1f, 1f), DISTANCE_DEADZONE)
         } ?: 0f
         previous = TrackingErrors(
-            yawError = if (seeded) ema(previous.yawError, rawYaw, YAW_EMA_ALPHA) else rawYaw,
+            rawYawError = rawYaw,
+            yawError = if (seeded) ema(previous.yawError, controlYaw, YAW_EMA_ALPHA) else controlYaw,
             verticalError = if (seeded) ema(previous.verticalError, rawVertical, VERTICAL_DISTANCE_EMA_ALPHA) else rawVertical,
             forwardBackError = if (seeded && distanceReference != null) {
                 ema(previous.forwardBackError, rawDistance, VERTICAL_DISTANCE_EMA_ALPHA)
@@ -48,6 +56,9 @@ class TrackingErrorEngine {
             targetPresent = true,
             targetFresh = true,
             distanceCalibrated = distanceReference != null,
+            targetCenterX = centerX,
+            measurementFrameSequence = target.lastSeenFrameSequence,
+            measurementSourceTimestampNanos = target.lastSeenSourceTimestampNanos,
         )
         seeded = true
         return previous

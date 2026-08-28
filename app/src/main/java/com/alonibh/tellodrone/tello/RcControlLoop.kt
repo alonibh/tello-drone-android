@@ -2,6 +2,10 @@ package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.ProductionYawController
+import com.alonibh.tellodrone.domain.TargetAssociationState
+import com.alonibh.tellodrone.domain.YawControlOutcome
+import com.alonibh.tellodrone.domain.YawFollowReason
+import com.alonibh.tellodrone.domain.YawFollowState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -12,6 +16,29 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.math.roundToInt
 
+enum class RcInputKind { MANUAL, AUTONOMOUS_YAW, SAFETY_ZERO }
+
+enum class RcSendSuppressionReason { NONE, DISABLED, UNHEALTHY, LOCKED_OUT, RC_TTL_EXPIRED, PERCEPTION_AGE_EXPIRED }
+
+data class AutonomousYawContext(
+    val control: YawControlOutcome,
+    val associationState: TargetAssociationState,
+    val yawFollowState: YawFollowState,
+    val yawFollowReason: YawFollowReason,
+    val telemetryHeightMeters: Float?,
+)
+
+data class RcPublication(
+    val commandTimestampNanos: Long,
+    val requestedVector: RcVector,
+    val actualVector: RcVector,
+    val inputKind: RcInputKind,
+    val desiredPublishedAtMillis: Long,
+    val sentAtMillis: Long,
+    val suppressionReason: RcSendSuppressionReason,
+    val autonomousContext: AutonomousYawContext?,
+)
+
 class RcControlLoop(
     private val scope: CoroutineScope,
     private val sender: suspend (RcVector) -> Unit,
@@ -20,13 +47,27 @@ class RcControlLoop(
     private val inputTtlMillis: Long = 250L,
     private val maximumRcMagnitude: Int = 40,
     private val onSendFailure: (Throwable) -> Unit = {},
+    private val traceClockNanos: () -> Long = { clock.nowMillis() * NANOS_PER_MILLISECOND },
+    private val onRcSent: (RcPublication) -> Unit = {},
 ) {
-    private data class Desired(val vector: RcVector, val publishedAtMillis: Long)
+    private data class Desired(
+        val vector: RcVector,
+        val publishedAtMillis: Long,
+        val inputKind: RcInputKind,
+        val perceptionValidityMillis: Long? = null,
+        val autonomousContext: AutonomousYawContext? = null,
+    )
+
+    private data class Selection(
+        val desired: Desired,
+        val actualVector: RcVector,
+        val suppressionReason: RcSendSuppressionReason,
+    )
 
     private val lock = Any()
     /** Serializes physical sends so a safety zero cannot be overtaken by an already-selected RC vector. */
     private val sendMutex = Mutex()
-    private var desired = Desired(RcVector.Zero, -inputTtlMillis - 1L)
+    private var desired = Desired(RcVector.Zero, -inputTtlMillis - 1L, RcInputKind.SAFETY_ZERO)
     private var enabled = false
     private var healthy = false
     private var lockedOut = false
@@ -61,23 +102,35 @@ class RcControlLoop(
         if (enabled && healthy && !lockedOut) {
             preemptAutonomyLocked()
             val magnitude = speedPercent.coerceIn(MINIMUM_RC_MAGNITUDE, maximumRcMagnitude)
-            desired = Desired(vector.toRcVector(magnitude, maximumRcMagnitude), clock.nowMillis())
+            desired = Desired(
+                vector.toRcVector(magnitude, maximumRcMagnitude),
+                clock.nowMillis(),
+                RcInputKind.MANUAL,
+            )
         }
     }
 
     fun beginAutonomousYaw(): Long = synchronized(lock) {
         autonomyGeneration += 1L
         activeAutonomyGeneration = autonomyGeneration
-        desired = Desired(RcVector.Zero, clock.nowMillis())
+        desired = Desired(RcVector.Zero, clock.nowMillis(), RcInputKind.AUTONOMOUS_YAW)
         autonomyGeneration
     }
 
     /** The yaw-only API cannot express lateral, forward/back, or vertical output. */
-    fun publishAutonomousYaw(yawRc: Int, generation: Long) = synchronized(lock) {
+    fun publishAutonomousYaw(
+        yawRc: Int,
+        generation: Long,
+        validForMillis: Long = inputTtlMillis,
+        context: AutonomousYawContext? = null,
+    ) = synchronized(lock) {
         if (enabled && healthy && !lockedOut && activeAutonomyGeneration == generation) {
             desired = Desired(
                 RcVector(yaw = yawRc.coerceIn(-AUTONOMOUS_YAW_RC_CAP, AUTONOMOUS_YAW_RC_CAP)),
                 clock.nowMillis(),
+                RcInputKind.AUTONOMOUS_YAW,
+                perceptionValidityMillis = validForMillis.coerceAtLeast(0L),
+                autonomousContext = context,
             )
         }
     }
@@ -86,19 +139,34 @@ class RcControlLoop(
     fun preemptAutonomy(): Long = synchronized(lock) { preemptAutonomyLocked() }
 
     fun currentVector(nowMillis: Long = clock.nowMillis()): RcVector = synchronized(lock) {
-        if (!enabled || !healthy || lockedOut || nowMillis - desired.publishedAtMillis >= inputTtlMillis) {
-            RcVector.Zero
-        } else desired.vector
+        selectLocked(nowMillis).actualVector
     }
 
-    suspend fun sendCycle(nowMillis: Long = clock.nowMillis()) {
+    suspend fun sendCycle() {
         val shouldSend = synchronized(lock) { enabled && !lockedOut }
         if (!shouldSend) return
         sendMutex.withLock {
             try {
                 // Read only after taking the send lock. A concurrent STOP/stale transition therefore
                 // either sends its zero first or waits for this already-sent vector and finishes with zero.
-                sender(currentVector(nowMillis))
+                val nowMillis = clock.nowMillis()
+                val selection = synchronized(lock) { selectLocked(nowMillis) }
+                val commandTimestampNanos = traceClockNanos()
+                sender(selection.actualVector)
+                runCatching {
+                    onRcSent(
+                        RcPublication(
+                            commandTimestampNanos = commandTimestampNanos,
+                            requestedVector = selection.desired.vector,
+                            actualVector = selection.actualVector,
+                            inputKind = selection.desired.inputKind,
+                            desiredPublishedAtMillis = selection.desired.publishedAtMillis,
+                            sentAtMillis = nowMillis,
+                            suppressionReason = selection.suppressionReason,
+                            autonomousContext = selection.desired.autonomousContext,
+                        ),
+                    )
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
@@ -119,12 +187,28 @@ class RcControlLoop(
      */
     suspend fun sendZeroIfCurrent(generation: Long) {
         sendMutex.withLock {
-            val stillCurrent = synchronized(lock) {
-                autonomyGeneration == generation && desired.vector == RcVector.Zero
+            val currentDesired = synchronized(lock) {
+                desired.takeIf { autonomyGeneration == generation && it.vector == RcVector.Zero }
             }
-            if (!stillCurrent) return@withLock
+            if (currentDesired == null) return@withLock
             try {
+                val commandTimestampNanos = traceClockNanos()
                 sender(RcVector.Zero)
+                val sentAtMillis = clock.nowMillis()
+                runCatching {
+                    onRcSent(
+                        RcPublication(
+                            commandTimestampNanos = commandTimestampNanos,
+                            requestedVector = RcVector.Zero,
+                            actualVector = RcVector.Zero,
+                            inputKind = RcInputKind.SAFETY_ZERO,
+                            desiredPublishedAtMillis = currentDesired.publishedAtMillis,
+                            sentAtMillis = sentAtMillis,
+                            suppressionReason = RcSendSuppressionReason.NONE,
+                            autonomousContext = currentDesired.autonomousContext,
+                        ),
+                    )
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Throwable) {
@@ -163,13 +247,39 @@ class RcControlLoop(
         (value.coerceIn(-1f, 1f) * magnitude).roundToInt().coerceIn(-maximum, maximum)
 
     private fun preemptAutonomyLocked(): Long {
+        val previousAutonomousContext = desired.autonomousContext
         autonomyGeneration += 1L
         activeAutonomyGeneration = null
-        desired = Desired(RcVector.Zero, clock.nowMillis())
+        desired = Desired(
+            RcVector.Zero,
+            clock.nowMillis(),
+            RcInputKind.SAFETY_ZERO,
+            autonomousContext = previousAutonomousContext,
+        )
         return autonomyGeneration
     }
 
+    private fun selectLocked(nowMillis: Long): Selection {
+        val ageMillis = nowMillis - desired.publishedAtMillis
+        val suppression = when {
+            lockedOut -> RcSendSuppressionReason.LOCKED_OUT
+            !enabled -> RcSendSuppressionReason.DISABLED
+            !healthy -> RcSendSuppressionReason.UNHEALTHY
+            ageMillis >= inputTtlMillis -> RcSendSuppressionReason.RC_TTL_EXPIRED
+            desired.inputKind == RcInputKind.AUTONOMOUS_YAW &&
+                ageMillis >= (desired.perceptionValidityMillis ?: 0L) ->
+                RcSendSuppressionReason.PERCEPTION_AGE_EXPIRED
+            else -> RcSendSuppressionReason.NONE
+        }
+        return Selection(
+            desired = desired,
+            actualVector = if (suppression == RcSendSuppressionReason.NONE) desired.vector else RcVector.Zero,
+            suppressionReason = suppression,
+        )
+    }
+
     companion object {
+        private const val NANOS_PER_MILLISECOND = 1_000_000L
         const val MINIMUM_RC_MAGNITUDE = 10
         const val AUTONOMOUS_YAW_RC_CAP = ProductionYawController.ABSOLUTE_YAW_RC_CAP
     }
