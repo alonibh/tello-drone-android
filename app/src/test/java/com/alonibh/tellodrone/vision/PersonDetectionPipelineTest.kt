@@ -47,6 +47,36 @@ class PersonDetectionPipelineTest {
         assertEquals(listOf(.30f), snapshots.last().detections.map { it.confidence })
     }
 
+    @Test fun `completed inference measurement supplies grounded benchmark metrics`() {
+        val measurements = mutableListOf<DetectorInferenceMeasurement>()
+        var now = 0L
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { model, _ ->
+                now = 12_000_000L // detector creation completes
+                FakePersonDetector(modelName = model.displayName) {
+                    now += 8_000_000L // detector inference completes
+                    emptyList()
+                }
+            },
+            clockNanos = { now },
+            onSnapshot = {},
+            onInferenceMeasurement = measurements::add,
+        )
+
+        pipeline.startProductionDetection()
+        pipeline.process(frame())
+        now = 2_012_000_000L
+        pipeline.process(frame())
+
+        assertEquals(2, measurements.size)
+        assertEquals(DetectorModel.Yolo11nLiteRtFloat32.displayName, measurements.last().descriptor.modelName)
+        assertEquals(12L, measurements.last().initializationMillis)
+        assertEquals(2L, measurements.last().analyzedFrames)
+        assertTrue(measurements.last().inferenceP50Millis != null)
+        assertTrue(measurements.last().inferenceP95Millis != null)
+        assertTrue(measurements.last().measuredFps != null)
+    }
+
     @Test fun `fake detector result is published and zero result clears immediately`() {
         var result = listOf(detection(sourceTimestamp = 100L))
         val fake = FakePersonDetector { result }

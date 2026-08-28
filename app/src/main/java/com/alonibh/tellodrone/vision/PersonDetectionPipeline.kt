@@ -36,6 +36,12 @@ data class DetectorInferenceMeasurement(
     /** Creation time only for the first inference after a detector start/recreate. */
     val startupNanos: Long?,
     val descriptor: PersonDetectorDescriptor,
+    /** Running detector instrumentation, emitted with every completed inference. */
+    val initializationMillis: Long?,
+    val inferenceP50Millis: Float?,
+    val inferenceP95Millis: Float?,
+    val analyzedFrames: Long,
+    val measuredFps: Float?,
 )
 
 /** Pure lifecycle/staleness state used by the service-owned runtime and JVM tests. */
@@ -271,6 +277,11 @@ class PersonDetectionPipeline(
                         inferenceNanos = inferenceNanos,
                         startupNanos = creationNanos,
                         descriptor = descriptor,
+                        initializationMillis = timingSnapshot.initializationMillis,
+                        inferenceP50Millis = timingSnapshot.p50Millis,
+                        inferenceP95Millis = timingSnapshot.p95Millis,
+                        analyzedFrames = timingSnapshot.frames,
+                        measuredFps = measuredFps,
                     ),
                 )
             }

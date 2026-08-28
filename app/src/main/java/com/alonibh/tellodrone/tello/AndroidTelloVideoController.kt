@@ -14,6 +14,7 @@ import com.alonibh.tellodrone.vision.FallbackPersonDetectorFactory
 import com.alonibh.tellodrone.vision.PersonDetectionPipeline
 import com.alonibh.tellodrone.vision.PersonDetectionSnapshot
 import com.alonibh.tellodrone.vision.PersonDetectionStore
+import com.alonibh.tellodrone.vision.DetectorInferenceMeasurement
 import com.alonibh.tellodrone.vision.Yolo11nLiteRtPersonDetector
 import com.alonibh.tellodrone.vision.VisionTraceFeature
 import com.alonibh.tellodrone.vision.startProductionDetection
@@ -72,6 +73,9 @@ class AndroidTelloVideoController(
     private val detectionPipeline = PersonDetectionPipeline(
         detectorFactory = { model, preference -> detectorFactory.create(model, preference) },
         onSnapshot = ::publishDetectionSnapshot,
+        // Instrumentation has its own completed-inference publication path.  It must not depend
+        // on the observational snapshot used by tracking and overlay rendering.
+        onInferenceMeasurement = ::publishDetectorInstrumentation,
         onAnalyzedFrame = { frame ->
             if (visionRecorder.capturesFrames) {
                 visionRecorder.captureAnalyzedFrame(
@@ -534,6 +538,22 @@ class AndroidTelloVideoController(
                 processedDetectorSourceTimestampNanos = snapshot.processedSourceTimestampNanos,
                 detectorCandidates = snapshot.candidates,
                 personDetections = snapshot.detections,
+            )
+        }
+    }
+
+    /** Publishes only benchmark fields; it never changes detection, tracking, or video cadence. */
+    private fun publishDetectorInstrumentation(measurement: DetectorInferenceMeasurement) {
+        mutableState.update { current ->
+            if (current.availability != VideoAvailability.Streaming) current else current.copy(
+                detectorModelName = measurement.descriptor.modelName,
+                detectorBackend = measurement.descriptor.backend,
+                detectorFellBackFromGpu = measurement.descriptor.fellBackFromGpu,
+                detectorInitializationMillis = measurement.initializationMillis,
+                detectorInferenceP50Millis = measurement.inferenceP50Millis,
+                detectorInferenceP95Millis = measurement.inferenceP95Millis,
+                detectorMeasuredFps = measurement.measuredFps,
+                detectorAnalyzedFrames = measurement.analyzedFrames,
             )
         }
     }
