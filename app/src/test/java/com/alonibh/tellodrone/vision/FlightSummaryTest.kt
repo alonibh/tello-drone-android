@@ -34,6 +34,99 @@ class FlightSummaryTest {
         assertEquals("null", Regex("\"preview_fps\": (null)").find(FlightSummaryBuilder.json(summary))!!.groupValues[1])
     }
 
-    private fun trace(time: Long, state: String, inference: Int?) = "{\"sourceTimestampNanos\":$time,\"associationState\":\"$state\",\"detector\":{\"inferenceMillis\":${inference ?: "null"}}}"
-    private fun control(time: Long, state: String, suppression: String, yaw: Int, height: Double, lateral: Int = 0, send: String = "NONE") = "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"frameSequence\":1,\"perceptionAgeMillis\":100,\"yawFollowState\":\"$state\",\"yawFollowReason\":\"ACTIVE\",\"suppressionReason\":\"$suppression\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$send\",\"telemetryHeightMeters\":$height,\"actualSentVector\":{\"lateral\":$lateral,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
+    @Test fun counts_distinct_episodes_from_chronological_false_to_true_transitions() {
+        val controls = listOf(
+            // Jump episode 1 (2 consecutive records) -> count 1
+            control(1_000_000_000, suppression = "TARGET_JUMP_REJECTED", frameSequence = 10),
+            control(1_100_000_000, suppression = "TARGET_JUMP_REJECTED", frameSequence = 11),
+            // Normal control separating episodes
+            control(1_200_000_000, suppression = "NONE", frameSequence = 12),
+            // Jump episode 2 (1 record) -> total count 2
+            control(1_300_000_000, suppression = "TARGET_JUMP_REJECTED", frameSequence = 13),
+            // Crossing brake episode 1
+            control(1_400_000_000, suppression = "CENTER_CROSSING_BRAKE", frameSequence = 14),
+            control(1_450_000_000, suppression = "CENTER_CROSSING_BRAKE", frameSequence = 15),
+            // Normal
+            control(1_500_000_000, suppression = "NONE", frameSequence = 16),
+            // Crossing brake episode 2
+            control(1_600_000_000, suppression = "CENTER_CROSSING_BRAKE", frameSequence = 17),
+            // REQUIRES_REARM episode 1
+            control(1_700_000_000, state = "REQUIRES_REARM", frameSequence = 18),
+            control(1_750_000_000, state = "REQUIRES_REARM", frameSequence = 19),
+            // Resumed / armed
+            control(1_800_000_000, state = "ACTIVE", frameSequence = 20),
+            // REQUIRES_REARM episode 2
+            control(1_900_000_000, state = "REQUIRES_REARM", frameSequence = 21),
+            // Preemption: manual override #1
+            control(2_000_000_000, reason = "MANUAL_OVERRIDE", frameSequence = 22),
+            // Normal active
+            control(2_100_000_000, reason = "ACTIVE", frameSequence = 23),
+            // Preemption: manual override #2
+            control(2_200_000_000, reason = "MANUAL_OVERRIDE", frameSequence = 24),
+            // Preemption: STOP/HOVER #1
+            control(2_300_000_000, reason = "HOVER_INTERVENTION", frameSequence = 25),
+            control(2_350_000_000, reason = "HOVER_INTERVENTION", frameSequence = 26),
+            // Normal
+            control(2_400_000_000, reason = "ACTIVE", frameSequence = 27),
+            // Preemption: STOP/HOVER #2
+            control(2_500_000_000, reason = "HOVER_INTERVENTION", frameSequence = 28),
+        )
+        val summary = FlightSummaryBuilder.build(emptyList(), controls)
+        assertEquals(2, summary.jumpSuppressions)
+        assertEquals(2, summary.crossingBrakes)
+        assertEquals(2, summary.requiresRearmCount)
+        assertEquals(2, summary.manualOverrides)
+        assertEquals(2, summary.stopHoverPreemptions)
+
+        // Verify notable events point to the first record of each distinct episode
+        val jumpEvents = summary.notableEvents.filter { it.kind == "jump rejection" }
+        assertEquals(2, jumpEvents.size)
+        assertEquals(1_000_000_000L, jumpEvents[0].timestampNanos)
+        assertEquals(10L, jumpEvents[0].frameSequence)
+        assertEquals(1_300_000_000L, jumpEvents[1].timestampNanos)
+        assertEquals(13L, jumpEvents[1].frameSequence)
+
+        val crossingEvents = summary.notableEvents.filter { it.kind == "center-crossing brake" }
+        assertEquals(2, crossingEvents.size)
+        assertEquals(1_400_000_000L, crossingEvents[0].timestampNanos)
+        assertEquals(14L, crossingEvents[0].frameSequence)
+        assertEquals(1_600_000_000L, crossingEvents[1].timestampNanos)
+        assertEquals(17L, crossingEvents[1].frameSequence)
+    }
+
+    @Test fun counts_distinct_lost_episodes_from_non_lost_transitions() {
+        val traces = listOf(
+            trace(1_000_000_000, "None"),
+            trace(2_000_000_000, "Selected"),
+            trace(3_000_000_000, "Matched"),
+            trace(4_000_000_000, "Lost"), // Lost episode 1 start
+            trace(4_500_000_000, "Lost"), // Lost continuation
+            trace(5_000_000_000, "Matched"), // Reselected/matched
+            trace(6_000_000_000, "Lost"), // Lost episode 2 start
+        )
+        val summary = FlightSummaryBuilder.build(traces, emptyList())
+        assertEquals(2, summary.lostCount)
+    }
+
+    @Test fun preserves_and_reports_true_autonomous_physical_yaw_without_fabrication_or_clamping() {
+        val normalControls = listOf(
+            control(1_000_000_000, yaw = 6),
+            control(2_000_000_000, yaw = -12),
+        )
+        val normalSummary = FlightSummaryBuilder.build(emptyList(), normalControls)
+        assertEquals(12, normalSummary.maxAbsYaw)
+        assertEquals(9.0, normalSummary.meanAbsYaw!!, 0.001)
+
+        val unconstrainedTraceControls = listOf(
+            control(1_000_000_000, yaw = 15),
+            control(2_000_000_000, yaw = -20),
+        )
+        val unconstrainedSummary = FlightSummaryBuilder.build(emptyList(), unconstrainedTraceControls)
+        // Values > 12 are faithfully preserved and reported as recorded in trace
+        assertEquals(20, unconstrainedSummary.maxAbsYaw)
+        assertEquals(17.5, unconstrainedSummary.meanAbsYaw!!, 0.001)
+    }
+
+    private fun trace(time: Long, state: String, inference: Int? = null) = "{\"sourceTimestampNanos\":$time,\"associationState\":\"$state\",\"detector\":{\"inferenceMillis\":${inference ?: "null"}}}"
+    private fun control(time: Long, state: String = "ACTIVE", suppression: String = "NONE", reason: String = "ACTIVE", yaw: Int = 0, height: Double = 1.0, lateral: Int = 0, send: String = "NONE", frameSequence: Long = 1) = "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"frameSequence\":$frameSequence,\"perceptionAgeMillis\":100,\"yawFollowState\":\"$state\",\"yawFollowReason\":\"$reason\",\"suppressionReason\":\"$suppression\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$send\",\"telemetryHeightMeters\":$height,\"actualSentVector\":{\"lateral\":$lateral,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
 }

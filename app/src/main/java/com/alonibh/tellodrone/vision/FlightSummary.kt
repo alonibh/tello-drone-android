@@ -38,7 +38,7 @@ internal object FlightSummaryBuilder {
         val heights = controls.mapNotNull { it.double("telemetryHeightMeters") }
         val events = mutableListOf<FlightSummaryEvent>()
         fun count(kind: String, predicate: (Record) -> Boolean): Int {
-            val values = transitions(controls.filter(predicate))
+            val values = episodes(controls, predicate)
             values.take(3).forEach { events += FlightSummaryEvent(kind, it.long("commandTimestampNanos") ?: 0L, it.long("frameSequence")) }
             return values.size
         }
@@ -54,7 +54,7 @@ internal object FlightSummaryBuilder {
             armedMs = yawStates.filter { it.value in setOf("ARMED_WAITING", "ACTIVE") }.sumOf { it.durationMs }, activeMs = yawStates.filter { it.value == "ACTIVE" }.sumOf { it.durationMs },
             matchedPercent = if (selectedMs == 0L) null else matchedMs * 100.0 / selectedMs,
             missingCount = missing.size, missingMs = missing.sumOf { it.durationMs }, longestMissingMs = missing.maxOfOrNull { it.durationMs } ?: 0L,
-            lostCount = transitions(traces.filter { it.string("associationState") == "Lost" }).size, requiresRearmCount = rearm,
+            lostCount = episodes(traces) { it.string("associationState") == "Lost" }.size, requiresRearmCount = rearm,
             inferenceP50 = percentile(inference, .50), inferenceP95 = percentile(inference, .95), detectorFps = fps(traces.filter { it.double("detector", "inferenceMillis") != null }), analysisFps = fps(traces), previewFps = null,
             ageP50 = percentile(ages.map { it.toDouble() }, .50), ageP95 = percentile(ages.map { it.toDouble() }, .95), ageMax = ages.maxOrNull(), excessiveAgeRejections = stale,
             meanAbsYaw = absYaw.takeIf { it.isNotEmpty() }?.average(), p95AbsYaw = percentile(absYaw.map { it.toDouble() }, .95), maxAbsYaw = absYaw.maxOrNull(), maxYawStep = sentYaw.zipWithNext { a, b -> abs(b - a) }.maxOrNull(),
@@ -90,7 +90,7 @@ internal object FlightSummaryBuilder {
 
     private data class Interval(val value: String?, val durationMs: Long)
     private fun intervals(records: List<Record>, timestamp: String, value: String) = records.zipWithNext().map { (a, b) -> Interval(a.string(value), ((b.long(timestamp) ?: 0) - (a.long(timestamp) ?: 0)).coerceAtLeast(0) / MS_NANOS) }
-    private fun transitions(records: List<Record>) = records.filterIndexed { index, item -> index == 0 || records[index - 1].signature() != item.signature() }
+    private fun episodes(records: List<Record>, predicate: (Record) -> Boolean) = records.filterIndexed { index, record -> predicate(record) && (index == 0 || !predicate(records[index - 1])) }
     private fun fps(records: List<Record>): Double? { val ts = records.mapNotNull { it.long("sourceTimestampNanos") }; val span = (ts.maxOrNull() ?: return null) - (ts.minOrNull() ?: return null); return if (span <= 0) null else (ts.size - 1) * 1_000_000_000.0 / span }
     private fun percentile(values: List<Double>, p: Double): Double? = values.sorted().takeIf { it.isNotEmpty() }?.let { it[((it.size - 1) * p).toInt()] }
     private fun standardDeviation(values: List<Double>): Double? = values.takeIf { it.isNotEmpty() }?.let { sqrt(it.map { v -> (v - it.average()) * (v - it.average()) }.average()) }
@@ -112,5 +112,4 @@ private class Record(private val values: Map<String, Any?>) {
     fun double(parent: String, key: String) = (nested(parent)?.get(key) as? Number)?.toDouble()
     fun int(parent: String, key: String) = (nested(parent)?.get(key) as? Number)?.toInt()
     fun suppression() = string("suppressionReason") ?: string("yawSuppressionReason")
-    fun signature() = listOf(string("yawFollowState"), string("yawFollowReason"), suppression(), string("sendSuppressionReason"))
 }
