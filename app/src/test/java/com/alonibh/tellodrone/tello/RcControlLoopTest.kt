@@ -3,6 +3,7 @@
 package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.ManualControlVector
+import com.alonibh.tellodrone.domain.ProductionYawController
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runCurrent
@@ -102,17 +103,17 @@ class RcControlLoopTest {
         assertEquals(RcVector(forward = 10), loop.currentVector())
     }
 
-    @Test fun `autonomous yaw is capped at twelve with all other axes zero`() = runTest {
+    @Test fun `autonomous yaw is capped with all other axes zero`() = runTest {
         val loop = RcControlLoop(backgroundScope, {}, FakeClock(1_000))
         loop.setEnabled(true)
         loop.setHealthy(true)
         val generation = loop.beginAutonomousYaw()
 
         loop.publishAutonomousYaw(99, generation)
-        assertEquals(RcVector(yaw = 12), loop.currentVector())
+        assertEquals(RcVector(yaw = ProductionYawController.ABSOLUTE_YAW_RC_CAP), loop.currentVector())
 
         loop.publishAutonomousYaw(-99, generation)
-        assertEquals(RcVector(yaw = -12), loop.currentVector())
+        assertEquals(RcVector(yaw = -ProductionYawController.ABSOLUTE_YAW_RC_CAP), loop.currentVector())
     }
 
     @Test fun `autonomous perception validity expires independently before RC TTL`() = runTest {

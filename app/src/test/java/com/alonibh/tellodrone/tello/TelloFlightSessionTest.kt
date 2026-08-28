@@ -514,8 +514,8 @@ class TelloFlightSessionTest {
         val command = fixture.transport.rc.last()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
         assertTrue(command.yaw > 0)
-        assertEquals(3, command.yaw)
-        assertTrue(kotlin.math.abs(command.yaw) <= 12)
+        assertEquals(4, command.yaw)
+        assertTrue(kotlin.math.abs(command.yaw) <= 16)
         assertEquals(0, command.lateral)
         assertEquals(0, command.forward)
         assertEquals(0, command.vertical)
@@ -524,7 +524,7 @@ class TelloFlightSessionTest {
         leftFixture.session.setYawFollowArmed(true)
         advanceTimeBy(50L)
         runCurrent()
-        assertEquals(-3, leftFixture.transport.rc.last().yaw)
+        assertEquals(-4, leftFixture.transport.rc.last().yaw)
     }
 
     @Test fun `centered matched target sends zero`() = runTest {

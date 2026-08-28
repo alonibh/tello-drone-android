@@ -407,7 +407,7 @@ private fun ExpandedDashboard(
                     when (currentTab) {
                         OperationalTab.Flight -> 250.dp
                         OperationalTab.Tracking -> 220.dp
-                        OperationalTab.Status -> 230.dp
+                        OperationalTab.Status -> 250.dp
                     },
                 ),
         ) {

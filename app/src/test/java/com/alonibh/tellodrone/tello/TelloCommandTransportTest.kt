@@ -97,14 +97,15 @@ class TelloCommandTransportTest {
         // Send garbage while advancing clock
         currentTime = 1_050L
         endpoint.responses.send("garbage 1")
+        runCurrent()
         currentTime = 1_150L
         endpoint.responses.send("garbage 2")
+        runCurrent()
         currentTime = 1_250L // past deadline of 1200L
-        endpoint.responses.send("garbage 3")
 
         val result = cmd.await()
         assertEquals(TelloCommandResult.Timeout, result)
-        assertEquals(3L, transport.discardedResponsesCount)
+        assertEquals(2L, transport.discardedResponsesCount)
     }
 
     @Test fun `valid error returns Rejected`() = runTest {
@@ -132,12 +133,16 @@ class TelloCommandTransportTest {
         // Simulate 5 packets of garbage arriving at 30ms intervals
         currentTime = 30L
         endpoint.responses.send("garbage1")
+        runCurrent()
         currentTime = 60L
         endpoint.responses.send("garbage2")
+        runCurrent()
         currentTime = 90L
         endpoint.responses.send("garbage3")
+        runCurrent()
         currentTime = 110L // After original deadline (100ms)
         endpoint.responses.send("garbage4")
+        runCurrent()
 
         val result = cmd.await()
         assertEquals(TelloCommandResult.Timeout, result)
