@@ -1333,8 +1333,8 @@ class TelloFlightSession(
 
     private fun TelloCommandResult.description(): String = when (this) {
         is TelloCommandResult.Success -> response
-        is TelloCommandResult.Rejected -> response.ifBlank { "rejected" }
-        TelloCommandResult.Timeout -> "response timed out"
+        is TelloCommandResult.Rejected -> response.filter { it in '\u0020'..'\u007E' }.ifBlank { "rejected" }
+        TelloCommandResult.Timeout -> "no valid acknowledgement received"
         is TelloCommandResult.Failure -> cause.safeMessage()
     }
 

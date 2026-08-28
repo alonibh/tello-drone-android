@@ -2,6 +2,11 @@
 
 package com.alonibh.tellodrone.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.VerticalDivider
+import com.alonibh.tellodrone.domain.NormalizedBoundingBox
+import com.alonibh.tellodrone.domain.TrackedTarget
+
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
@@ -288,27 +293,32 @@ private fun OperationalNavTabs(
         modifier = modifier.testTag("operational_navigation"),
     ) {
         Row(
-            modifier = Modifier.padding(3.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OperationalTab.entries.forEach { tab ->
                 val selected = tab == selectedTab
                 Surface(
-                    color = if (selected) TelloGreenDark.copy(alpha = 0.65f) else Color.Transparent,
+                    color = if (selected) TelloGreenDark.copy(alpha = 0.70f) else Color.Transparent,
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier
+                        .height(50.dp)
                         .clickable { onTabSelected(tab) }
                         .testTag("nav_tab_${tab.name.lowercase()}"),
                 ) {
-                    Text(
-                        tab.label,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                        fontSize = 12.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selected) TelloGreen else TelloTextMuted,
-                        textAlign = TextAlign.Center,
-                    )
+                    Box(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            tab.label,
+                            fontSize = 13.sp,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (selected) TelloGreen else TelloTextMuted,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
         }
@@ -330,19 +340,19 @@ private fun ExpandedHeader(
     ) {
         Row(
             Modifier
-                .heightIn(min = 64.dp)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .heightIn(min = 68.dp)
+                .padding(horizontal = 16.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Brand(state, Modifier.widthIn(min = 140.dp))
+            Brand(state, Modifier.widthIn(min = 130.dp))
             OperationalNavTabs(
                 selectedTab = selectedTab,
                 onTabSelected = onTabSelected,
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
                 AirborneBatteryWarningBanner(state)
@@ -358,8 +368,8 @@ private fun ExpandedHeader(
             EmergencyHoldButton(
                 enabled = state.canEmergency(),
                 onTriggered = vm::emergencyMotorKill,
-                modifier = Modifier.width(170.dp).height(44.dp),
-                compact = true,
+                modifier = Modifier.widthIn(min = 190.dp).height(56.dp),
+                compact = false,
             )
         }
     }
@@ -396,8 +406,8 @@ private fun ExpandedDashboard(
                 .height(
                     when (currentTab) {
                         OperationalTab.Flight -> 250.dp
-                        OperationalTab.Tracking -> 150.dp
-                        OperationalTab.Status -> 190.dp
+                        OperationalTab.Tracking -> 220.dp
+                        OperationalTab.Status -> 230.dp
                     },
                 ),
         ) {
@@ -502,7 +512,7 @@ private fun ExpandedTabletFlightCenter(
         shape = panelShape,
     ) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -511,22 +521,22 @@ private fun ExpandedTabletFlightCenter(
                     Text(
                         if (state.telemetry.isFresh) "READY FOR TAKEOFF" else connectionLabel(state.connection).uppercase(),
                         color = if (state.telemetry.isFresh) TelloGreen else TelloTextMuted,
-                        fontSize = 12.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    TakeoffAction(state, vm, Modifier.fillMaxWidth().height(48.dp))
+                    TakeoffAction(state, vm, Modifier.fillMaxWidth().height(58.dp))
                     FlightActionHint(state)
                 }
                 state.flight in setOf(FlightState.Flying, FlightState.TakingOff, FlightState.Landing) -> {
-                    HoverAction(state, vm, Modifier.fillMaxWidth().height(48.dp).testTag("stop_hover"))
+                    HoverAction(state, vm, Modifier.fillMaxWidth().height(60.dp).testTag("stop_hover"))
                     if (state.hoverActive) HoverActiveStatus()
-                    LandAction(state, vm, Modifier.fillMaxWidth().height(40.dp), compact = true)
+                    LandAction(state, vm, Modifier.fillMaxWidth().height(52.dp), compact = true)
                     CompactCenterSpeedControl(state, vm, Modifier.fillMaxWidth().padding(horizontal = 4.dp))
                     FlightActionHint(state)
                 }
                 else -> {
-                    Text(connectionLabel(state.connection).uppercase(), color = connectionColor(state.connection), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                    TakeoffAction(state, vm, Modifier.fillMaxWidth().height(48.dp))
+                    Text(connectionLabel(state.connection).uppercase(), color = connectionColor(state.connection), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    TakeoffAction(state, vm, Modifier.fillMaxWidth().height(58.dp))
                     FlightActionHint(state)
                 }
             }
@@ -564,6 +574,30 @@ private fun CompactCenterSpeedControl(
 }
 
 @Composable
+private fun TrackingStatusChip(
+    label: String,
+    value: String,
+    valueColor: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        color = TelloPanelRaised,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, TelloLine),
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(label.uppercase(), fontSize = 11.sp, color = TelloTextMuted, fontWeight = FontWeight.Medium)
+            Text(value.uppercase(), fontSize = 12.sp, color = valueColor, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
 private fun ExpandedTrackingControls(
     state: DroneSessionState,
     vm: DroneDashboardActions,
@@ -580,38 +614,39 @@ private fun ExpandedTrackingControls(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
-                modifier = Modifier.weight(1.2f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.weight(1.1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 val presentation = state.trackingUiPresentation()
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    StatusLine("Detection", presentation.detection.value, presentation.detection.color)
-                    StatusLine("Target", presentation.target.value, presentation.target.color)
-                    StatusLine("Yaw", presentation.yaw.value, presentation.yaw.color)
+                    TrackingStatusChip("Detection", presentation.detection.value, presentation.detection.color)
+                    TrackingStatusChip("Target", presentation.target.value, presentation.target.color)
+                    TrackingStatusChip("Yaw", presentation.yaw.value, presentation.yaw.color)
                     Surface(
-                        color = TelloRed.copy(alpha = .10f),
+                        color = TelloRed.copy(alpha = .12f),
                         shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, TelloRed.copy(alpha = 0.3f)),
                         modifier = Modifier.testTag("yaw_only_badge"),
                     ) {
                         Text(
                             "YAW ONLY",
                             color = TelloRed,
-                            fontSize = 10.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                         )
                     }
                 }
                 presentation.instruction?.let {
-                    Text(it, color = TelloTextMuted, fontSize = 12.sp)
+                    Text(it, color = TelloTextMuted, fontSize = 13.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
             Column(
-                modifier = Modifier.weight(0.8f),
+                modifier = Modifier.weight(0.9f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 val presentation = state.trackingUiPresentation()
@@ -620,17 +655,17 @@ private fun ExpandedTrackingControls(
                     state.video.analysisLatestSequence != null
 
                 when (presentation.primaryAction) {
-                    TrackingPrimaryAction.StartDetection -> ActionButton("START DETECTION", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth())
-                    TrackingPrimaryAction.ArmYawFollow -> ActionButton("ARM YAW FOLLOW", Icons.Default.CheckCircle, true, { vm.setYawFollowArmed(true) }, Modifier.fillMaxWidth().testTag("arm_yaw_follow"))
-                    TrackingPrimaryAction.RearmYawFollow -> ActionButton("RE-ARM YAW FOLLOW", Icons.Default.CheckCircle, true, { vm.setYawFollowArmed(true) }, Modifier.fillMaxWidth().testTag("arm_yaw_follow"))
-                    TrackingPrimaryAction.DisarmYawFollow -> ActionButton("DISARM YAW FOLLOW", Icons.Default.Close, true, { vm.setYawFollowArmed(false) }, Modifier.fillMaxWidth().testTag("disarm_yaw_follow"), active = true)
+                    TrackingPrimaryAction.StartDetection -> ActionButton("START DETECTION", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth().height(52.dp))
+                    TrackingPrimaryAction.ArmYawFollow -> ActionButton("ARM YAW FOLLOW", Icons.Default.CheckCircle, true, { vm.setYawFollowArmed(true) }, Modifier.fillMaxWidth().height(52.dp).testTag("arm_yaw_follow"))
+                    TrackingPrimaryAction.RearmYawFollow -> ActionButton("RE-ARM YAW FOLLOW", Icons.Default.CheckCircle, true, { vm.setYawFollowArmed(true) }, Modifier.fillMaxWidth().height(52.dp).testTag("arm_yaw_follow"))
+                    TrackingPrimaryAction.DisarmYawFollow -> ActionButton("DISARM YAW FOLLOW", Icons.Default.Close, true, { vm.setYawFollowArmed(false) }, Modifier.fillMaxWidth().height(52.dp).testTag("disarm_yaw_follow"), active = true)
                     TrackingPrimaryAction.None -> Unit
                 }
                 if (presentation.showStopDetection) {
-                    OutlineAction("STOP DETECTION", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth())
+                    OutlineAction("STOP DETECTION", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth().height(48.dp))
                 }
-                if (state.flight == FlightState.Flying) {
-                    HoverAction(state, vm, Modifier.fillMaxWidth().testTag("stop_hover"), compact = true)
+                if (state.flight in setOf(FlightState.Flying, FlightState.TakingOff, FlightState.Landing)) {
+                    HoverAction(state, vm, Modifier.fillMaxWidth().height(52.dp).testTag("stop_hover"))
                 }
             }
         }
@@ -647,13 +682,36 @@ private fun ExpandedStatusControls(
         colors = CardDefaults.cardColors(containerColor = TelloPanel),
         shape = panelShape,
     ) {
-        LazyColumn(
+        Row(
             modifier = Modifier.fillMaxSize().padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item {
-                StatusPanel(state)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("OPERATIONAL TELEMETRY", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                StatusLine("Battery", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }, if (state.telemetry.isFresh) TelloGreen else TelloTextMuted)
+                StatusLine("Temperature", telemetryValue(state) { it.temperatureCelsius?.let { value -> "%.0f°C".format(value) } })
+                StatusLine("Velocity X/Y/Z", telemetryValue(state) { telemetry ->
+                    listOf(telemetry.velocityXCentimetersPerSecond, telemetry.velocityYCentimetersPerSecond, telemetry.velocityZCentimetersPerSecond)
+                        .takeIf { values -> values.all { it != null } }
+                        ?.joinToString(" / ") { "${it}cm/s" }
+                })
+                StatusLine("Network", state.networkSelection.name)
+                StatusLine("Connection", connectionLabel(state.connection))
+                StatusLine("Flight", state.flight.name)
+                state.lastMessage?.let { Text(it, color = if (state.connection == DroneConnectionState.Error) TelloRed else TelloTextMuted, fontSize = 11.sp) }
+            }
+            if (VisionTraceFeature.isAvailable) {
+                VerticalDivider(color = TelloLine)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("DEBUG DIAGNOSTICS", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    VisionSessionControls(state)
+                }
             }
         }
     }
@@ -1466,25 +1524,52 @@ private const val MANUAL_HEARTBEAT_MILLIS = 100L
 @Preview(name = "1280x800 – Flying Flight", widthDp = 1280, heightDp = 800)
 @Composable private fun ExpandedFlyingFlightPreview() = PreviewDashboard(tabletPreviewState(FlightState.Flying))
 
-@Preview(name = "1280x800 – Flying Low Battery", widthDp = 1280, heightDp = 800)
-@Composable private fun ExpandedFlyingLowBatteryPreview() = PreviewDashboard(
+@Preview(name = "1280x800 – Tracking Detection On No Target", widthDp = 1280, heightDp = 800)
+@Composable private fun ExpandedTrackingDetectionOnNoTargetPreview() = PreviewDashboardDestination(
     tabletPreviewState(FlightState.Flying).copy(
-        telemetry = com.alonibh.tellodrone.domain.TelemetrySnapshot(isFresh = true, batteryPercent = 15, heightMeters = 1.2f),
+        video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Detecting, analysisLatestSequence = 1L),
+        targetAssociationState = TargetAssociationState.None,
     ),
-)
-
-@Preview(name = "1280x800 – Tracking Detection Off", widthDp = 1280, heightDp = 800)
-@Composable private fun ExpandedTrackingDetectionOffPreview() = PreviewDashboardDestination(
-    tabletPreviewState(FlightState.Flying),
     "TRACKING",
 )
 
-@Preview(name = "1280x800 – Tracking Selected Armed", widthDp = 1280, heightDp = 800)
-@Composable private fun ExpandedTrackingSelectedArmedPreview() = PreviewDashboardDestination(
+@Preview(name = "1280x800 – Tracking Selected", widthDp = 1280, heightDp = 800)
+@Composable private fun ExpandedTrackingSelectedPreview() = PreviewDashboardDestination(
     tabletPreviewState(FlightState.Flying).copy(
-        video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Detecting),
+        video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Detecting, analysisLatestSequence = 1L),
+        target = TrackedTarget(boundingBox = NormalizedBoundingBox(0.3f, 0.2f, 0.7f, 0.8f), confidence = 0.9f, selectedFrameSequence = 1L, selectedSourceTimestampNanos = 1L),
+        targetAssociationState = TargetAssociationState.Selected,
+    ),
+    "TRACKING",
+)
+
+@Preview(name = "1280x800 – Tracking Yaw Active", widthDp = 1280, heightDp = 800)
+@Composable private fun ExpandedTrackingYawActivePreview() = PreviewDashboardDestination(
+    tabletPreviewState(FlightState.Flying).copy(
+        video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Detecting, analysisLatestSequence = 1L),
+        target = TrackedTarget(boundingBox = NormalizedBoundingBox(0.4f, 0.2f, 0.6f, 0.8f), confidence = 0.95f, selectedFrameSequence = 1L, selectedSourceTimestampNanos = 1L),
         targetAssociationState = TargetAssociationState.Matched,
         yawFollowDecision = com.alonibh.tellodrone.domain.YawFollowDecision(state = com.alonibh.tellodrone.domain.YawFollowState.ACTIVE),
+    ),
+    "TRACKING",
+)
+
+@Preview(name = "1280x800 – Tracking Temporarily Missing", widthDp = 1280, heightDp = 800)
+@Composable private fun ExpandedTrackingTemporarilyMissingPreview() = PreviewDashboardDestination(
+    tabletPreviewState(FlightState.Flying).copy(
+        video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Detecting, analysisLatestSequence = 1L),
+        targetAssociationState = TargetAssociationState.TemporarilyMissing,
+        yawFollowDecision = com.alonibh.tellodrone.domain.YawFollowDecision(state = com.alonibh.tellodrone.domain.YawFollowState.ARMED_WAITING),
+    ),
+    "TRACKING",
+)
+
+@Preview(name = "1280x800 – Tracking Lost", widthDp = 1280, heightDp = 800)
+@Composable private fun ExpandedTrackingLostPreview() = PreviewDashboardDestination(
+    tabletPreviewState(FlightState.Flying).copy(
+        video = VideoState(availability = VideoAvailability.Streaming, personDetectionState = PersonDetectionState.Detecting, analysisLatestSequence = 1L),
+        targetAssociationState = TargetAssociationState.Lost,
+        yawFollowDecision = com.alonibh.tellodrone.domain.YawFollowDecision(state = com.alonibh.tellodrone.domain.YawFollowState.REQUIRES_REARM),
     ),
     "TRACKING",
 )

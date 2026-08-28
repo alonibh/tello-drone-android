@@ -69,7 +69,7 @@ class NetworkTelloTransport(
         localPort = STATE_PORT,
         dispatcher = dispatcher,
     )
-    private val commands = SerializedTelloCommandTransport(commandEndpoint)
+    private val commands = SerializedTelloCommandTransport(commandEndpoint, clock)
     private val mutableTelemetry = MutableSharedFlow<TelloTelemetry>(replay = 1, extraBufferCapacity = 8)
     override val telemetry: Flow<TelloTelemetry> = mutableTelemetry.asSharedFlow()
     private val telemetryJob: Job = scope.launch(dispatcher) {
