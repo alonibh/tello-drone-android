@@ -192,6 +192,7 @@ object VisionSessionArchive {
     private const val MAX_MANIFEST_BYTES = 1_000_000L
     private const val MAX_TRACE_BYTES = 16_000_000L
     private const val MAX_CONTROL_TRACE_BYTES = 16_000_000L
+    private const val MAX_SUMMARY_BYTES = 1_000_000L
     private const val MAX_FRAME_BYTES = 4_000_000L
 
     fun open(file: File): VisionSessionContents {
@@ -202,6 +203,11 @@ object VisionSessionArchive {
             val manifestEntry = zip.getEntry("manifest.json") ?: malformed("manifest.json is missing")
             val traceEntry = zip.getEntry("trace.jsonl") ?: malformed("trace.jsonl is missing")
             val controlEntry = zip.getEntry("control.jsonl")
+            val summaryJsonEntry = zip.getEntry("flight_summary.json")
+            val summaryTextEntry = zip.getEntry("flight_summary.txt")
+            if ((summaryJsonEntry == null) != (summaryTextEntry == null)) {
+                malformed("Flight summary entries must be present together")
+            }
             if (manifestEntry.size !in 1..MAX_MANIFEST_BYTES) malformed("manifest.json has an unsafe size")
             if (traceEntry.size !in 1..MAX_TRACE_BYTES) malformed("trace.jsonl has an unsafe size")
             val manifest = runCatching {
@@ -212,8 +218,13 @@ object VisionSessionArchive {
             if (controlEntry != null && controlEntry.size !in 0..MAX_CONTROL_TRACE_BYTES) {
                 malformed("control.jsonl has an unsafe size")
             }
+            listOf(summaryJsonEntry, summaryTextEntry).filterNotNull().forEach { entry ->
+                if (entry.size !in 1..MAX_SUMMARY_BYTES) malformed("${entry.name} has an unsafe size")
+            }
             val expectedEntries = setOf("manifest.json", "trace.jsonl") +
                 (if (controlEntry != null) setOf("control.jsonl") else emptySet()) +
+                (if (summaryJsonEntry != null) setOf("flight_summary.json") else emptySet()) +
+                (if (summaryTextEntry != null) setOf("flight_summary.txt") else emptySet()) +
                 manifest.frames.map { it.file }
             if (entryNames.toSet() != expectedEntries) malformed("Unexpected ZIP entries")
             manifest.frames.forEach { frame ->
@@ -605,7 +616,7 @@ object VisionComparisonReportJson {
     }
 }
 
-private object CompactJson {
+internal object CompactJson {
     fun parseObject(text: String): Map<String, Any?> = Parser(text).parse().asObject("root")
 
     private class Parser(private val text: String) {

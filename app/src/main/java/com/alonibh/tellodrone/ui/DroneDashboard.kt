@@ -127,8 +127,8 @@ import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
-import com.alonibh.tellodrone.domain.YawFollowState
 import com.alonibh.tellodrone.vision.VisionSessionControls
+import com.alonibh.tellodrone.vision.VisionTraceFeature
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -676,95 +676,22 @@ private fun TakeoffAction(state: DroneSessionState, vm: DroneDashboardActions, m
     else OutlineAction("STOP / HOVER", Icons.Default.PauseCircle, enabled, vm::stopAndHover, modifier, compact = compact)
 }
 
-@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneDashboardActions) = ControlCard("PERSON TRACKING / YAW FOLLOW • PHASE 4H1") {
-    val canStart = state.connection == DroneConnectionState.Connected &&
-        state.video.availability == VideoAvailability.Streaming &&
-        state.video.analysisLatestSequence != null
-    RealPersonDetectionAction(state, vm, canStart)
-    VisionSessionControls(state)
-    val targetStatus = when (state.targetAssociationState) {
-        TargetAssociationState.None -> null
-        TargetAssociationState.Selected, TargetAssociationState.Matched -> "TARGET SELECTED"
-        TargetAssociationState.TemporarilyMissing -> "TARGET MISSING"
-        TargetAssociationState.Lost -> "TARGET LOST"
-        TargetAssociationState.Ambiguous -> "TARGET AMBIGUOUS"
+@Composable private fun TrackingControls(state: DroneSessionState, vm: DroneDashboardActions) = ControlCard("TRACKING") {
+    val presentation = state.trackingUiPresentation()
+    val canStart = state.connection == DroneConnectionState.Connected && state.video.availability == VideoAvailability.Streaming && state.video.analysisLatestSequence != null
+    listOf(presentation.detection, presentation.target, presentation.yaw).forEach { StatusLine(it.label, it.value, it.color) }
+    Surface(color = TelloRed.copy(alpha = .10f), shape = RoundedCornerShape(6.dp), modifier = Modifier.testTag("yaw_only_badge")) {
+        Text("YAW ONLY", color = TelloRed, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
     }
-    targetStatus?.let {
-        val statusColor = when (state.targetAssociationState) {
-            TargetAssociationState.Selected, TargetAssociationState.Matched -> TelloGreen
-            TargetAssociationState.TemporarilyMissing -> Color(0xFFFFC857)
-            TargetAssociationState.Ambiguous, TargetAssociationState.Lost -> TelloRed
-            TargetAssociationState.None -> TelloTextMuted
-        }
-        StatusLine("Target", it, statusColor)
+    presentation.instruction?.let { Text(it, color = TelloTextMuted, fontSize = 12.sp) }
+    when (presentation.primaryAction) {
+        TrackingPrimaryAction.StartDetection -> ActionButton("START DETECTION", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth())
+        TrackingPrimaryAction.ArmYawFollow -> ActionButton("ARM YAW FOLLOW", Icons.Default.CheckCircle, true, { vm.setYawFollowArmed(true) }, Modifier.fillMaxWidth().testTag("arm_yaw_follow"))
+        TrackingPrimaryAction.RearmYawFollow -> ActionButton("RE-ARM YAW FOLLOW", Icons.Default.CheckCircle, true, { vm.setYawFollowArmed(true) }, Modifier.fillMaxWidth().testTag("arm_yaw_follow"))
+        TrackingPrimaryAction.DisarmYawFollow -> ActionButton("DISARM YAW FOLLOW", Icons.Default.Close, true, { vm.setYawFollowArmed(false) }, Modifier.fillMaxWidth().testTag("disarm_yaw_follow"), active = true)
+        TrackingPrimaryAction.None -> Unit
     }
-    if (state.target == null) {
-        Text("Tap a person to select.", color = TelloTextMuted, fontSize = 11.sp)
-    }
-    HorizontalDivider(color = TelloLine)
-    Text(
-        "REAL YAW FOLLOW",
-        color = TelloTextMuted,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Medium,
-    )
-        StatusLine("State", state.yawFollowDecision.state.name, if (state.yawFollowDecision.state == YawFollowState.ACTIVE) TelloGreen else TelloTextMuted)
-        StatusLine("Reason", state.yawFollowDecision.reason.name.replace('_', ' '))
-        if (state.yawFollowDecision.state == YawFollowState.ACTIVE) {
-            StatusLine("Yaw RC", state.yawFollowDecision.yawRc.toString())
-        }
-        if (state.yawFollowDecision.requiresExplicitRearm) {
-            Text("EXPLICIT RE-ARM REQUIRED", color = TelloRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        AdaptiveActionPair(
-            {
-                ActionButton(
-                    if (state.yawFollowDecision.requiresExplicitRearm) "RE-ARM YAW FOLLOW" else "ARM YAW FOLLOW",
-                    Icons.Default.CheckCircle,
-                    state.yawFollowDecision.state != YawFollowState.ACTIVE,
-                    { vm.setYawFollowArmed(true) },
-                    Modifier.fillMaxWidth().testTag("arm_yaw_follow"),
-                    active = state.yawFollowDecision.state in setOf(YawFollowState.ARMED_WAITING, YawFollowState.ACTIVE),
-                )
-            },
-            {
-                OutlineAction(
-                    "DISARM",
-                    Icons.Default.Close,
-                    state.yawFollowDecision.state != YawFollowState.DISARMED,
-                    { vm.setYawFollowArmed(false) },
-                    Modifier.fillMaxWidth().testTag("disarm_yaw_follow"),
-                )
-            },
-        )
-        Surface(
-            color = TelloRed.copy(alpha = .12f),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().border(1.dp, TelloRed.copy(alpha = .65f), RoundedCornerShape(8.dp))
-                .testTag("yaw_only_warning"),
-        ) {
-            Text(
-                "YAW ONLY • NO ALTITUDE / FORWARD / LATERAL",
-                color = TelloRed,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(10.dp),
-            )
-        }
-}
-
-@Composable
-private fun RealPersonDetectionAction(state: DroneSessionState, vm: DroneDashboardActions, canStart: Boolean) {
-    val detecting = state.video.personDetectionState in setOf(
-        PersonDetectionState.Starting,
-        PersonDetectionState.Detecting,
-    )
-    if (detecting) {
-        OutlineAction("STOP PERSON DETECTION", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth())
-    } else {
-        ActionButton("START PERSON DETECTION", Icons.Default.PersonSearch, canStart, { vm.setTrackingMode(TrackingMode.DetectOnly) }, Modifier.fillMaxWidth())
-    }
+    if (presentation.showStopDetection) OutlineAction("STOP DETECTION", Icons.Default.Close, true, { vm.setTrackingMode(TrackingMode.Off) }, Modifier.fillMaxWidth())
 }
 
 internal fun DroneSessionState.isCurrentTargetDetection(detection: com.alonibh.tellodrone.domain.PersonDetection): Boolean = target?.let {
@@ -864,6 +791,11 @@ private fun StatusPanel(
     StatusLine("Connection", connectionLabel(state.connection))
     StatusLine("Flight", state.flight.name)
     state.lastMessage?.let { Text(it, color = if (state.connection == DroneConnectionState.Error) TelloRed else TelloTextMuted, fontSize = 11.sp) }
+    if (VisionTraceFeature.isAvailable) {
+        HorizontalDivider(color = TelloLine)
+        Text("DEBUG DIAGNOSTICS", color = TelloTextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        VisionSessionControls(state)
+    }
 }
 @Composable private fun StatusLine(label: String, value: String, color: Color = Color.White) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text(label, color = TelloTextMuted, fontSize = 13.sp); Text(value, color = color, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
 

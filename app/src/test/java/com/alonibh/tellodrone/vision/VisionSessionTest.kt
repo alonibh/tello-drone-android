@@ -78,6 +78,23 @@ class VisionSessionTest {
         }
     }
 
+    @Test fun `archive accepts the paired flight summary files produced by session export`() {
+        val entry = frame(1, 7, 70)
+        val archive = File.createTempFile("vision-session-summary", ".zip")
+        try {
+            ZipOutputStream(archive.outputStream()).use { zip ->
+                fun put(name: String, bytes: ByteArray) { zip.putNextEntry(ZipEntry(name)); zip.write(bytes); zip.closeEntry() }
+                put("manifest.json", VisionSessionManifestJson.encode(manifest(listOf(entry))).toByteArray())
+                put("trace.jsonl", trace(entry).toByteArray())
+                put("control.jsonl", ByteArray(0))
+                put("flight_summary.json", "{}".toByteArray())
+                put("flight_summary.txt", "summary".toByteArray())
+                put(entry.file, byteArrayOf(1, 2, 3))
+            }
+            assertEquals(1, VisionSessionArchive.open(archive).orderedFrames.size)
+        } finally { archive.delete() }
+    }
+
     @Test fun `archive rejects trace frame mismatch and missing frame`() {
         val expected = frame(1, 1, 10)
         val wrong = frame(1, 2, 20)

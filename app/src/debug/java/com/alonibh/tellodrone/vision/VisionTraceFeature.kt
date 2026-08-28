@@ -280,6 +280,11 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                 captureStartReason = command.epoch.startReason,
                 frames = frames.toList(),
             )
+            // The summary is derived only after the writers are flushed, on this export worker.
+            val summary = FlightSummaryBuilder.build(
+                sourceTrace.readLines(Charsets.UTF_8),
+                ensureControlFile().readLines(Charsets.UTF_8),
+            )
             context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "w")?.use { output ->
                 ZipOutputStream(output.buffered()).use { zip ->
                     zip.putNextEntry(ZipEntry("manifest.json"))
@@ -290,6 +295,12 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                     zip.closeEntry()
                     zip.putNextEntry(ZipEntry("control.jsonl"))
                     ensureControlFile().inputStream().buffered().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                    zip.putNextEntry(ZipEntry("flight_summary.json"))
+                    zip.write(FlightSummaryBuilder.json(summary).toByteArray(Charsets.UTF_8))
+                    zip.closeEntry()
+                    zip.putNextEntry(ZipEntry("flight_summary.txt"))
+                    zip.write(FlightSummaryBuilder.text(summary).toByteArray(Charsets.UTF_8))
                     zip.closeEntry()
                     frames.forEach { frame ->
                         zip.putNextEntry(ZipEntry(frame.file))
