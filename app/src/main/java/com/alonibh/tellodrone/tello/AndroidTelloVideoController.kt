@@ -26,7 +26,6 @@ import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -88,8 +87,7 @@ class AndroidTelloVideoController(
     )
 
     private val socket = AtomicReference<DatagramSocket?>()
-    private val surface = AtomicReference<Surface?>()
-    private val surfaceGeneration = AtomicLong()
+    private val videoSurface = VideoSurfaceLifecycle<Surface>()
     private val prepared = AtomicBoolean()
     private val streamIsAcknowledged = AtomicBoolean()
     private val failed = AtomicBoolean()
@@ -152,16 +150,14 @@ class AndroidTelloVideoController(
     }
 
     fun attachSurface(value: Surface) {
-        if (surface.getAndSet(value) !== value) {
-            surfaceGeneration.incrementAndGet()
+        if (videoSurface.attach(value)) {
             decodedFrameSource.start(value)
         }
         unitSignal.trySend(Unit)
     }
 
     fun detachSurface(value: Surface) {
-        if (surface.compareAndSet(value, null)) {
-            surfaceGeneration.incrementAndGet()
+        if (videoSurface.detach(value)) {
             stopDetectionAndScheduleRelease()
             decodedFrameSource.stop(value)
         }
@@ -177,7 +173,7 @@ class AndroidTelloVideoController(
         val current = mutableState.value
         if (closed.get() || failed.get() || !streamIsAcknowledged.get() ||
             current.availability != VideoAvailability.Streaming ||
-            surface.get()?.isValid != true || current.analysisLatestSequence == null
+            videoSurface.current?.isValid != true || current.analysisLatestSequence == null
         ) {
             return Result.failure(IllegalStateException("Live preview analysis is not ready"))
         }
@@ -249,11 +245,11 @@ class AndroidTelloVideoController(
         try {
             while (scope.isActive && !closed.get() && !failed.get()) {
                 unitSignal.receive()
-                val generation = surfaceGeneration.get()
+                val generation = videoSurface.generation
                 if (generation != observedSurfaceGeneration) {
                     codec.releaseSafely()
                     codec = null
-                    codecSurface = surface.get()?.takeIf { it.isValid }
+                    codecSurface = videoSurface.current?.takeIf { it.isValid }
                     observedSurfaceGeneration = generation
                     needsIdr = true
                     frameRate.reset()

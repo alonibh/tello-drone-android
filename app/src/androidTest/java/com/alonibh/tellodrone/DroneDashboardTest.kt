@@ -1,5 +1,6 @@
 package com.alonibh.tellodrone
 
+import android.view.Surface
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -16,7 +17,9 @@ import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.ui.DroneDashboard
+import com.alonibh.tellodrone.ui.DroneDashboardActions
 import com.alonibh.tellodrone.ui.NoOpDroneDashboardActions
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -84,6 +87,43 @@ class DroneDashboardTest {
             "CANCEL BENCHMARK",
             "COPY REPORT",
         ).forEach { label -> compose.onNodeWithText(label).assertDoesNotExist() }
+    }
+
+    @Test fun dashboard_tracking_navigation_keeps_one_video_surface_attached() {
+        val actions = RecordingVideoSurfaceActions()
+        val dashboardState = DroneSessionState(
+            connection = DroneConnectionState.Connected,
+            video = VideoState(availability = VideoAvailability.Streaming, analysisLatestSequence = 1L),
+        )
+        compose.setContent {
+            MaterialTheme {
+                Box(Modifier.size(800.dp, 360.dp)) { DroneDashboard(dashboardState, actions) }
+            }
+        }
+        compose.waitUntil(5_000) { actions.attached.size == 1 }
+
+        repeat(10) {
+            compose.onNodeWithText("Tracking").performClick()
+            compose.waitForIdle()
+            compose.onNodeWithText("Dashboard").performClick()
+            compose.waitForIdle()
+        }
+
+        assertEquals(1, actions.attached.size)
+        assertEquals(0, actions.detached.size)
+    }
+
+    private class RecordingVideoSurfaceActions : DroneDashboardActions by NoOpDroneDashboardActions {
+        val attached = mutableListOf<Surface>()
+        val detached = mutableListOf<Surface>()
+
+        override fun attachVideoSurface(surface: Surface) {
+            attached += surface
+        }
+
+        override fun detachVideoSurface(surface: Surface) {
+            detached += surface
+        }
     }
 }
 // SPDX-License-Identifier: AGPL-3.0-only
