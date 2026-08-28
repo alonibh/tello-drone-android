@@ -3,6 +3,7 @@ package com.alonibh.tellodrone.vision
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FlightSummaryTest {
@@ -38,7 +39,7 @@ class FlightSummaryTest {
         assertNull(summary.ageP50)
         assertNull(summary.fractionOfActiveNonZeroYaw)
         assertNull(summary.perceptionAgeExpiredPercent)
-        assertEquals("null", Regex("\"preview_fps\": (null)").find(FlightSummaryBuilder.json(summary))!!.groupValues[1])
+        assertTrue(FlightSummaryBuilder.json(summary).contains("\"preview_fps\": null"))
     }
 
     @Test fun counts_distinct_episodes_from_chronological_false_to_true_transitions() {
