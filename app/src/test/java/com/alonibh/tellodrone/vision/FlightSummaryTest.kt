@@ -1,6 +1,7 @@
 package com.alonibh.tellodrone.vision
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -8,10 +9,10 @@ class FlightSummaryTest {
     @Test fun calculates_duration_percentiles_suppressions_and_height_statistics() {
         val traces = listOf(trace(0, "Selected", 10), trace(1_000_000_000, "Matched", 20), trace(3_000_000_000, "TemporarilyMissing", 30), trace(4_000_000_000, "Matched", 40), trace(5_000_000_000, "Lost", 50))
         val controls = listOf(
-            control(1_000_000_000, "ACTIVE", "NONE", yaw = 4, height = 1.0),
-            control(2_000_000_000, "ACTIVE", "TARGET_JUMP_REJECTED", yaw = 7, height = 2.0),
-            control(3_000_000_000, "REQUIRES_REARM", "CENTER_CROSSING_BRAKE", yaw = 9, height = 3.0, lateral = 1),
-            control(4_000_000_000, "REQUIRES_REARM", "STALE_PERCEPTION", yaw = 2, height = 4.0, send = "PERCEPTION_AGE_EXPIRED"),
+            control(1_000_000_000, "ACTIVE", "NONE", yaw = 4, height = 1.0, error = 0.10),
+            control(2_000_000_000, "ACTIVE", "TARGET_JUMP_REJECTED", yaw = 7, height = 2.0, error = 0.25),
+            control(3_000_000_000, "REQUIRES_REARM", "CENTER_CROSSING_BRAKE", yaw = 9, height = 3.0, lateral = 1, error = 0.30),
+            control(4_000_000_000, "REQUIRES_REARM", "STALE_PERCEPTION", yaw = 2, height = 4.0, send = "PERCEPTION_AGE_EXPIRED", error = 0.05),
         )
         val summary = FlightSummaryBuilder.build(traces, controls)
         assertEquals(5000, summary.durationMs)
@@ -23,6 +24,10 @@ class FlightSummaryTest {
         assertEquals(1.0, summary.heightMin!!, .001)
         assertEquals(4.0, summary.heightMax!!, .001)
         assertEquals(3, summary.maxYawStep)
+        assertNotNull(summary.fractionOfActiveNonZeroYaw)
+        assertEquals(1, summary.perceptionAgeExpiredCount)
+        assertEquals(2000L, summary.timeOutsideError15Ms)
+        assertEquals(2000L, summary.timeOutsideError20Ms)
     }
 
     @Test fun represents_unrecorded_optional_metrics_honestly() {
@@ -31,7 +36,9 @@ class FlightSummaryTest {
         assertNull(summary.previewFps)
         assertNull(summary.verticalVelocityP95)
         assertNull(summary.ageP50)
-        assertEquals("null", Regex("\"preview_fps\": (null)").find(FlightSummaryBuilder.json(summary))!!.groupValues[1])
+        assertNull(summary.fractionOfActiveNonZeroYaw)
+        assertNull(summary.perceptionAgeExpiredPercent)
+        assertEquals("null", Regex(""preview_fps": (null)").find(FlightSummaryBuilder.json(summary))!!.groupValues[1])
     }
 
     @Test fun counts_distinct_episodes_from_chronological_false_to_true_transitions() {
@@ -128,5 +135,5 @@ class FlightSummaryTest {
     }
 
     private fun trace(time: Long, state: String, inference: Int? = null) = "{\"sourceTimestampNanos\":$time,\"associationState\":\"$state\",\"detector\":{\"inferenceMillis\":${inference ?: "null"}}}"
-    private fun control(time: Long, state: String = "ACTIVE", suppression: String = "NONE", reason: String = "ACTIVE", yaw: Int = 0, height: Double = 1.0, lateral: Int = 0, send: String = "NONE", frameSequence: Long = 1) = "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"frameSequence\":$frameSequence,\"perceptionAgeMillis\":100,\"yawFollowState\":\"$state\",\"yawFollowReason\":\"$reason\",\"suppressionReason\":\"$suppression\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$send\",\"telemetryHeightMeters\":$height,\"actualSentVector\":{\"lateral\":$lateral,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
+    private fun control(time: Long, state: String = "ACTIVE", suppression: String = "NONE", reason: String = "ACTIVE", yaw: Int = 0, height: Double = 1.0, lateral: Int = 0, send: String = "NONE", frameSequence: Long = 1, error: Double? = null) = "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"frameSequence\":$frameSequence,\"perceptionAgeMillis\":100,\"yawFollowState\":\"$state\",\"yawFollowReason\":\"$reason\",\"suppressionReason\":\"$suppression\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$send\",\"telemetryHeightMeters\":$height,\"rawYawError\":${error ?: "null"},\"actualSentVector\":{\"lateral\":$lateral,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
 }

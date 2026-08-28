@@ -23,8 +23,10 @@ class YawFollowControllerTest {
             left.command(errors(-.20f, frame), commandTime(frame)).safetyFilteredYawRc
         }
 
-        assertEquals(listOf(3, 6, 9, 10, 10), rightYaw)
-        assertEquals(listOf(-3, -6, -9, -10, -10), leftYaw)
+        // error 0.20 -> requested = round(0.20 * 70) = 14
+        // step 4 per frame: 4, 8, 12, 14, 14
+        assertEquals(listOf(4, 8, 12, 14, 14), rightYaw)
+        assertEquals(listOf(-4, -8, -12, -14, -14), leftYaw)
         (rightYaw + leftYaw).forEach { assertTrue(abs(it) <= ProductionYawController.ABSOLUTE_YAW_RC_CAP) }
         val command = right.command(errors(.20f, 6L), commandTime(6L)).command
         assertEquals(0, command.lateral)
@@ -52,7 +54,7 @@ class YawFollowControllerTest {
 
     @Test fun `sudden target geometry jump brakes and requires stable measurements`() {
         val controller = ProductionYawController()
-        assertEquals(3, controller.command(errors(.08f, 1L), commandTime(1L)).safetyFilteredYawRc)
+        assertEquals(4, controller.command(errors(.08f, 1L), commandTime(1L)).safetyFilteredYawRc)
 
         val rejected = controller.command(errors(.30f, 2L), commandTime(2L))
         val firstStable = controller.command(errors(.29f, 3L), commandTime(3L))
@@ -62,10 +64,10 @@ class YawFollowControllerTest {
         assertEquals(YawControlSuppressionReason.TARGET_JUMP_REJECTED, rejected.suppressionReason)
         assertEquals(YawControlSuppressionReason.STABLE_RESUME, firstStable.suppressionReason)
         assertEquals(0, firstStable.safetyFilteredYawRc)
-        assertEquals(3, secondStable.safetyFilteredYawRc)
+        assertEquals(4, secondStable.safetyFilteredYawRc)
     }
 
-    @Test fun `large error sign flip brakes before any opposite command`() {
+    @Test fun `large error sign flip brakes for one frame then normal fresh measurement resumes without 2-frame penalty`() {
         val controller = ProductionYawController()
         controller.command(errors(.12f, 1L), commandTime(1L))
         controller.command(errors(.12f, 2L), commandTime(2L))
@@ -75,20 +77,26 @@ class YawFollowControllerTest {
         assertEquals(0, crossing.safetyFilteredYawRc)
         assertTrue(crossing.requestedYawRc <= 0)
         assertEquals(YawControlSuppressionReason.CENTER_CROSSING_BRAKE, crossing.suppressionReason)
+
+        // Frame 4: normal fresh measurement across center can resume from zero immediately using slew limiting
+        val resumed = controller.command(errors(-.08f, 4L), commandTime(4L))
+        assertEquals(YawControlSuppressionReason.NONE, resumed.suppressionReason)
+        assertEquals(-4, resumed.safetyFilteredYawRc)
     }
 
-    @Test fun `yaw output cannot jump beyond configured slew limit`() {
+    @Test fun `yaw output cannot jump beyond configured slew limit and never exceeds cap 16`() {
         val controller = ProductionYawController()
         val outputs = (1L..6L).map { controller.command(errors(.40f, it), commandTime(it)).safetyFilteredYawRc }
         outputs.zipWithNext().forEach { (previous, next) ->
             assertTrue(abs(next - previous) <= ProductionYawController.MAXIMUM_YAW_RC_STEP)
         }
         assertEquals(ProductionYawController.ABSOLUTE_YAW_RC_CAP, outputs.last())
+        assertEquals(16, outputs.last())
     }
 
     @Test fun `temporary missing stops immediately and two plausible frames are required to resume`() {
         val gate = YawFollowGate()
-        assertEquals(3, gate.arm(healthy(frame = 1L)).yawRc)
+        assertEquals(4, gate.arm(healthy(frame = 1L)).yawRc)
 
         val missing = gate.evaluate(
             healthy(
@@ -105,7 +113,7 @@ class YawFollowControllerTest {
         assertEquals(YawFollowState.ACTIVE, first.state)
         assertEquals(0, first.yawRc)
         assertEquals(YawControlSuppressionReason.STABLE_RESUME, first.control?.suppressionReason)
-        assertEquals(3, second.yawRc)
+        assertEquals(4, second.yawRc)
     }
 
     @Test fun `ambiguous and lost targets retain explicit rearm latch`() {

@@ -187,7 +187,7 @@ class ProductionYawController(
                 measurement,
                 commandTimestampNanos,
                 YawControlSuppressionReason.CENTER_CROSSING_BRAKE,
-                requireStable = true,
+                requireStable = false,
                 requestedYawRc = requested,
             )
         }
@@ -347,9 +347,9 @@ class ProductionYawController(
 
     companion object {
         const val DEFAULT_HORIZONTAL_DEADBAND = 0.06f
-        const val DEFAULT_PROPORTIONAL_GAIN = 50f
-        const val ABSOLUTE_YAW_RC_CAP = 12
-        const val MAXIMUM_YAW_RC_STEP = 3
+        const val DEFAULT_PROPORTIONAL_GAIN = 70f
+        const val ABSOLUTE_YAW_RC_CAP = 16
+        const val MAXIMUM_YAW_RC_STEP = 4
         /** Teclast p95 inference 134 ms plus 91 ms for capture/scheduling/actuation, not RC TTL. */
         const val MAXIMUM_PERCEPTION_AGE_MILLIS = 225L
         const val MAXIMUM_TARGET_CENTER_JUMP = 0.18f
