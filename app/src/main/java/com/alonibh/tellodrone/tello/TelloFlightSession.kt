@@ -38,6 +38,10 @@ import com.alonibh.tellodrone.vision.VisionTraceFrame
 import com.alonibh.tellodrone.vision.VisionTraceRecorder
 import com.alonibh.tellodrone.vision.YawControlMeasurementTrace
 import com.alonibh.tellodrone.vision.RcPublicationTrace
+import com.alonibh.tellodrone.vision.SdkCommandCategory
+import com.alonibh.tellodrone.vision.SdkCommandTrace
+import com.alonibh.tellodrone.vision.FlightStateTransitionTrace
+import com.alonibh.tellodrone.vision.ExternalGroundingTrace
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -77,7 +81,10 @@ class TelloFlightSession(
     private val firstTelemetry = CompletableDeferred<TelloTelemetry>()
     private var telemetryJob: Job? = null
     private var healthJob: Job? = null
+    private var keepaliveJob: Job? = null
     private var videoStateJob: Job? = null
+    private var groundedSampleCount = 0
+    private var firstGroundedSampleAtMillis: Long? = null
     @Volatile private var lastTelemetryAtMillis: Long? = null
     @Volatile private var closed = false
     private val fatalReportLock = Any()
@@ -98,6 +105,7 @@ class TelloFlightSession(
     private val yawFollowLock = Any()
     private val yawFollowGate = YawFollowGate()
     private var yawFollowGeneration: Long? = null
+
 
     private val rcLoop = RcControlLoop(
         scope = scope,
@@ -132,7 +140,7 @@ class TelloFlightSession(
             )
         }
         startTelemetryCollection()
-        when (val result = transport.sendCommand("command", COMMAND_MODE_TIMEOUT_MILLIS)) {
+        when (val result = sendSdkCommand("command", SdkCommandCategory.CONNECT, COMMAND_MODE_TIMEOUT_MILLIS)) {
             is TelloCommandResult.Success -> Unit
             else -> {
                 failConnection("Could not enter Tello SDK mode: ${result.description()}")
@@ -156,6 +164,16 @@ class TelloFlightSession(
                 else "Tello connected, but airborne state is uncertain; land before normal commands",
             )
         }
+        visionTrace.recordFlightStateTransition(
+            FlightStateTransitionTrace(
+                timestampMillis = clock.nowMillis(),
+                fromState = FlightState.Unknown.name,
+                toState = if (grounded) FlightState.Grounded.name else FlightState.Unknown.name,
+                triggerReason = if (grounded) "Tello connected and telemetry verified" else "Tello connected, airborne state uncertain",
+                batteryPercent = first.batteryPercent,
+                heightMeters = first.heightMeters,
+            ),
+        )
         rcLoop.setHealthy(true)
         rcLoop.start()
         startHealthMonitor()
@@ -166,14 +184,33 @@ class TelloFlightSession(
 
     suspend fun takeOff() = commandStateMutex.withLock {
         val current = mutableState.value
-        if (!current.canTakeOff()) return@withLock invalid("Takeoff requires fresh telemetry from a connected, grounded drone")
+        if (current.connection != DroneConnectionState.Connected || current.flight != FlightState.Grounded || !current.telemetry.isFresh) {
+            return@withLock invalid("Takeoff requires fresh telemetry from a connected, grounded drone")
+        }
+        val battery = current.telemetry.batteryPercent
+        if (battery == null) {
+            return@withLock invalid("Takeoff blocked: battery level unknown")
+        }
+        if (battery < MINIMUM_TAKEOFF_BATTERY_PERCENT) {
+            return@withLock invalid("Takeoff blocked: battery ($battery%) below $MINIMUM_TAKEOFF_BATTERY_PERCENT% minimum")
+        }
         takeoffAcknowledged = false
         landingAcknowledged = false
         requireManualNeutral()
         mutableState.update {
             it.copy(flight = FlightState.TakingOff, manualVector = ManualControlVector(), hoverActive = false, lastMessage = "Takeoff in progress")
         }
-        when (val result = transport.sendCommand("takeoff", FLIGHT_COMMAND_TIMEOUT_MILLIS)) {
+        visionTrace.recordFlightStateTransition(
+            FlightStateTransitionTrace(
+                timestampMillis = clock.nowMillis(),
+                fromState = FlightState.Grounded.name,
+                toState = FlightState.TakingOff.name,
+                triggerReason = "Takeoff in progress",
+                batteryPercent = battery,
+                heightMeters = current.telemetry.heightMeters,
+            ),
+        )
+        when (val result = sendSdkCommand("takeoff", SdkCommandCategory.TAKEOFF, FLIGHT_COMMAND_TIMEOUT_MILLIS)) {
             is TelloCommandResult.Success -> {
                 takeoffAcknowledged = true
                 mutableState.update { state ->
@@ -188,6 +225,16 @@ class TelloFlightSession(
                         state.copy(flight = FlightState.Grounded, lastMessage = "Takeoff rejected: ${result.response}")
                     } else state
                 }
+                visionTrace.recordFlightStateTransition(
+                    FlightStateTransitionTrace(
+                        timestampMillis = clock.nowMillis(),
+                        fromState = FlightState.TakingOff.name,
+                        toState = FlightState.Grounded.name,
+                        triggerReason = "Takeoff rejected: ${result.response}",
+                        batteryPercent = current.telemetry.batteryPercent,
+                        heightMeters = current.telemetry.heightMeters,
+                    ),
+                )
             }
             else -> failConnection("Takeoff result is uncertain: ${result.description()}")
         }
@@ -201,6 +248,7 @@ class TelloFlightSession(
 
         takeoffAcknowledged = false
         landingAcknowledged = false
+        stopKeepalive()
         requireManualNeutral()
         latchYawFollow(YawFollowReason.LANDING)
         rcLoop.clearAndSendZero()
@@ -213,7 +261,17 @@ class TelloFlightSession(
                 lastMessage = "Landing in progress",
             )
         }
-        when (val result = transport.sendCommand("land", FLIGHT_COMMAND_TIMEOUT_MILLIS)) {
+        visionTrace.recordFlightStateTransition(
+            FlightStateTransitionTrace(
+                timestampMillis = clock.nowMillis(),
+                fromState = current.flight.name,
+                toState = FlightState.Landing.name,
+                triggerReason = "Landing in progress",
+                batteryPercent = current.telemetry.batteryPercent,
+                heightMeters = current.telemetry.heightMeters,
+            ),
+        )
+        when (val result = sendSdkCommand("land", SdkCommandCategory.LAND, FLIGHT_COMMAND_TIMEOUT_MILLIS)) {
             is TelloCommandResult.Success -> {
                 landingAcknowledged = true
                 mutableState.update { state ->
@@ -263,6 +321,7 @@ class TelloFlightSession(
 
         takeoffAcknowledged = false
         landingAcknowledged = false
+        stopKeepalive()
         requireManualNeutral()
         latchYawFollow(YawFollowReason.EMERGENCY)
         rcLoop.lockOutAfterZero()
@@ -282,8 +341,18 @@ class TelloFlightSession(
                 lastMessage = "EMERGENCY MOTOR KILL sent; further flight commands are locked out",
             )
         }
+        visionTrace.recordFlightStateTransition(
+            FlightStateTransitionTrace(
+                timestampMillis = clock.nowMillis(),
+                fromState = current.flight.name,
+                toState = FlightState.Emergency.name,
+                triggerReason = "EMERGENCY MOTOR KILL sent",
+                batteryPercent = current.telemetry.batteryPercent,
+                heightMeters = current.telemetry.heightMeters,
+            ),
+        )
         // Emergency remains terminal even when its acknowledgement is lost.
-        transport.sendCommand("emergency", EMERGENCY_TIMEOUT_MILLIS)
+        sendSdkCommand("emergency", SdkCommandCategory.EMERGENCY, EMERGENCY_TIMEOUT_MILLIS)
     }
 
     fun publishManualControl(vector: ManualControlVector) {
@@ -493,6 +562,7 @@ class TelloFlightSession(
             invalid("Land before disconnecting; aircraft state must be safely grounded")
             return@withLock false
         }
+        stopKeepalive()
         closeResources(
             sendFinalZero = current.flight != FlightState.Emergency,
             requestStreamOff = videoStreamAcknowledged,
@@ -526,8 +596,34 @@ class TelloFlightSession(
                 if (closed) return@collect
                 lastTelemetryAtMillis = sample.receivedAtMonotonicMillis
                 firstTelemetry.complete(sample)
+                visionTrace.recordTelemetrySample(sample.batteryPercent, sample.heightMeters)
                 var becameFlying = false
                 var becameGrounded = false
+                var becameExternalGrounded = false
+
+                val currentBefore = mutableState.value
+                val isGroundedSample = sample.isVerifiedGrounded()
+
+                if (currentBefore.connection == DroneConnectionState.Connected && currentBefore.flight == FlightState.Flying) {
+                    if (isGroundedSample) {
+                        if (groundedSampleCount == 0) {
+                            firstGroundedSampleAtMillis = sample.receivedAtMonotonicMillis
+                        }
+                        groundedSampleCount++
+                        val firstSampleAt = firstGroundedSampleAtMillis ?: sample.receivedAtMonotonicMillis
+                        val groundedDuration = sample.receivedAtMonotonicMillis - firstSampleAt
+                        if (groundedSampleCount >= EXTERNAL_GROUNDING_MIN_SAMPLES && groundedDuration >= EXTERNAL_GROUNDING_WINDOW_MILLIS) {
+                            becameExternalGrounded = true
+                        }
+                    } else {
+                        groundedSampleCount = 0
+                        firstGroundedSampleAtMillis = null
+                    }
+                } else {
+                    groundedSampleCount = 0
+                    firstGroundedSampleAtMillis = null
+                }
+
                 mutableState.update { current ->
                     if (closed || current.connection !in setOf(DroneConnectionState.Connecting, DroneConnectionState.Connected)) {
                         current
@@ -543,6 +639,9 @@ class TelloFlightSession(
                                 becameGrounded = true
                                 FlightState.Grounded
                             }
+                            becameExternalGrounded && current.connection == DroneConnectionState.Connected && current.flight == FlightState.Flying -> {
+                                FlightState.Grounded
+                            }
                             else -> current.flight
                         }
                         current.copy(
@@ -550,6 +649,7 @@ class TelloFlightSession(
                             flight = nextFlight,
                             manualVector = if (nextFlight == FlightState.Flying) current.manualVector else ManualControlVector(),
                             lastMessage = when {
+                                becameExternalGrounded -> "Aircraft landed outside app command / firmware landing detected"
                                 becameFlying -> "Takeoff verified by airborne telemetry"
                                 becameGrounded -> "Landing verified by grounded telemetry"
                                 else -> current.lastMessage
@@ -560,13 +660,66 @@ class TelloFlightSession(
                 if (becameFlying) {
                     takeoffAcknowledged = false
                     rcLoop.setEnabled(true)
+                    startKeepalive()
+                    visionTrace.recordFlightStateTransition(
+                        FlightStateTransitionTrace(
+                            timestampMillis = clock.nowMillis(),
+                            fromState = FlightState.TakingOff.name,
+                            toState = FlightState.Flying.name,
+                            triggerReason = "Takeoff verified by airborne telemetry",
+                            batteryPercent = sample.batteryPercent,
+                            heightMeters = sample.heightMeters,
+                        ),
+                    )
                 }
-                if (becameGrounded) landingAcknowledged = false
+                if (becameGrounded) {
+                    landingAcknowledged = false
+                    stopKeepalive()
+                    visionTrace.recordFlightStateTransition(
+                        FlightStateTransitionTrace(
+                            timestampMillis = clock.nowMillis(),
+                            fromState = FlightState.Landing.name,
+                            toState = FlightState.Grounded.name,
+                            triggerReason = "Landing verified by grounded telemetry",
+                            batteryPercent = sample.batteryPercent,
+                            heightMeters = sample.heightMeters,
+                        ),
+                    )
+                }
+                if (becameExternalGrounded) {
+                    groundedSampleCount = 0
+                    firstGroundedSampleAtMillis = null
+                    takeoffAcknowledged = false
+                    landingAcknowledged = false
+                    stopKeepalive()
+                    rcLoop.setEnabled(false)
+                    rcLoop.clearAndSendZero()
+                    requireManualNeutral()
+                    latchYawFollow(YawFollowReason.LANDING)
+                    visionTrace.recordExternalGrounding(
+                        ExternalGroundingTrace(
+                            timestampMillis = sample.receivedAtMonotonicMillis,
+                            heightMeters = sample.heightMeters,
+                            sampleCount = EXTERNAL_GROUNDING_MIN_SAMPLES,
+                        ),
+                    )
+                    visionTrace.recordFlightStateTransition(
+                        FlightStateTransitionTrace(
+                            timestampMillis = clock.nowMillis(),
+                            fromState = FlightState.Flying.name,
+                            toState = FlightState.Grounded.name,
+                            triggerReason = "Aircraft landed outside app command / firmware landing detected",
+                            batteryPercent = sample.batteryPercent,
+                            heightMeters = sample.heightMeters,
+                        ),
+                    )
+                }
                 if (!closed && mutableState.value.connection == DroneConnectionState.Connected) rcLoop.setHealthy(true)
                 reconcileYawFollow()
             }
         }
     }
+
 
     private fun startHealthMonitor() {
         if (healthJob?.isActive == true) return
@@ -587,6 +740,7 @@ class TelloFlightSession(
             }
         }
     }
+
 
     private fun applyVideoState(videoState: VideoState) {
         var publishActive = false
@@ -986,7 +1140,7 @@ class TelloFlightSession(
             )
             return
         }
-        when (val result = transport.sendCommand("streamon", VIDEO_COMMAND_TIMEOUT_MILLIS)) {
+        when (val result = sendSdkCommand("streamon", SdkCommandCategory.STREAM, VIDEO_COMMAND_TIMEOUT_MILLIS)) {
             is TelloCommandResult.Success -> {
                 videoStreamAcknowledged = true
                 activeVideo.streamAcknowledged()
@@ -1001,6 +1155,7 @@ class TelloFlightSession(
         var wasEmergency = false
         takeoffAcknowledged = false
         landingAcknowledged = false
+        stopKeepalive()
         requireManualNeutral()
         latchYawFollow(YawFollowReason.CONNECTION_LOST)
         resetRealTracking()
@@ -1044,6 +1199,7 @@ class TelloFlightSession(
             takeoffAcknowledged = false
             landingAcknowledged = false
             videoStreamAcknowledged = false
+            stopKeepalive()
             requireManualNeutral()
             healthJob?.cancel()
             telemetryJob?.cancel()
@@ -1052,11 +1208,60 @@ class TelloFlightSession(
             video?.close()
             if (requestStreamOff) {
                 withTimeoutOrNull(STREAMOFF_CLEANUP_TIMEOUT_MILLIS) {
-                    transport.sendCommand("streamoff", STREAMOFF_ACK_TIMEOUT_MILLIS)
+                    sendSdkCommand("streamoff", SdkCommandCategory.STREAM, STREAMOFF_ACK_TIMEOUT_MILLIS)
                 }
             }
             transport.close()
         }
+    }
+
+    private fun startKeepalive() {
+        if (keepaliveJob?.isActive == true) return
+        keepaliveJob = scope.launch {
+            while (isActive && !closed) {
+                delay(KEEPALIVE_PERIOD_MILLIS)
+                if (!isActive || closed || mutableState.value.flight != FlightState.Flying) break
+                performKeepalive()
+            }
+        }
+    }
+
+    private fun stopKeepalive() {
+        keepaliveJob?.cancel()
+        keepaliveJob = null
+    }
+
+    private suspend fun performKeepalive() {
+        commandStateMutex.withLock {
+            if (closed || mutableState.value.flight != FlightState.Flying || mutableState.value.connection != DroneConnectionState.Connected) {
+                return@withLock
+            }
+            sendSdkCommand("command", SdkCommandCategory.KEEPALIVE, KEEPALIVE_TIMEOUT_MILLIS)
+        }
+    }
+
+    private suspend fun sendSdkCommand(command: String, category: SdkCommandCategory, timeoutMillis: Long): TelloCommandResult {
+        val sentAt = clock.nowMillis()
+        val startNanos = sourceNowNanos()
+        val result = transport.sendCommand(command, timeoutMillis)
+        val latencyMillis = ((sourceNowNanos() - startNanos) / NANOS_PER_MILLISECOND).coerceAtLeast(0L)
+        visionTrace.recordSdkCommand(
+            SdkCommandTrace(
+                command = command,
+                category = category,
+                sentAtMonotonicMillis = sentAt,
+                latencyMillis = latencyMillis,
+                result = result.diagnosticDescription(),
+            ),
+        )
+        return result
+    }
+
+    private fun TelloCommandResult.diagnosticDescription(): String = when (this) {
+        is TelloCommandResult.Success -> "Success($response)"
+        is TelloCommandResult.Rejected -> "Rejected($response)"
+        TelloCommandResult.Timeout -> "Timeout"
+        is TelloCommandResult.Failure -> "Failure(${cause.safeMessage()})"
     }
 
     private fun invalid(message: String) {
@@ -1092,7 +1297,10 @@ class TelloFlightSession(
     }
 
     private fun DroneSessionState.canTakeOff() =
-        connection == DroneConnectionState.Connected && flight == FlightState.Grounded && telemetry.isFresh
+        connection == DroneConnectionState.Connected &&
+            flight == FlightState.Grounded &&
+            telemetry.isFresh &&
+            (telemetry.batteryPercent ?: 0) >= MINIMUM_TAKEOFF_BATTERY_PERCENT
 
     private fun TelloTelemetry.isVerifiedGrounded(): Boolean =
         heightMeters?.let { it.isFinite() && it >= 0f && it <= GROUNDED_HEIGHT_THRESHOLD_METERS } == true
@@ -1134,6 +1342,11 @@ class TelloFlightSession(
 
     companion object {
         private const val NANOS_PER_MILLISECOND = 1_000_000L
+        const val MINIMUM_TAKEOFF_BATTERY_PERCENT = 30
+        const val KEEPALIVE_PERIOD_MILLIS = 5_000L
+        const val KEEPALIVE_TIMEOUT_MILLIS = 2_500L
+        const val EXTERNAL_GROUNDING_MIN_SAMPLES = 5
+        const val EXTERNAL_GROUNDING_WINDOW_MILLIS = 500L
         const val COMMAND_MODE_TIMEOUT_MILLIS = 5_000L
         const val FIRST_TELEMETRY_TIMEOUT_MILLIS = 5_000L
         const val FLIGHT_COMMAND_TIMEOUT_MILLIS = 15_000L

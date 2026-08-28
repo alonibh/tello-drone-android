@@ -73,6 +73,39 @@ data class RcPublicationTrace(
     val yawFollowReason: YawFollowReason,
 )
 
+enum class SdkCommandCategory { CONNECT, TAKEOFF, LAND, EMERGENCY, KEEPALIVE, STREAM, CONTROL_MODE, OTHER }
+
+data class SdkCommandTrace(
+    val command: String,
+    val category: SdkCommandCategory,
+    val sentAtMonotonicMillis: Long,
+    val latencyMillis: Long,
+    val result: String,
+)
+
+data class FlightStateTransitionTrace(
+    val timestampMillis: Long,
+    val fromState: String,
+    val toState: String,
+    val triggerReason: String,
+    val batteryPercent: Int?,
+    val heightMeters: Float?,
+)
+
+data class ExternalGroundingTrace(
+    val timestampMillis: Long,
+    val heightMeters: Float?,
+    val sampleCount: Int,
+)
+
+data class FlightDiagnosticsExport(
+    val transitionsCount: Int,
+    val commandsCount: Int,
+    val rcCount: Long,
+    val maxAirborneOutboundGapMillis: Long?,
+    val maxAirborneRcGapMillis: Long?,
+)
+
 interface VisionTraceRecorder {
     val capturesFrames: Boolean
     /** Called while the decoded-frame lease is valid; debug implementations must detach it. */
@@ -82,7 +115,14 @@ interface VisionTraceRecorder {
     fun record(frame: VisionTraceFrame)
     fun recordControlMeasurement(trace: YawControlMeasurementTrace) = Unit
     fun recordRcPublication(trace: RcPublicationTrace) = Unit
+    fun recordSdkCommand(trace: SdkCommandTrace) = Unit
+    fun recordFlightStateTransition(trace: FlightStateTransitionTrace) = Unit
+    fun recordExternalGrounding(trace: ExternalGroundingTrace) = Unit
+    fun recordTelemetrySample(batteryPercent: Int?, heightMeters: Float?) = Unit
     fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit)
+    fun exportFlightDiagnostics(destinationUri: String, onComplete: (Result<FlightDiagnosticsExport>) -> Unit) {
+        onComplete(Result.failure(IllegalStateException("Flight diagnostics export is available only in debug builds")))
+    }
 }
 
 object NoOpVisionTraceRecorder : VisionTraceRecorder {
@@ -92,6 +132,7 @@ object NoOpVisionTraceRecorder : VisionTraceRecorder {
         onComplete(Result.failure(IllegalStateException("Vision trace export is available only in debug builds")))
     }
 }
+
 
 /** Pure compact encoder; file I/O exists only in the debug source set. */
 internal object VisionTraceJson {
@@ -166,6 +207,39 @@ internal object VisionTraceJson {
         comma(); field("yawFollowReason", trace.yawFollowReason.name)
         append('}')
     }
+
+    fun encodeSdkCommand(trace: SdkCommandTrace): String = buildString(256) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", "sdkCommand")
+        comma(); field("command", trace.command)
+        comma(); field("category", trace.category.name)
+        comma(); field("sentAtMonotonicMillis", trace.sentAtMonotonicMillis)
+        comma(); field("latencyMillis", trace.latencyMillis)
+        comma(); field("result", trace.result)
+        append('}')
+    }
+
+    fun encodeFlightStateTransition(trace: FlightStateTransitionTrace): String = buildString(256) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", "flightTransition")
+        comma(); field("timestampMillis", trace.timestampMillis)
+        comma(); field("fromState", trace.fromState)
+        comma(); field("toState", trace.toState)
+        comma(); field("triggerReason", trace.triggerReason)
+        comma(); field("batteryPercent", trace.batteryPercent)
+        comma(); field("heightMeters", trace.heightMeters)
+        append('}')
+    }
+
+    fun encodeExternalGrounding(trace: ExternalGroundingTrace): String = buildString(256) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", "externalGrounding")
+        comma(); field("timestampMillis", trace.timestampMillis)
+        comma(); field("heightMeters", trace.heightMeters)
+        comma(); field("sampleCount", trace.sampleCount)
+        append('}')
+    }
+
 
     private fun StringBuilder.vector(value: RcVector) {
         append('{'); field("lateral", value.lateral)

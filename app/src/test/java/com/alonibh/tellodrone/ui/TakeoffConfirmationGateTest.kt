@@ -31,10 +31,25 @@ class TakeoffConfirmationGateTest {
         assertFalse(gate.confirm(stale) {})
     }
 
+    @Test fun `battery threshold gates takeoff eligibility`() {
+        val gate = TakeoffConfirmationGate()
+        val base = eligibleRealState()
+
+        // Battery null or below 30% is ineligible
+        assertFalse(base.copy(telemetry = base.telemetry.copy(batteryPercent = null)).isTakeoffEligible())
+        assertFalse(base.copy(telemetry = base.telemetry.copy(batteryPercent = 0)).isTakeoffEligible())
+        assertFalse(base.copy(telemetry = base.telemetry.copy(batteryPercent = 17)).isTakeoffEligible())
+        assertFalse(base.copy(telemetry = base.telemetry.copy(batteryPercent = 29)).isTakeoffEligible())
+
+        // 30% and above is eligible
+        assertTrue(base.copy(telemetry = base.telemetry.copy(batteryPercent = 30)).isTakeoffEligible())
+        assertTrue(base.copy(telemetry = base.telemetry.copy(batteryPercent = 80)).isTakeoffEligible())
+    }
+
     private fun eligibleRealState() = DroneSessionState(
         connection = DroneConnectionState.Connected,
         flight = FlightState.Grounded,
-        telemetry = TelemetrySnapshot(isFresh = true),
+        telemetry = TelemetrySnapshot(isFresh = true, batteryPercent = 80),
     )
 }
 // SPDX-License-Identifier: AGPL-3.0-only

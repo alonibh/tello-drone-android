@@ -85,6 +85,25 @@ fun VisionSessionControls(state: DroneSessionState) {
             }
         }
     }
+    val exportFlightDiagnostics = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        uri?.let {
+            status = "Exporting flight diagnostics…"
+            VisionTraceFeature.exportFlightDiagnostics(context, it.toString()) { result ->
+                update(result.fold(
+                    onSuccess = { exported ->
+                        "Exported flight diagnostics (${exported.commandsCount} commands, " +
+                            "${exported.transitionsCount} transitions, " +
+                            "${exported.rcCount} RC packets, " +
+                            "max cmd gap: ${exported.maxAirborneOutboundGapMillis ?: "--"} ms, " +
+                            "max RC gap: ${exported.maxAirborneRcGapMillis ?: "--"} ms)."
+                    },
+                    onFailure = { error -> "Flight diagnostics export failed: ${error.message ?: error.javaClass.simpleName}" },
+                ))
+            }
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         DiagnosticButton("COPY GROUNDED DEVICE BENCHMARK") {
@@ -93,10 +112,12 @@ fun VisionSessionControls(state: DroneSessionState) {
             clipboard.setPrimaryClip(ClipData.newPlainText("Tello grounded detector benchmark", report))
             status = "Grounded device benchmark copied (${state.video.detectorAnalyzedFrames} analyzed frames)."
         }
+        DiagnosticButton("EXPORT FLIGHT DIAGNOSTICS") { exportFlightDiagnostics.launch("tello-flight-diagnostics.json") }
         DiagnosticButton("EXPORT VISION SESSION") { exportSession.launch("tello-vision-session.zip") }
         DiagnosticButton("IMPORT / SELECT SESSION") {
             importSession.launch(arrayOf("application/zip", "application/octet-stream"))
         }
+
         DiagnosticButton("RUN MODEL COMPARISON", enabled = sessionSelected) {
             status = "Running YOLO11n LiteRT on the stored frames…"
             reportReady = false

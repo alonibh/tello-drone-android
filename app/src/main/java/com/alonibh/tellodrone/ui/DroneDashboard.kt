@@ -219,21 +219,73 @@ private fun PortraitSafetyFallback(state: DroneSessionState, vm: DroneDashboardA
 }
 
 @Composable
+private fun AirborneBatteryWarningBanner(state: DroneSessionState, modifier: Modifier = Modifier) {
+    val isAirborne = state.flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing)
+    if (!isAirborne) return
+    val battery = state.telemetry.batteryPercent ?: return
+    when {
+        battery <= 10 -> {
+            Surface(
+                color = TelloRed,
+                shape = RoundedCornerShape(6.dp),
+                modifier = modifier.testTag("battery_critical_warning"),
+            ) {
+                Text(
+                    "CRITICAL BATTERY: $battery% • LAND IMMEDIATELY",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        }
+        battery <= 20 -> {
+            Surface(
+                color = Color(0xFFFF9800),
+                shape = RoundedCornerShape(6.dp),
+                modifier = modifier.testTag("battery_low_warning"),
+            ) {
+                Text(
+                    "LOW BATTERY: $battery%",
+                    color = Color.Black,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun ExpandedDashboard(state: DroneSessionState, vm: DroneDashboardActions, destination: String, videoSurface: @Composable () -> Unit, onDestination: (String) -> Unit) {
     Column(Modifier.testTag("layout_expanded"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Header(state, vm, expanded = true)
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             NavigationRail(state, vm, destination, onDestination, Modifier.width(160.dp).fillMaxHeight())
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (destination == "Dashboard") {
-                    Row(Modifier.weight(1.63f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        VideoPanel(state, vm, Modifier.weight(1f).fillMaxHeight(), videoSurface)
-                        TabletFlightControls(state, vm, Modifier.widthIn(min = 250.dp, max = 280.dp).fillMaxHeight())
+            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                VideoPanel(state, vm, Modifier.weight(1.4f).fillMaxHeight(), videoSurface)
+                Box(Modifier.weight(0.8f).fillMaxHeight()) {
+                    when (destination) {
+                        "Dashboard" -> {
+                            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                TabletFlightControls(state, vm, Modifier.fillMaxWidth())
+                                BottomControls(state, vm, modifier = Modifier.weight(1f), tablet = true)
+                            }
+                        }
+                        "Tracking" -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize().testTag("expanded_tracking_scroll"),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                                contentPadding = PaddingValues(bottom = 8.dp),
+                            ) {
+                                item { TrackingControls(state, vm) }
+                            }
+                        }
+                        "Status" -> StatusPanel(state, Modifier.fillMaxSize())
+                        else -> DestinationPlaceholder(destination, Modifier.fillMaxSize())
                     }
-                    BottomControls(state, vm, modifier = Modifier.weight(1f), tablet = true)
-                } else if (destination == "Tracking") TrackingDestination(state, vm, Modifier.fillMaxSize(), videoSurface)
-                else if (destination == "Status") StatusPanel(state, Modifier.fillMaxSize())
-                else DestinationPlaceholder(destination, Modifier.fillMaxSize())
+                }
             }
         }
     }
@@ -248,21 +300,19 @@ private fun CompactDashboard(state: DroneSessionState, vm: DroneDashboardActions
     ) {
         item { Header(state, vm, expanded = false) }
         item { CompactNav(destination, onDestination) }
+        item { VideoPanel(state, vm, Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 460.dp), videoSurface) }
         if (destination == "Dashboard") {
-            item { VideoPanel(state, vm, Modifier.fillMaxWidth().heightIn(min = 260.dp, max = 460.dp), videoSurface) }
             item { CriticalFlightControls(state, vm) }
             item { CompactFutureControlsNotice() }
             item { BottomControls(state, vm) }
             item { StatusPanel(state) }
             item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
-        } else item {
-            if (destination == "Tracking") {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    VideoPanel(state, vm, Modifier.fillMaxWidth().height(280.dp), videoSurface)
-                    TrackingControls(state, vm)
-                }
-            } else if (destination == "Status") StatusPanel(state, Modifier.fillMaxWidth())
-            else DestinationPlaceholder(destination, Modifier.fillMaxWidth().height(280.dp))
+        } else if (destination == "Tracking") {
+            item { TrackingControls(state, vm) }
+        } else if (destination == "Status") {
+            item { StatusPanel(state, Modifier.fillMaxWidth()) }
+        } else {
+            item { DestinationPlaceholder(destination, Modifier.fillMaxWidth().height(280.dp)) }
         }
     }
 }
@@ -272,20 +322,28 @@ private fun MediumDashboard(state: DroneSessionState, vm: DroneDashboardActions,
     Column(Modifier.testTag("layout_medium"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Header(state, vm, expanded = false)
         CompactNav(destination, onDestination)
-        if (destination == "Dashboard") {
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                VideoPanel(state, vm, Modifier.weight(1.25f).fillMaxHeight(), videoSurface)
-                LazyColumn(Modifier.weight(.75f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    item { CriticalFlightControls(state, vm) }
-                    item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
-                    item { TrackingControls(state, vm) }
-                    item { StatusPanel(state) }
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            VideoPanel(state, vm, Modifier.weight(1.25f).fillMaxHeight(), videoSurface)
+            Box(Modifier.weight(0.75f).fillMaxHeight()) {
+                when (destination) {
+                    "Dashboard" -> {
+                        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            item { CriticalFlightControls(state, vm) }
+                            item { EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth()) }
+                            item { TrackingControls(state, vm) }
+                            item { StatusPanel(state) }
+                        }
+                    }
+                    "Tracking" -> {
+                        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            item { TrackingControls(state, vm) }
+                        }
+                    }
+                    "Status" -> StatusPanel(state, Modifier.fillMaxSize())
+                    else -> DestinationPlaceholder(destination, Modifier.fillMaxSize())
                 }
             }
-            BottomControls(state, vm)
-        } else if (destination == "Tracking") TrackingDestination(state, vm, Modifier.weight(1f).fillMaxWidth(), videoSurface)
-        else if (destination == "Status") StatusPanel(state, Modifier.weight(1f).fillMaxWidth())
-        else DestinationPlaceholder(destination, Modifier.weight(1f).fillMaxWidth())
+        }
     }
 }
 
@@ -301,20 +359,47 @@ private fun LandscapeDashboard(
     Column(Modifier.testTag("layout_compact_height"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         CompactHeader(state, vm, showApi28WifiAction)
         CompactNav(destination, onDestination, Modifier.testTag("compact_height_navigation"))
-        when (compactHeightContent(destination)) {
-            CompactHeightContent.Dashboard -> {
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    VideoPanel(state, vm, Modifier.weight(1.65f).fillMaxHeight().testTag("compact_height_dashboard_video"), videoSurface)
-                    Column(Modifier.weight(.7f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        LandscapeFlightControls(state, vm)
-                        EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth().weight(1f), compact = true)
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val videoWeight = when (compactHeightContent(destination)) {
+                CompactHeightContent.Tracking -> 1.15f
+                else -> 1.65f
+            }
+            val videoTag = when (compactHeightContent(destination)) {
+                CompactHeightContent.Tracking -> "compact_height_tracking_video"
+                else -> "compact_height_dashboard_video"
+            }
+            VideoPanel(
+                state,
+                vm,
+                Modifier.weight(videoWeight).fillMaxHeight().testTag(videoTag),
+                videoSurface,
+            )
+            val rightWeight = when (compactHeightContent(destination)) {
+                CompactHeightContent.Tracking -> 0.85f
+                else -> 0.7f
+            }
+            Box(Modifier.weight(rightWeight).fillMaxHeight()) {
+                when (compactHeightContent(destination)) {
+                    CompactHeightContent.Dashboard -> {
+                        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LandscapeFlightControls(state, vm)
+                            EmergencyHoldButton(state.canEmergency(), vm::emergencyMotorKill, Modifier.fillMaxWidth().weight(1f), compact = true)
+                        }
                     }
+                    CompactHeightContent.Controls -> CompactHeightControlsDestination(state, vm, Modifier.fillMaxSize())
+                    CompactHeightContent.Tracking -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize().testTag("compact_height_tracking_scroll"),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            contentPadding = PaddingValues(bottom = 8.dp),
+                        ) {
+                            item { TrackingControls(state, vm) }
+                        }
+                    }
+                    CompactHeightContent.Status -> CompactHeightScrollableDestination(Modifier.fillMaxSize()) { StatusPanel(state) }
+                    CompactHeightContent.Media -> CompactHeightScrollableDestination(Modifier.fillMaxSize()) { MediaControls() }
                 }
             }
-            CompactHeightContent.Controls -> CompactHeightControlsDestination(state, vm, Modifier.weight(1f).fillMaxWidth())
-            CompactHeightContent.Tracking -> CompactHeightTrackingDestination(state, vm, Modifier.weight(1f).fillMaxWidth(), videoSurface)
-            CompactHeightContent.Status -> CompactHeightScrollableDestination(Modifier.weight(1f).fillMaxWidth()) { StatusPanel(state) }
-            CompactHeightContent.Media -> CompactHeightScrollableDestination(Modifier.weight(1f).fillMaxWidth()) { MediaControls() }
         }
     }
 }
@@ -323,11 +408,9 @@ private fun LandscapeDashboard(
 private fun Header(state: DroneSessionState, vm: DroneDashboardActions, expanded: Boolean) {
     Surface(shape = panelShape, color = TelloPanelRaised, modifier = Modifier.fillMaxWidth()) {
         if (expanded) Row(Modifier.heightIn(min = 96.dp).padding(horizontal = 22.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Brand(state, Modifier.width(190.dp)); HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
-            HeaderMetric("HEIGHT", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }); HeaderMetric("SPEED", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } })
-            HeaderMetric("FLIGHT TIME", telemetryValue(state) { it.flightTimeSeconds?.let(::formatTime) }); Spacer(Modifier.weight(1f)); HeaderActions(state, vm)
+            Brand(state, Modifier.width(190.dp)); HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }); HeaderMetric("HEIGHT", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }); HeaderMetric("SPEED", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } }); HeaderMetric("FLIGHT TIME", telemetryValue(state) { it.flightTimeSeconds?.let(::formatTime) }); AirborneBatteryWarningBanner(state, Modifier.padding(horizontal = 8.dp)); Spacer(Modifier.weight(1f)); HeaderActions(state, vm)
         } else Column(Modifier.padding(standardCardPadding), verticalArrangement = Arrangement.spacedBy(sectionSpacing)) {
-            Brand(state); FlowRow(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Brand(state); AirborneBatteryWarningBanner(state); FlowRow(horizontalArrangement = Arrangement.spacedBy(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }); HeaderMetric("HEIGHT", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } }); HeaderMetric("SPEED", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } })
             }
             ConnectionButton(state, vm)
@@ -347,6 +430,7 @@ private fun CompactHeader(state: DroneSessionState, vm: DroneDashboardActions, s
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Brand(state, Modifier.weight(1f))
+        AirborneBatteryWarningBanner(state)
         HeaderMetric("BATTERY", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } })
         CompactConnectionActions(state, vm, showApi28WifiAction)
     }
@@ -583,7 +667,6 @@ private class TelloVideoSurfaceView(
         attached = false
         holder.removeCallback(this)
     }
-
     companion object {
         private const val TELLO_VIDEO_WIDTH = 960
         private const val TELLO_VIDEO_HEIGHT = 720
@@ -614,6 +697,8 @@ private class TelloVideoSurfaceView(
     state.flight == FlightState.Landing -> "Landing command accepted; waiting for grounded telemetry."
     state.connection != DroneConnectionState.Connected -> "Connect to TELLO to enable flight actions."
     !state.telemetry.isFresh -> "Fresh telemetry is required before takeoff or manual control."
+    state.flight == FlightState.Grounded && (state.telemetry.batteryPercent ?: 0) < MINIMUM_TAKEOFF_BATTERY_PERCENT ->
+        "Takeoff blocked: battery (${state.telemetry.batteryPercent ?: "--"}%) below ${MINIMUM_TAKEOFF_BATTERY_PERCENT}% minimum."
     state.flight == FlightState.Grounded -> "Takeoff is available when telemetry is fresh."
     state.flight == FlightState.Flying -> "Land and STOP/HOVER are available while flying."
     else -> "Aircraft state is uncertain; land before normal flight commands."

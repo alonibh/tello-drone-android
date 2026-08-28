@@ -4,8 +4,13 @@ import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 
+internal const val MINIMUM_TAKEOFF_BATTERY_PERCENT = 30
+
 internal fun DroneSessionState.isTakeoffEligible(): Boolean =
-    connection == DroneConnectionState.Connected && flight == FlightState.Grounded && telemetry.isFresh
+    connection == DroneConnectionState.Connected &&
+        flight == FlightState.Grounded &&
+        telemetry.isFresh &&
+        (telemetry.batteryPercent ?: 0) >= MINIMUM_TAKEOFF_BATTERY_PERCENT
 
 /** One-shot UI gate for the aircraft confirmation dialog. */
 internal class TakeoffConfirmationGate {

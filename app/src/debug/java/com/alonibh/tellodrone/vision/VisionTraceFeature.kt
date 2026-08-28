@@ -34,6 +34,10 @@ object VisionTraceFeature {
     fun exportSession(context: Context, destinationUri: String, onComplete: (Result<VisionSessionExport>) -> Unit) {
         manager(context).exportSession(destinationUri, onComplete)
     }
+
+    fun exportFlightDiagnostics(context: Context, destinationUri: String, onComplete: (Result<FlightDiagnosticsExport>) -> Unit) {
+        manager(context).exportFlightDiagnostics(destinationUri, onComplete)
+    }
 }
 
 internal class DebugVisionTraceRecorder(private val context: Context) : VisionTraceRecorder {
@@ -63,11 +67,27 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
             val trace: RcPublicationTrace,
             val epoch: CaptureEpoch,
         ) : Command
+        data class SdkCommand(
+            val trace: SdkCommandTrace,
+            val epoch: CaptureEpoch,
+        ) : Command
+        data class FlightTransition(
+            val trace: FlightStateTransitionTrace,
+            val epoch: CaptureEpoch,
+        ) : Command
+        data class ExternalGrounding(
+            val trace: ExternalGroundingTrace,
+            val epoch: CaptureEpoch,
+        ) : Command
         data class ExportTrace(val destinationUri: String, val callback: (Result<VisionTraceExport>) -> Unit) : Command
         data class ExportSession(
             val destinationUri: String,
             val epoch: CaptureEpoch,
             val callback: (Result<VisionSessionExport>) -> Unit,
+        ) : Command
+        data class ExportFlightDiagnostics(
+            val destinationUri: String,
+            val callback: (Result<FlightDiagnosticsExport>) -> Unit,
         ) : Command
     }
 
@@ -93,17 +113,33 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     private val frames = mutableListOf<VisionSessionFrameEntry>()
     private var activeEpoch: CaptureEpoch? = null
 
+    // Flight diagnostics tracking
+    private val transitions = mutableListOf<FlightStateTransitionTrace>()
+    private val sdkCommands = mutableListOf<SdkCommandTrace>()
+    private val externalGroundings = mutableListOf<ExternalGroundingTrace>()
+    private var rcPublicationCount = 0L
+    private var isAirborne = false
+    private var lastAirborneOutboundTimeMillis: Long? = null
+    private var maxAirborneOutboundGapMillis: Long? = null
+    private var lastAirborneRcTimeMillis: Long? = null
+    private var maxAirborneRcGapMillis: Long? = null
+
     init {
         scope.launch {
             for (command in commands) when (command) {
                 is Command.Pair -> write(command)
                 is Command.ControlMeasurement -> write(command)
                 is Command.RcPublication -> write(command)
+                is Command.SdkCommand -> write(command)
+                is Command.FlightTransition -> write(command)
+                is Command.ExternalGrounding -> write(command)
                 is Command.ExportTrace -> exportTrace(command)
                 is Command.ExportSession -> exportSession(command)
+                is Command.ExportFlightDiagnostics -> exportFlightDiagnostics(command)
             }
         }
     }
+
 
     override fun captureAnalyzedFrame(frameSequence: Long, sourceTimestampNanos: Long, bitmap: Bitmap) {
         val key = FrameKey(frameSequence, sourceTimestampNanos)
@@ -174,6 +210,21 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         commands.trySend(Command.RcPublication(trace, epoch))
     }
 
+    override fun recordSdkCommand(trace: SdkCommandTrace) {
+        val epoch = currentEpoch
+        commands.trySend(Command.SdkCommand(trace, epoch))
+    }
+
+    override fun recordFlightStateTransition(trace: FlightStateTransitionTrace) {
+        val epoch = currentEpoch
+        commands.trySend(Command.FlightTransition(trace, epoch))
+    }
+
+    override fun recordExternalGrounding(trace: ExternalGroundingTrace) {
+        val epoch = currentEpoch
+        commands.trySend(Command.ExternalGrounding(trace, epoch))
+    }
+
     override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) {
         scope.launch { commands.send(Command.ExportTrace(destinationUri, onComplete)) }
     }
@@ -181,6 +232,10 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     fun exportSession(destinationUri: String, onComplete: (Result<VisionSessionExport>) -> Unit) {
         val epoch = pauseAndDropPending()
         scope.launch { commands.send(Command.ExportSession(destinationUri, epoch, onComplete)) }
+    }
+
+    override fun exportFlightDiagnostics(destinationUri: String, onComplete: (Result<FlightDiagnosticsExport>) -> Unit) {
+        scope.launch { commands.send(Command.ExportFlightDiagnostics(destinationUri, onComplete)) }
     }
 
     private fun pauseAndDropPending(): CaptureEpoch = synchronized(pendingLock) {
@@ -246,11 +301,70 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     private fun write(command: Command.RcPublication) {
         if (command.epoch.generation < currentEpoch.generation) return
         prepareEpoch(command.epoch)
+        rcPublicationCount++
+        if (isAirborne) {
+            val timeMillis = command.trace.commandTimestampNanos / 1_000_000L
+            val prevOutbound = lastAirborneOutboundTimeMillis
+            if (prevOutbound != null) {
+                val gap = (timeMillis - prevOutbound).coerceAtLeast(0L)
+                maxAirborneOutboundGapMillis = maxOf(maxAirborneOutboundGapMillis ?: 0L, gap)
+            }
+            lastAirborneOutboundTimeMillis = timeMillis
+            val prevRc = lastAirborneRcTimeMillis
+            if (prevRc != null) {
+                val rcGap = (timeMillis - prevRc).coerceAtLeast(0L)
+                maxAirborneRcGapMillis = maxOf(maxAirborneRcGapMillis ?: 0L, rcGap)
+            }
+            lastAirborneRcTimeMillis = timeMillis
+        }
         ensureControlWriter().apply {
             write(VisionTraceJson.encodeRcPublication(command.trace))
             newLine()
         }
     }
+
+    private fun write(command: Command.SdkCommand) {
+        prepareEpoch(command.epoch)
+        sdkCommands += command.trace
+        if (isAirborne) {
+            val prev = lastAirborneOutboundTimeMillis
+            if (prev != null) {
+                val gap = (command.trace.sentAtMonotonicMillis - prev).coerceAtLeast(0L)
+                maxAirborneOutboundGapMillis = maxOf(maxAirborneOutboundGapMillis ?: 0L, gap)
+            }
+            lastAirborneOutboundTimeMillis = command.trace.sentAtMonotonicMillis
+        }
+        ensureControlWriter().apply {
+            write(VisionTraceJson.encodeSdkCommand(command.trace))
+            newLine()
+        }
+    }
+
+    private fun write(command: Command.FlightTransition) {
+        prepareEpoch(command.epoch)
+        transitions += command.trace
+        if (command.trace.toState == "Flying") {
+            isAirborne = true
+            lastAirborneOutboundTimeMillis = command.trace.timestampMillis
+            lastAirborneRcTimeMillis = command.trace.timestampMillis
+        } else if (command.trace.toState in setOf("Grounded", "Landing", "Emergency", "Unknown")) {
+            isAirborne = false
+        }
+        ensureControlWriter().apply {
+            write(VisionTraceJson.encodeFlightStateTransition(command.trace))
+            newLine()
+        }
+    }
+
+    private fun write(command: Command.ExternalGrounding) {
+        prepareEpoch(command.epoch)
+        externalGroundings += command.trace
+        ensureControlWriter().apply {
+            write(VisionTraceJson.encodeExternalGrounding(command.trace))
+            newLine()
+        }
+    }
+
 
     private fun exportTrace(command: Command.ExportTrace) {
         val result = runCatching {
@@ -321,7 +435,55 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         command.callback(result)
     }
 
+    private fun exportFlightDiagnostics(command: Command.ExportFlightDiagnostics) {
+        val result = runCatching {
+            controlWriter?.flush()
+            val content = buildString {
+                appendLine("{")
+                appendLine("  \"schemaVersion\": 1,")
+                appendLine("  \"exportedAtMonotonicMillis\": ${System.currentTimeMillis()},")
+                appendLine("  \"rcPublicationsCount\": $rcPublicationCount,")
+                appendLine("  \"maxAirborneOutboundGapMillis\": ${maxAirborneOutboundGapMillis ?: "null"},")
+                appendLine("  \"maxAirborneRcGapMillis\": ${maxAirborneRcGapMillis ?: "null"},")
+                appendLine("  \"transitionsCount\": ${transitions.size},")
+                appendLine("  \"sdkCommandsCount\": ${sdkCommands.size},")
+                appendLine("  \"externalGroundingsCount\": ${externalGroundings.size},")
+                appendLine("  \"transitions\": [")
+                transitions.forEachIndexed { i, t ->
+                    append("    ").append(VisionTraceJson.encodeFlightStateTransition(t))
+                    if (i < transitions.size - 1) appendLine(",") else appendLine()
+                }
+                appendLine("  ],")
+                appendLine("  \"sdkCommands\": [")
+                sdkCommands.forEachIndexed { i, c ->
+                    append("    ").append(VisionTraceJson.encodeSdkCommand(c))
+                    if (i < sdkCommands.size - 1) appendLine(",") else appendLine()
+                }
+                appendLine("  ],")
+                appendLine("  \"externalGroundings\": [")
+                externalGroundings.forEachIndexed { i, g ->
+                    append("    ").append(VisionTraceJson.encodeExternalGrounding(g))
+                    if (i < externalGroundings.size - 1) appendLine(",") else appendLine()
+                }
+                appendLine("  ]")
+                appendLine("}")
+            }
+            context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "wt")?.use { output ->
+                output.write(content.toByteArray(Charsets.UTF_8))
+            } ?: throw IllegalStateException("Could not open the selected export destination")
+            FlightDiagnosticsExport(
+                transitionsCount = transitions.size,
+                commandsCount = sdkCommands.size,
+                rcCount = rcPublicationCount,
+                maxAirborneOutboundGapMillis = maxAirborneOutboundGapMillis,
+                maxAirborneRcGapMillis = maxAirborneRcGapMillis,
+            )
+        }
+        command.callback(result)
+    }
+
     private fun prepareEpoch(epoch: CaptureEpoch) {
+
         if (activeEpoch === epoch) return
         resetWorkerStorage()
         activeEpoch = epoch

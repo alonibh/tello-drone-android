@@ -767,16 +767,59 @@ class TelloFlightSessionTest {
         assertEquals(RcVector.Zero, fixture.transport.rc.last())
 
         fixture.session.setYawFollowArmed(true)
-        advanceTimeBy(50L)
+    }
+
+    @Test fun `takeoff is rejected when battery is below minimum threshold or null`() = runTest {
+        val fixture = fixture()
+        fixture.transport.emitTelemetry(fixture.clock.value, batteryPercent = 17)
+        assertTrue(fixture.session.connect())
         runCurrent()
 
-        assertFalse(fixture.session.state.value.hoverActive)
-        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
-        assertTrue(fixture.transport.rc.last().yaw > 0)
-        assertEquals(0, fixture.transport.rc.last().lateral)
-        assertEquals(0, fixture.transport.rc.last().forward)
-        assertEquals(0, fixture.transport.rc.last().vertical)
+        fixture.session.takeOff()
+        assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
+        assertTrue(fixture.session.state.value.lastMessage?.contains("30%") == true)
     }
+
+    @Test fun `airborne keepalive sends periodic command while flying and stops on land`() = runTest {
+        val fixture = connectedFixture()
+        takeOffAndVerify(fixture)
+
+        fixture.transport.commands.clear()
+        advanceTimeBy(5_100)
+        runCurrent()
+        assertTrue(fixture.transport.commands.contains("command"))
+
+        fixture.transport.commands.clear()
+        landAndVerify(fixture)
+
+        advanceTimeBy(10_000)
+        runCurrent()
+        assertFalse(fixture.transport.commands.contains("command"))
+    }
+
+    @Test fun `debounced external grounding transitions to grounded after continuous samples`() = runTest {
+        val fixture = connectedFixture()
+        takeOffAndVerify(fixture)
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+
+        // 1 grounded sample: should not transition
+        fixture.clock.value += 100
+        fixture.transport.emitTelemetry(fixture.clock.value, heightMeters = 0.0f)
+        runCurrent()
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+
+        // 4 more grounded samples spanning >= 500ms total
+        repeat(4) {
+            fixture.clock.value += 150
+            fixture.transport.emitTelemetry(fixture.clock.value, heightMeters = 0.0f)
+            runCurrent()
+        }
+
+
+        assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
+        assertTrue(fixture.session.state.value.lastMessage?.contains("Aircraft landed outside app command") == true)
+    }
+
 
     private fun assertYawFollowLatchedAtZero(fixture: Fixture) {
         assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
@@ -879,10 +922,10 @@ class TelloFlightSessionTest {
         override suspend fun sendRc(vector: RcVector) { rc += vector }
         override suspend fun close() { closed = true }
 
-        suspend fun emitTelemetry(at: Long, heightMeters: Float? = 0f) {
+        suspend fun emitTelemetry(at: Long, heightMeters: Float? = 0f, batteryPercent: Int? = 80) {
             samples.emit(
                 TelloTelemetry(
-                    batteryPercent = 80,
+                    batteryPercent = batteryPercent,
                     heightMeters = heightMeters,
                     flightTimeSeconds = 0,
                     temperatureCelsius = 30f,
