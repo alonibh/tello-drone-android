@@ -38,7 +38,7 @@ class FlightSummaryTest {
         assertNull(summary.ageP50)
         assertNull(summary.fractionOfActiveNonZeroYaw)
         assertNull(summary.perceptionAgeExpiredPercent)
-        assertEquals("null", Regex(""preview_fps": (null)").find(FlightSummaryBuilder.json(summary))!!.groupValues[1])
+        assertEquals("null", Regex("\"preview_fps\": (null)").find(FlightSummaryBuilder.json(summary))!!.groupValues[1])
     }
 
     @Test fun counts_distinct_episodes_from_chronological_false_to_true_transitions() {
