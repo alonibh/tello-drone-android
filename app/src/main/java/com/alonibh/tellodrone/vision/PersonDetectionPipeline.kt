@@ -164,6 +164,7 @@ class PersonDetectionPipeline(
     private val onSnapshot: (PersonDetectionSnapshot) -> Unit,
     private val onInferenceMeasurement: (DetectorInferenceMeasurement) -> Unit = {},
     private val onAnalyzedFrame: (PersonDetectorFrame) -> Unit = {},
+    private val onCorruptFrame: (sequence: Long, timestampNanos: Long, consecutive: Int) -> Unit = { _, _, _ -> },
 ) : DecodedFrameConsumer, AutoCloseable {
     constructor(
         detectorFactory: (DetectorBackendPreference) -> PersonDetector,
@@ -185,6 +186,8 @@ class PersonDetectionPipeline(
     private val store = PersonDetectionStore()
     private val frameRate = DetectionFrameRate()
     private val timing = DetectionTiming()
+    private val consecutiveCorruptFrames = AtomicLong()
+    private val corruptFramesRejectedCount = AtomicLong()
     @Volatile private var enabled = false
     @Volatile private var model = defaultModel
     @Volatile private var preference = DetectorBackendPreference.Cpu
@@ -203,6 +206,7 @@ class PersonDetectionPipeline(
             this.preference = preference
             this.confidenceThreshold = normalizeConfidenceThreshold(confidenceThreshold)
             generation.incrementAndGet()
+            consecutiveCorruptFrames.set(0)
             enabled = true
             frameRate.reset()
             timing.reset()
@@ -231,6 +235,7 @@ class PersonDetectionPipeline(
         synchronized(stateLock) {
             enabled = false
             generation.incrementAndGet()
+            consecutiveCorruptFrames.set(0)
             frameRate.reset()
             timing.reset()
             onSnapshot(store.stop())
@@ -238,11 +243,27 @@ class PersonDetectionPipeline(
     }
 
     override fun onFrame(frame: DecodedVideoFrame) {
+        val bitmap = runCatching { frame.bitmap }.getOrNull()
+        if (bitmap != null && FrameQualityGate.isCorruptBlackFrame(bitmap)) {
+            val count = consecutiveCorruptFrames.incrementAndGet().toInt()
+            corruptFramesRejectedCount.incrementAndGet()
+            onCorruptFrame(frame.metadata.sequence, frame.metadata.captureTimestampNanos, count)
+            return
+        }
+        consecutiveCorruptFrames.set(0)
         process(PersonDetectorFrame(frame.metadata) { frame.bitmap })
     }
 
     fun process(frame: PersonDetectorFrame) {
         val request = activeRequestSnapshot() ?: return
+        val bitmap = runCatching { frame.bitmap }.getOrNull()
+        if (bitmap != null && FrameQualityGate.isCorruptBlackFrame(bitmap)) {
+            val count = consecutiveCorruptFrames.incrementAndGet().toInt()
+            corruptFramesRejectedCount.incrementAndGet()
+            onCorruptFrame(frame.metadata.sequence, frame.metadata.captureTimestampNanos, count)
+            return
+        }
+        consecutiveCorruptFrames.set(0)
         try {
             var creationNanos: Long? = null
             val completed = synchronized(detectorLock) {

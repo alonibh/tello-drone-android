@@ -94,6 +94,13 @@ class RealDroneController(context: Context) : DroneController {
     override fun setCurrentFollowDistance() { TelloServiceGateway.setCurrentFollowDistance() }
     override fun setYawFollowArmed(armed: Boolean) { TelloServiceGateway.setYawFollowArmed(armed) }
     override fun exportVisionTrace(destinationUri: String) {
+        val currentFlight = TelloSessionStore.state.value.flight
+        if (currentFlight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing)) {
+            TelloSessionStore.update {
+                it.copy(lastMessage = "Trace export disabled while airborne")
+            }
+            return
+        }
         VisionTraceFeature.export(applicationContext, destinationUri) { result ->
             TelloSessionStore.update { state ->
                 state.copy(

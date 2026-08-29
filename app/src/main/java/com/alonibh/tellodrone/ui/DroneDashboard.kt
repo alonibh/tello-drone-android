@@ -529,22 +529,13 @@ private fun DetectionOverlay(state: DroneSessionState, vm: DroneDashboardActions
             DetectionBox(presentation.target.boundingBox, presentation.label, color, overlayWidth, overlayHeight)
         }
         state.personDetections.filterNot(state::isCurrentTargetDetection).forEachIndexed { index, detection ->
-            val selectable = state.connection == DroneConnectionState.Connected &&
-                state.video.availability == VideoAvailability.Streaming &&
-                state.video.personDetectionState == PersonDetectionState.Detecting &&
-                state.video.processedDetectorFrameSequence == detection.frameSequence &&
-                state.video.processedDetectorSourceTimestampNanos == detection.sourceTimestampNanos
-            val centerX = (detection.boundingBox.left + detection.boundingBox.right) / 2f
-            val centerY = (detection.boundingBox.top + detection.boundingBox.bottom) / 2f
             DetectionBox(
                 detection.boundingBox,
                 "PERSON ${(detection.confidence * 100f).roundToInt()}%",
                 Color(0xFFFFC857),
                 overlayWidth,
                 overlayHeight,
-                Modifier.clickable(enabled = selectable) {
-                    vm.selectTargetAt(centerX, centerY, detection.frameSequence)
-                }.testTag("person_detection_$index"),
+                Modifier.testTag("person_detection_$index"),
             )
         }
     }

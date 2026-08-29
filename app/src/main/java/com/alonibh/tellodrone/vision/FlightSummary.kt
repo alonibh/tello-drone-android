@@ -62,14 +62,17 @@ internal object FlightSummaryBuilder {
         val detectorToAssociation = elapsedMillis(traces, "detectorInferenceCompletedTimestampNanos", "associationCompletedTimestampNanos")
         val controlMeasurements = controls.filter { it.string("eventType") == "controlMeasurement" }
         val sourceToDecision = elapsedMillis(controlMeasurements, "sourceTimestampNanos", "yawDecisionTimestampNanos")
-        val decisionToSend = elapsedMillis(publications, "yawDecisionTimestampNanos", "actualSentAtNanos")
-        val sourceToSend = elapsedMillis(publications, "sourceTimestampNanos", "actualSentAtNanos")
+        val sentAutonomous = publications.filter { it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("sendSuppressionReason") == "NONE" }
+        val firstSendPerDecision = (if (sentAutonomous.isNotEmpty()) sentAutonomous else publications.filter { it.string("inputKind") == "AUTONOMOUS_YAW" })
+            .groupBy { it.long("yawDecisionTimestampNanos") ?: it.long("frameSequence") ?: it.long("commandTimestampNanos") }
+            .mapNotNull { (_, group) -> group.minByOrNull { it.long("actualSentAtNanos") ?: Long.MAX_VALUE } }
+        val decisionToSend = elapsedMillis(firstSendPerDecision, "yawDecisionTimestampNanos", "actualSentAtNanos")
+        val sourceToSend = elapsedMillis(firstSendPerDecision, "sourceTimestampNanos", "actualSentAtNanos")
         val preprocessing = stageMillis("detectorPreprocessingNanos")
         val modelInference = stageMillis("detectorModelInferenceNanos")
         val decodeAndNms = stageMillis("detectorDecodeAndNmsNanos")
         val appearance = stageMillis("detectorAppearanceNanos")
         val ages = publications.mapNotNull { it.long("perceptionAgeMillis") }.ifEmpty { controls.mapNotNull { it.long("perceptionAgeMillis") } }
-        val sentAutonomous = publications.filter { it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("sendSuppressionReason") == "NONE" }
         val sentYaw = sentAutonomous.mapNotNull { it.int("actualSentVector", "yaw") }
         val absYaw = sentYaw.map(::abs)
         val heights = controls.mapNotNull { it.double("telemetryHeightMeters") }
@@ -108,7 +111,7 @@ internal object FlightSummaryBuilder {
             }
         }
 
-        val measurementTimes = controls.filter { it.string("eventType") == "controlMeasurement" || it.suppression() != null }.mapNotNull { it.long("commandTimestampNanos") }.distinct().sorted()
+        val measurementTimes = (controlMeasurements.mapNotNull { it.long("sourceTimestampNanos") }.ifEmpty { controls.mapNotNull { it.long("sourceTimestampNanos") } }).distinct().sorted()
         val interMeasurementIntervalsMs = measurementTimes.zipWithNext().map { (a, b) -> (b - a).coerceAtLeast(0L) / 1_000_000.0 }
         val interMeasurementMeanMs = interMeasurementIntervalsMs.takeIf { it.isNotEmpty() }?.average()
         val interMeasurementP50Ms = percentile(interMeasurementIntervalsMs, 0.50)

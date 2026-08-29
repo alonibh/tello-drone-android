@@ -11,6 +11,7 @@ import androidx.annotation.RequiresApi
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.vision.FallbackPersonDetectorFactory
+import com.alonibh.tellodrone.vision.FrameQualityGate
 import com.alonibh.tellodrone.vision.PersonDetectionPipeline
 import com.alonibh.tellodrone.vision.PersonDetectionSnapshot
 import com.alonibh.tellodrone.vision.PersonDetectionStore
@@ -82,6 +83,12 @@ class AndroidTelloVideoController(
                     frame.metadata.captureTimestampNanos,
                     frame.bitmap,
                 )
+            }
+        },
+        onCorruptFrame = { sequence, timestampNanos, consecutive ->
+            if (consecutive >= FrameQualityGate.MAX_CONSECUTIVE_CORRUPT_FRAMES) {
+                accessUnits.declareDiscontinuity()
+                unitSignal.trySend(Unit)
             }
         },
     )

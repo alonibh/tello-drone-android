@@ -131,7 +131,6 @@ class TelloFlightSession(
                     when {
                         current.flight != FlightState.Flying -> RcSendSuppressionReason.FLIGHT_STATE_INACTIVE
                         current.tracking == TrackingMode.Off ||
-                            current.authority != ControlAuthority.Autonomous ||
                             current.yawFollowDecision.state != YawFollowState.ACTIVE ->
                             RcSendSuppressionReason.TRACKING_INACTIVE
                         else -> null
@@ -653,7 +652,7 @@ class TelloFlightSession(
             )
         }
         if (selectionAccepted) visionTrace.onTargetSelected(target)
-        reconcileYawFollow()
+        reconcileSafetyGate()
     }
 
     fun setCurrentFollowDistance() = synchronized(trackingLock) {
@@ -933,7 +932,9 @@ class TelloFlightSession(
                     )
                 }
                 if (!closed && mutableState.value.connection == DroneConnectionState.Connected) rcLoop.setHealthy(true)
-                reconcileYawFollow()
+                val currentTelemetry = mutableState.value.telemetry
+                yawFollowGate.observeTelemetry(currentTelemetry.yawDegrees, currentTelemetry.yawRateDegreesPerSecond)
+                reconcileSafetyGate()
             }
         }
     }
@@ -1039,7 +1040,7 @@ class TelloFlightSession(
                 }
             }
         }
-        val decision = reconcileYawFollow(publishActive)
+        val decision = if (publishActive) reconcileFreshPerception() else reconcileSafetyGate()
         traceFrame?.let { frame ->
             visionTrace.record(frame)
             recordControlMeasurement(frame, decision)
@@ -1072,7 +1073,7 @@ class TelloFlightSession(
                 val errors = trackingErrors.update(result.target, targetFresh = true, distanceReference = calibration.reference)
                 baseline.copy(
                     tracking = TrackingMode.TargetLocked,
-                    authority = ControlAuthority.Manual,
+                    authority = baseline.authority,
                     target = result.target,
                     trackingErrors = errors,
                     targetAssociationState = TargetAssociationState.Matched,
@@ -1213,21 +1214,19 @@ class TelloFlightSession(
         yawFollowGate.disarm()
     }
 
-    private fun reconcileYawFollow(publishActive: Boolean = false): YawFollowDecision {
+    private fun reconcileFreshPerception(): YawFollowDecision {
         var zeroGeneration: Long? = null
         lateinit var resolvedDecision: YawFollowDecision
         synchronized(yawFollowLock) {
             val current = mutableState.value
             val previous = current.yawFollowDecision
-            val decision = yawFollowGate.evaluate(current.toYawFollowInput())
+            val decision = yawFollowGate.processFreshPerception(current.toYawFollowInput())
             resolvedDecision = decision
             if (decision.state == YawFollowState.ACTIVE) {
                 val generation = yawFollowGeneration
                     ?.takeIf { previous.state == YawFollowState.ACTIVE }
                     ?: rcLoop.beginAutonomousYaw().also { yawFollowGeneration = it }
-                if (publishActive || previous.state != YawFollowState.ACTIVE) {
-                    publishAutonomousYaw(decision, generation, current)
-                }
+                publishAutonomousYaw(decision, generation, current)
             } else {
                 val newlyStopped = previous.state == YawFollowState.ACTIVE
                 val newlyLatched = decision.state == YawFollowState.REQUIRES_REARM &&
@@ -1248,6 +1247,33 @@ class TelloFlightSession(
         return resolvedDecision
     }
 
+    private fun reconcileSafetyGate(): YawFollowDecision {
+        var zeroGeneration: Long? = null
+        lateinit var resolvedDecision: YawFollowDecision
+        synchronized(yawFollowLock) {
+            val current = mutableState.value
+            val previous = current.yawFollowDecision
+            val decision = yawFollowGate.evaluateSafetyGate(current.toYawFollowInput())
+            resolvedDecision = decision
+            if (decision.state != YawFollowState.ACTIVE) {
+                val newlyStopped = previous.state == YawFollowState.ACTIVE
+                val newlyLatched = decision.state == YawFollowState.REQUIRES_REARM &&
+                    previous.state != YawFollowState.REQUIRES_REARM
+                if ((newlyStopped || newlyLatched) && decision.reason != YawFollowReason.MANUAL_OVERRIDE) {
+                    zeroGeneration = rcLoop.preemptAutonomy()
+                }
+                yawFollowGeneration = null
+            }
+            updateYawFollowState {
+                it.copy(
+                    authority = if (decision.state == YawFollowState.ACTIVE) ControlAuthority.Autonomous else ControlAuthority.Manual,
+                    yawFollowDecision = decision,
+                )
+            }
+        }
+        zeroGeneration?.let(::sendYawFollowZero)
+        return resolvedDecision
+    }
     /** Latches a named intervention; the owning safety path performs its own serialized zero. */
     private fun latchYawFollow(reason: YawFollowReason): Long? = synchronized(yawFollowLock) {
         val current = mutableState.value

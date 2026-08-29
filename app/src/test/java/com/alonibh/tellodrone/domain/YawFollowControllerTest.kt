@@ -83,39 +83,39 @@ class YawFollowControllerTest {
 
     @Test fun `detector cadence slower than command hold maintains progression 8 to 16 to 24 to 28`() {
         val controller = ProductionYawController()
-        val intervalMillis = 180L // Slower than 170ms command hold
+        val intervalMillis = 220L // Slower than 200ms command hold
         val first = controller.command(errors(.40f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis))
         assertEquals(8, first.safetyFilteredYawRc)
 
         // Between frames, command hold expires physically
-        val expired1 = controller.command(errors(.40f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 175L * NANOS_PER_MILLISECOND)
+        val expired1 = controller.command(errors(.40f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 205L * NANOS_PER_MILLISECOND)
         assertEquals(0, expired1.safetyFilteredYawRc)
         assertEquals(YawControlSuppressionReason.NONZERO_COMMAND_HOLD_EXPIRED, expired1.suppressionReason)
 
-        // Next fresh frame at 180ms advances to 16
+        // Next fresh frame at 220ms advances to 16
         val second = controller.command(errors(.40f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis))
         assertEquals(16, second.safetyFilteredYawRc)
 
         // Expired again before frame 3
-        val expired2 = controller.command(errors(.40f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis) + 175L * NANOS_PER_MILLISECOND)
+        val expired2 = controller.command(errors(.40f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis) + 205L * NANOS_PER_MILLISECOND)
         assertEquals(0, expired2.safetyFilteredYawRc)
 
-        // Next fresh frame at 360ms advances to 24
+        // Next fresh frame at 440ms advances to 24
         val third = controller.command(errors(.40f, 3L, intervalMillis = intervalMillis), commandTime(3L, intervalMillis))
         assertEquals(24, third.safetyFilteredYawRc)
 
-        // Next fresh frame at 540ms advances to 28 (cap)
+        // Next fresh frame at 660ms advances to 28 (cap)
         val fourth = controller.command(errors(.40f, 4L, intervalMillis = intervalMillis), commandTime(4L, intervalMillis))
         assertEquals(28, fourth.safetyFilteredYawRc)
     }
 
     @Test fun `next fresh same-direction frame resumes controller progression after hold expiry`() {
         val controller = ProductionYawController()
-        val intervalMillis = 175L
+        val intervalMillis = 220L
         val first = controller.command(errors(.30f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis))
         assertEquals(8, first.safetyFilteredYawRc)
 
-        val expired = controller.command(errors(.30f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 172L * NANOS_PER_MILLISECOND)
+        val expired = controller.command(errors(.30f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 205L * NANOS_PER_MILLISECOND)
         assertEquals(0, expired.safetyFilteredYawRc)
         assertEquals(YawControlSuppressionReason.NONZERO_COMMAND_HOLD_EXPIRED, expired.suppressionReason)
 
@@ -125,11 +125,11 @@ class YawFollowControllerTest {
 
     @Test fun `centered frame overrides preserved state immediately after hold expiry`() {
         val controller = ProductionYawController()
-        val intervalMillis = 175L
+        val intervalMillis = 220L
         val first = controller.command(errors(.15f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis))
         assertEquals(8, first.safetyFilteredYawRc)
 
-        val expired = controller.command(errors(.15f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 172L * NANOS_PER_MILLISECOND)
+        val expired = controller.command(errors(.15f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 205L * NANOS_PER_MILLISECOND)
         assertEquals(0, expired.safetyFilteredYawRc)
 
         val centered = controller.command(errors(.02f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis))
@@ -140,11 +140,11 @@ class YawFollowControllerTest {
 
     @Test fun `direction crossing after hold expiry brakes to zero before reversing`() {
         val controller = ProductionYawController()
-        val intervalMillis = 175L
+        val intervalMillis = 220L
         val first = controller.command(errors(.12f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis))
         assertEquals(8, first.safetyFilteredYawRc)
 
-        val expired = controller.command(errors(.12f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 172L * NANOS_PER_MILLISECOND)
+        val expired = controller.command(errors(.12f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 205L * NANOS_PER_MILLISECOND)
         assertEquals(0, expired.safetyFilteredYawRc)
 
         // Crossing to opposite side within anti-jump gate (.12 to -.05 is delta .17 <= .18) enters SETTLING with zero output
@@ -410,6 +410,37 @@ class YawFollowControllerTest {
             assertEquals(YawFollowState.REQUIRES_REARM, decision.state)
             assertEquals(0, decision.yawRc)
         }
+    }
+
+    @Test fun `hard perception age 450ms expiration and true stale gap settling`() {
+        val controller = ProductionYawController()
+        val first = controller.command(errors(.15f, 1L), commandTime(1L))
+        assertEquals(8, first.safetyFilteredYawRc)
+
+        // Gap of 460ms exceeds 450ms hard limit
+        val stale = controller.command(errors(.15f, 1L), commandTime(1L) + 460L * NANOS_PER_MILLISECOND)
+        assertEquals(0, stale.safetyFilteredYawRc)
+        assertEquals(YawControlSuppressionReason.STALE_PERCEPTION, stale.suppressionReason)
+
+        // When perception resumes with opposite direction within anti-jump gate (.15 to -.02 is delta .17 <= .18), settling is enforced
+        val opposite = controller.command(errors(-.02f, 2L), commandTime(1L) + 500L * NANOS_PER_MILLISECOND)
+        assertEquals(0, opposite.safetyFilteredYawRc)
+        assertEquals(YawControlSuppressionReason.CENTER_CROSSING_BRAKE, opposite.suppressionReason)
+        assertEquals(YawControllerPhase.SETTLING, opposite.phase)
+    }
+
+    @Test fun `gate observeTelemetry does not reprocess perception or reset controller`() {
+        val gate = YawFollowGate()
+        val initialInput = healthy(frame = 1L)
+        gate.arm(initialInput)
+        val firstDecision = gate.processFreshPerception(initialInput)
+        assertEquals(8, firstDecision.yawRc)
+        assertEquals(YawFollowState.ACTIVE, firstDecision.state)
+
+        // Telemetry observation updates settling state without recomputing command
+        gate.observeTelemetry(10, 2f)
+        val safetyCheck = gate.evaluateSafetyGate(initialInput)
+        assertEquals(YawFollowState.ACTIVE, safetyCheck.state)
     }
 
     private fun healthy(

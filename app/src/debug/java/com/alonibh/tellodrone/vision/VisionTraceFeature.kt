@@ -544,16 +544,25 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     }
 
     private fun prepareEpoch(epoch: CaptureEpoch) {
-
         if (activeEpoch === epoch) return
-        resetWorkerStorage()
+        resetVisionEpochStorage()
         activeEpoch = epoch
+    }
+
+    private fun resetVisionEpochStorage() {
+        writer?.close()
+        writer = null
+        traceFile?.delete()
+        traceFile = null
+        activeDirectory?.let { dir ->
+            File(dir, "frames").deleteRecursively()
+        }
+        frames.clear()
     }
 
     private fun ensureSessionDirectory(): File {
         activeDirectory?.let { return it }
         val directory = File(context.cacheDir, "vision-session/active")
-        directory.deleteRecursively()
         directory.mkdirs()
         activeDirectory = directory
         traceFile = File(directory, "trace.jsonl")
@@ -572,7 +581,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     }
 
     private fun ensureControlWriter(): BufferedWriter = controlWriter ?: run {
-        BufferedWriter(OutputStreamWriter(FileOutputStream(ensureControlFile(), false), Charsets.UTF_8)).also {
+        BufferedWriter(OutputStreamWriter(FileOutputStream(ensureControlFile(), true), Charsets.UTF_8)).also {
             controlWriter = it
         }
     }
@@ -587,6 +596,15 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         traceFile = null
         controlFile = null
         frames.clear()
+        rcPublicationCount = 0
+        maxAirborneOutboundGapMillis = null
+        maxAirborneRcGapMillis = null
+        lastAirborneOutboundTimeMillis = null
+        lastAirborneRcTimeMillis = null
+        isAirborne = false
+        transitions.clear()
+        sdkCommands.clear()
+        externalGroundings.clear()
     }
 
     private fun rotate(exportedEpoch: CaptureEpoch) {

@@ -137,6 +137,8 @@ class ProductionYawController(
     private var settlingMeasurementsCount = 0
     private var recovering = false
     private var consistentRecoveryMeasurements = 0
+    private var staleGapSettlingRequired = false
+    private var staleGapPreviousYaw = 0
 
     init {
         require(nearProportionalGain.isFinite() && nearProportionalGain > 0f)
@@ -155,6 +157,23 @@ class ProductionYawController(
         require(settledConsecutiveSamples >= 1)
         require(fallbackSettlingDurationMillis > 0L)
         require(fallbackSettlingMeasurements >= 1)
+    }
+
+    /**
+     * Updates telemetry yaw and yaw-rate settling state without re-evaluating perception
+     * or resetting target estimation.
+     */
+    fun observeTelemetry(
+        telemetryYawDegrees: Int? = null,
+        telemetryYawRateDegreesPerSecond: Float? = null,
+    ) {
+        if (telemetryYawRateDegreesPerSecond != null) {
+            if (abs(telemetryYawRateDegreesPerSecond) <= settledYawRateThreshold) {
+                consecutiveSettledSamples++
+            } else {
+                consecutiveSettledSamples = 0
+            }
+        }
     }
 
     fun command(
@@ -176,13 +195,7 @@ class ProductionYawController(
             )
         }
 
-        if (telemetryYawRateDegreesPerSecond != null) {
-            if (abs(telemetryYawRateDegreesPerSecond) <= settledYawRateThreshold) {
-                consecutiveSettledSamples++
-            } else {
-                consecutiveSettledSamples = 0
-            }
-        }
+        observeTelemetry(telemetryYawDegrees, telemetryYawRateDegreesPerSecond)
 
         val lastFrame = lastFrameSequence
         val lastSource = lastSourceTimestampNanos
@@ -257,6 +270,40 @@ class ProductionYawController(
 
         var estimate = estimator.update(measurement.targetCenterX, measurement.sourceTimestampNanos, ageNanos)
         val controlError = estimate.estimatedCenterX - CENTER_X
+
+        if (staleGapSettlingRequired) {
+            val requested = requestedYaw(controlError)
+            if (requested != 0 && staleGapPreviousYaw != 0 && requested.sign != staleGapPreviousYaw.sign) {
+                val isSettled = if (telemetryYawRateDegreesPerSecond != null) {
+                    consecutiveSettledSamples >= settledConsecutiveSamples
+                } else {
+                    false
+                }
+                if (!isSettled) {
+                    phase = YawControllerPhase.SETTLING
+                    settlingStartedTimestampNanos = commandTimestampNanos
+                    settlingMeasurementsCount = 0
+                    consecutiveSettledSamples = 0
+                    val brakedEstimate = estimator.brake(measurement.targetCenterX, measurement.sourceTimestampNanos)
+                    observe(measurement, brakedEstimate, commandTimestampNanos)
+                    lastYawRc = 0
+                    return outcome(
+                        measurement,
+                        commandTimestampNanos,
+                        estimate = brakedEstimate,
+                        phase = YawControllerPhase.SETTLING,
+                        telloYawDegrees = telemetryYawDegrees,
+                        telloYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+                        previousYawRc = 0,
+                        requestedYawRc = requested,
+                        safetyFilteredYawRc = 0,
+                        suppressionReason = YawControlSuppressionReason.CENTER_CROSSING_BRAKE,
+                    )
+                }
+            }
+            staleGapSettlingRequired = false
+            staleGapPreviousYaw = 0
+        }
 
         if (phase == YawControllerPhase.SETTLING) {
             settlingMeasurementsCount++
@@ -425,6 +472,10 @@ class ProductionYawController(
         val measurement = Measurement.from(errors)
         return if (measurement == null) {
             val previous = lastYawRc
+            if (previous != 0) {
+                staleGapSettlingRequired = true
+                staleGapPreviousYaw = previous
+            }
             lastYawRc = 0
             phase = YawControllerPhase.HOLD
             consecutiveSettledSamples = 0
@@ -460,8 +511,12 @@ class ProductionYawController(
         settlingMeasurementsCount = 0
         recovering = false
         consistentRecoveryMeasurements = 0
+        staleGapSettlingRequired = false
+        staleGapPreviousYaw = 0
         estimator.reset()
     }
+
+    fun currentYawRc(): Int = lastYawRc
 
     private fun suppressMeasurement(
         measurement: Measurement,
@@ -471,6 +526,10 @@ class ProductionYawController(
         requestedYawRc: Int = 0,
     ): YawControlOutcome {
         val previous = lastYawRc
+        if (previous != 0) {
+            staleGapSettlingRequired = true
+            staleGapPreviousYaw = previous
+        }
         lastYawRc = 0
         phase = YawControllerPhase.HOLD
         consecutiveSettledSamples = 0
@@ -612,8 +671,8 @@ class ProductionYawController(
         const val ABSOLUTE_YAW_RC_CAP = 28
         const val MAXIMUM_ACCELERATION_STEP = 8
         const val MAXIMUM_BRAKING_STEP = 20
-        const val MAXIMUM_PERCEPTION_AGE_MILLIS = 225L
-        const val MAXIMUM_NONZERO_COMMAND_HOLD_MILLIS = 170L
+        const val MAXIMUM_PERCEPTION_AGE_MILLIS = 450L
+        const val MAXIMUM_NONZERO_COMMAND_HOLD_MILLIS = 200L
         const val MAXIMUM_TARGET_CENTER_JUMP = 0.18f
         const val MAXIMUM_RAW_ERROR_JUMP = 0.18f
         const val STABLE_RESUME_MEASUREMENTS = 2
@@ -663,11 +722,44 @@ class YawFollowGate(
         return decision()
     }
 
-    fun evaluate(input: YawFollowInput): YawFollowDecision {
+    fun evaluate(input: YawFollowInput): YawFollowDecision = processFreshPerception(input)
+
+    fun processFreshPerception(input: YawFollowInput): YawFollowDecision {
         if (state == YawFollowState.DISARMED || state == YawFollowState.REQUIRES_REARM) {
             return decision(input)
         }
         return evaluateArmed(input)
+    }
+
+    fun observeTelemetry(
+        telemetryYawDegrees: Int? = null,
+        telemetryYawRateDegreesPerSecond: Float? = null,
+    ) {
+        controller.observeTelemetry(telemetryYawDegrees, telemetryYawRateDegreesPerSecond)
+    }
+
+    fun evaluateSafetyGate(input: YawFollowInput): YawFollowDecision {
+        if (state == YawFollowState.DISARMED || state == YawFollowState.REQUIRES_REARM) {
+            return decision()
+        }
+        val newReason = blockingReason(input)
+        if (newReason in LATCHING_REASONS) {
+            controller.reset()
+            state = YawFollowState.REQUIRES_REARM
+            reason = newReason
+            return decision()
+        }
+        if (newReason != YawFollowReason.ACTIVE && state == YawFollowState.ACTIVE) {
+            state = YawFollowState.ARMED_WAITING
+            reason = newReason
+            return decision(input)
+        }
+        return YawFollowDecision(
+            state = state,
+            reason = reason,
+            yawRc = if (state == YawFollowState.ACTIVE) controller.currentYawRc() else 0,
+            control = null,
+        )
     }
 
     private fun evaluateArmed(input: YawFollowInput): YawFollowDecision {
