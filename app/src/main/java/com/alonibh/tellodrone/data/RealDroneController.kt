@@ -11,6 +11,7 @@ import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.PersonDetection
+import com.alonibh.tellodrone.domain.RcSpeedMode
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.service.TelloDroneService
 import com.alonibh.tellodrone.service.TelloServiceGateway
@@ -78,7 +79,7 @@ class RealDroneController(context: Context) : DroneController {
     override fun stopAndHover() { TelloServiceGateway.stopAndHover() }
     override fun emergencyMotorKill() { TelloServiceGateway.emergencyMotorKill() }
     override fun setManualControlVector(vector: ManualControlVector) { TelloServiceGateway.publishManualControl(vector) }
-    override fun setSpeed(percent: Int) { TelloServiceGateway.setSpeed(percent.coerceIn(10, 40)) }
+    override fun setSpeed(percent: Int) { TelloServiceGateway.setSpeed(RcSpeedMode.fromPercent(percent).percent) }
     override fun attachVideoSurface(surface: Surface) { TelloServiceGateway.attachVideoSurface(surface) }
     override fun detachVideoSurface(surface: Surface) { TelloServiceGateway.detachVideoSurface(surface) }
 

@@ -137,6 +137,24 @@ class TelloFlightSessionTest {
         assertEquals(listOf("command", "takeoff", "land"), fixture.transport.commands)
     }
 
+    @Test fun `speed presets update session state and scale manual RC within conservative cap`() = runTest {
+        val fixture = connectedFixture()
+        takeOffAndVerify(fixture)
+        fixture.session.publishManualControl(ManualControlVector())
+
+        listOf(30 to 12, 65 to 26, 100 to 40).forEach { (percent, expectedRc) ->
+            fixture.session.setSpeed(percent)
+            fixture.session.publishManualControl(ManualControlVector(forward = 1f))
+            advanceTimeBy(50L)
+            runCurrent()
+            assertEquals(percent, fixture.session.state.value.speedPercent)
+            assertEquals(RcVector(forward = expectedRc), fixture.transport.rc.last())
+        }
+
+        fixture.session.setSpeed(64)
+        assertEquals(65, fixture.session.state.value.speedPercent)
+    }
+
     @Test fun `disconnect is rejected while flying and does not clean up transport`() = runTest {
         val fixture = connectedFixture()
         takeOffAndVerify(fixture)
@@ -677,13 +695,13 @@ class TelloFlightSessionTest {
         runCurrent()
 
         assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
-        assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
+        assertEquals(RcVector(forward = 13), fixture.transport.rc.last())
 
         fixture.session.setTrackingMode(TrackingMode.Off)
         runCurrent()
         advanceTimeBy(50L)
         runCurrent()
-        assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
+        assertEquals(RcVector(forward = 13), fixture.transport.rc.last())
     }
 
     @Test fun `blocked first manual attempt preempts yaw then neutral permits the next manual command`() = runTest {
@@ -708,7 +726,7 @@ class TelloFlightSessionTest {
         fixture.session.publishManualControl(ManualControlVector(forward = .5f))
         advanceTimeBy(50L)
         runCurrent()
-        assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
+        assertEquals(RcVector(forward = 13), fixture.transport.rc.last())
 
         fixture.detectorNowNanos.set(1_200_000_000L)
         video.publishDetections(
@@ -720,7 +738,7 @@ class TelloFlightSessionTest {
         advanceTimeBy(50L)
         runCurrent()
         assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
-        assertEquals(RcVector(forward = 10), fixture.transport.rc.last())
+        assertEquals(RcVector(forward = 13), fixture.transport.rc.last())
     }
 
     @Test fun `hover land emergency stale telemetry and video loss zero and latch`() = runTest {

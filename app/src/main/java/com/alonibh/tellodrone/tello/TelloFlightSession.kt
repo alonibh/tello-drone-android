@@ -14,6 +14,7 @@ import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.RcSpeedMode
 import com.alonibh.tellodrone.domain.TargetAssociationEngine
 import com.alonibh.tellodrone.domain.TargetAssociationDiagnostics
 import com.alonibh.tellodrone.domain.TargetAssociationResult
@@ -371,7 +372,7 @@ class TelloFlightSession(
                 }
                 if (!vector.isZero()) {
                     // RC invalidation and gate latching share this lock with every autonomous publish.
-                    rcLoop.publish(vector, state.speedPercent)
+                    rcLoop.publish(vector, RcSpeedMode.fromPercent(state.speedPercent).rcMagnitude)
                     yawFollowGeneration = null
                     val decision = yawFollowGate.preempt(YawFollowReason.MANUAL_OVERRIDE)
                     updateYawFollowState {
@@ -383,7 +384,7 @@ class TelloFlightSession(
                         )
                     }
                 } else if (state.yawFollowDecision.state != YawFollowState.ACTIVE) {
-                    rcLoop.publish(vector, state.speedPercent)
+                    rcLoop.publish(vector, RcSpeedMode.fromPercent(state.speedPercent).rcMagnitude)
                     updateYawFollowState { it.copy(manualVector = vector) }
                 }
             }
@@ -427,7 +428,7 @@ class TelloFlightSession(
     }
 
     fun setSpeed(percent: Int) {
-        mutableState.update { it.copy(speedPercent = percent.coerceIn(10, 40)) }
+        mutableState.update { it.copy(speedPercent = RcSpeedMode.fromPercent(percent).percent) }
     }
 
     fun setTrackingMode(mode: TrackingMode) {

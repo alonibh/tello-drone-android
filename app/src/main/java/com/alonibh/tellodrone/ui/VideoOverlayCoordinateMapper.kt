@@ -9,16 +9,45 @@ data class OverlayPixelRect(
     val bottom: Float,
 )
 
+data class VideoContentFrame(
+    val left: Float,
+    val top: Float,
+    val width: Float,
+    val height: Float,
+)
+
 /**
- * The fixed-size 960x720 Surface is presented with fill-bounds scaling by the full-size SurfaceView.
- * PixelCopy captures that same complete Surface, so normalized analysis coordinates use the same
- * independent X/Y affine scale into the Compose overlay viewport.
+ * The decoded surface and every detection overlay share this centered aspect-fit transform. This
+ * deliberately permits letterboxing rather than stretching or cropping the 4:3 Tello image.
  */
 object VideoOverlayCoordinateMapper {
-    fun mapFillBounds(
+    fun aspectFitFrame(
+        containerWidth: Float,
+        containerHeight: Float,
+        sourceWidth: Float,
+        sourceHeight: Float,
+    ): VideoContentFrame {
+        if (!containerWidth.isFinite() || !containerHeight.isFinite() ||
+            !sourceWidth.isFinite() || !sourceHeight.isFinite() ||
+            containerWidth <= 0f || containerHeight <= 0f || sourceWidth <= 0f || sourceHeight <= 0f
+        ) return VideoContentFrame(0f, 0f, 0f, 0f)
+        val scale = minOf(containerWidth / sourceWidth, containerHeight / sourceHeight)
+        val width = sourceWidth * scale
+        val height = sourceHeight * scale
+        return VideoContentFrame(
+            left = (containerWidth - width) / 2f,
+            top = (containerHeight - height) / 2f,
+            width = width,
+            height = height,
+        )
+    }
+
+    fun mapAspectFit(
         box: NormalizedBoundingBox,
         overlayWidth: Float,
         overlayHeight: Float,
+        sourceWidth: Float,
+        sourceHeight: Float,
     ): OverlayPixelRect? {
         if (!overlayWidth.isFinite() || !overlayHeight.isFinite() || overlayWidth <= 0f || overlayHeight <= 0f) {
             return null
@@ -30,11 +59,13 @@ object VideoOverlayCoordinateMapper {
         val right = box.right.coerceIn(0f, 1f)
         val bottom = box.bottom.coerceIn(0f, 1f)
         if (right <= left || bottom <= top) return null
+        val frame = aspectFitFrame(overlayWidth, overlayHeight, sourceWidth, sourceHeight)
+        if (frame.width <= 0f || frame.height <= 0f) return null
         return OverlayPixelRect(
-            left = left * overlayWidth,
-            top = top * overlayHeight,
-            right = right * overlayWidth,
-            bottom = bottom * overlayHeight,
+            left = frame.left + left * frame.width,
+            top = frame.top + top * frame.height,
+            right = frame.left + right * frame.width,
+            bottom = frame.top + bottom * frame.height,
         )
     }
 }

@@ -6,6 +6,7 @@ import com.alonibh.tellodrone.domain.DroneSessionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.RcSpeedMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import org.junit.Assert.assertEquals
@@ -16,23 +17,18 @@ import org.junit.Test
 class TabletLandscapeLayoutTest {
 
     @Test
-    fun `tablet 1280x800 selects Expanded layout`() {
-        val layout = windowLayout(1280.dp, 800.dp)
-        assertEquals(WindowLayout.Expanded, layout)
+    fun `tablet 1280x800 uses landscape control geometry`() {
         assertFalse(isPortraitOperationalWindow(1280.dp, 800.dp))
+        assertEquals(230.4f, joystickDiameter(1280.dp, 800.dp).value, 0.01f)
     }
 
     @Test
-    fun `operational tabs parse destination strings accurately`() {
-        assertEquals(OperationalTab.Flight, OperationalTab.from("FLIGHT"))
-        assertEquals(OperationalTab.Flight, OperationalTab.from("Dashboard"))
-        assertEquals(OperationalTab.Flight, OperationalTab.from("Controls"))
-        assertEquals(OperationalTab.Tracking, OperationalTab.from("TRACKING"))
-        assertEquals(OperationalTab.Tracking, OperationalTab.from("Tracking"))
-        assertEquals(OperationalTab.Status, OperationalTab.from("STATUS"))
-        assertEquals(OperationalTab.Status, OperationalTab.from("Status"))
-        assertEquals(OperationalTab.Flight, OperationalTab.from("Media"))
-        assertEquals(OperationalTab.Flight, OperationalTab.from("Unknown"))
+    fun `speed presets expose requested percentages and conservative RC mapping`() {
+        assertEquals(listOf(30, 65, 100), RcSpeedMode.entries.map { it.percent })
+        assertEquals(listOf(12, 26, 40), RcSpeedMode.entries.map { it.rcMagnitude })
+        assertEquals(RcSpeedMode.Slow, RcSpeedMode.fromPercent(30))
+        assertEquals(RcSpeedMode.Medium, RcSpeedMode.fromPercent(65))
+        assertEquals(RcSpeedMode.Fast, RcSpeedMode.fromPercent(100))
     }
 
     @Test

@@ -16,20 +16,10 @@ class OperationalWindowPolicyTest {
         assertFalse(isPortraitOperationalWindow(800.dp, 800.dp))
     }
 
-    @Test fun `short landscape takes precedence over every width class`() {
-        assertEquals(WindowLayout.CompactHeight, windowLayout(640.dp, 360.dp))
-        assertEquals(WindowLayout.CompactHeight, windowLayout(1200.dp, 479.dp))
-    }
-
-    @Test fun `tablet and medium layouts remain unchanged`() {
-        assertEquals(WindowLayout.Expanded, windowLayout(1280.dp, 800.dp))
-        assertEquals(WindowLayout.Medium, windowLayout(700.dp, 600.dp))
-    }
-
-    @Test fun `compact height routes dashboard controls and tracking to their dedicated content`() {
-        assertEquals(CompactHeightContent.Dashboard, compactHeightContent("Dashboard"))
-        assertEquals(CompactHeightContent.Controls, compactHeightContent("Controls"))
-        assertEquals(CompactHeightContent.Tracking, compactHeightContent("Tracking"))
+    @Test fun `joystick diameter stays responsive and bounded`() {
+        assertEquals(126f, joystickDiameter(640.dp, 360.dp).value, 0f)
+        assertEquals(230.4f, joystickDiameter(1280.dp, 800.dp).value, .01f)
+        assertEquals(240f, joystickDiameter(1920.dp, 1200.dp).value, 0f)
     }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

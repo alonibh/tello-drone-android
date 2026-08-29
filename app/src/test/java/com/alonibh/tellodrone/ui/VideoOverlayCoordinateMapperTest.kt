@@ -33,27 +33,37 @@ class VideoOverlayCoordinateMapperTest {
         assertEquals(TargetOverlayKind.IdentityUncertain, ambiguous.kind)
         assertEquals("IDENTITY UNCERTAIN", ambiguous.label)
     }
-    @Test fun `maps normalized analysis surface box into stretched preview overlay`() {
-        val result = VideoOverlayCoordinateMapper.mapFillBounds(
+    @Test fun `maps normalized analysis box into centered aspect fit preview`() {
+        val result = VideoOverlayCoordinateMapper.mapAspectFit(
             NormalizedBoundingBox(.25f, .10f, .75f, .90f),
             overlayWidth = 800f,
             overlayHeight = 450f,
+            sourceWidth = 960f,
+            sourceHeight = 720f,
         )!!
 
-        assertEquals(200f, result.left, 0f)
+        assertEquals(250f, result.left, 0f)
         assertEquals(45f, result.top, 0f)
-        assertEquals(600f, result.right, 0f)
+        assertEquals(550f, result.right, 0f)
         assertEquals(405f, result.bottom, 0f)
     }
 
     @Test fun `clamps overlay box and rejects empty result`() {
-        val clamped = VideoOverlayCoordinateMapper.mapFillBounds(
+        val clamped = VideoOverlayCoordinateMapper.mapAspectFit(
             NormalizedBoundingBox(-1f, -.5f, 2f, 1.5f),
             640f,
             360f,
+            960f,
+            720f,
         )!!
-        assertEquals(OverlayPixelRect(0f, 0f, 640f, 360f), clamped)
-        assertNull(VideoOverlayCoordinateMapper.mapFillBounds(NormalizedBoundingBox(.5f, 0f, .5f, 1f), 10f, 10f))
+        assertEquals(OverlayPixelRect(80f, 0f, 560f, 360f), clamped)
+        assertNull(VideoOverlayCoordinateMapper.mapAspectFit(NormalizedBoundingBox(.5f, 0f, .5f, 1f), 10f, 10f, 960f, 720f))
+    }
+
+    @Test fun `aspect fit preserves source ratio and centers letterbox`() {
+        val wide = VideoOverlayCoordinateMapper.aspectFitFrame(1600f, 900f, 960f, 720f)
+        assertEquals(VideoContentFrame(200f, 0f, 1200f, 900f), wide)
+        assertEquals(4f / 3f, wide.width / wide.height, .0001f)
     }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

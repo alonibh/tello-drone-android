@@ -26,6 +26,20 @@ enum class DetectorModel(
 }
 enum class FollowDistanceCalibrationState { NotSet, Calibrating, Set }
 
+/** Pilot-facing RC rate presets. The percentages scale the existing conservative 40-RC cap. */
+enum class RcSpeedMode(
+    val percent: Int,
+    val rcMagnitude: Int,
+) {
+    Slow(percent = 30, rcMagnitude = 12),
+    Medium(percent = 65, rcMagnitude = 26),
+    Fast(percent = 100, rcMagnitude = 40);
+
+    companion object {
+        fun fromPercent(percent: Int): RcSpeedMode = entries.minBy { kotlin.math.abs(it.percent - percent) }
+    }
+}
+
 /** A finite, non-empty box normalized to the captured preview surface (0f..1f). */
 data class NormalizedBoundingBox(
     val left: Float,
@@ -185,7 +199,7 @@ data class DroneSessionState(
     val followDistanceCalibrationSamples: Int = 0,
     val shadowAutonomyDecision: ShadowAutonomyDecision? = null,
     val yawFollowDecision: YawFollowDecision = YawFollowDecision(),
-    val speedPercent: Int = 20,
+    val speedPercent: Int = RcSpeedMode.Medium.percent,
     val manualVector: ManualControlVector = ManualControlVector(),
     /** App command state only: STOP/HOVER completed its explicit RC-zero action. */
     val hoverActive: Boolean = false,
