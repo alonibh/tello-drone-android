@@ -4,6 +4,7 @@ package com.alonibh.tellodrone.tello
 
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.ProductionYawController
+import com.alonibh.tellodrone.domain.RcSpeedMode
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runCurrent
@@ -12,14 +13,39 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class RcControlLoopTest {
-    @Test fun `RC axes and requested speed are clamped conservatively`() = runTest {
+    @Test fun `manual axes use full SDK range and remain clamped`() = runTest {
         val clock = FakeClock(1_000)
         val loop = RcControlLoop(backgroundScope, {}, clock)
         loop.setEnabled(true)
         loop.setHealthy(true)
-        loop.publish(ManualControlVector(lateral = 3f, forward = -2f, vertical = .5f, yaw = -.5f), 100)
+        loop.publish(ManualControlVector(lateral = 3f, forward = -2f, vertical = .5f, yaw = -.5f), RcSpeedMode.Fast.rcMagnitude)
 
-        assertEquals(RcVector(40, -40, 20, -20), loop.currentVector())
+        assertEquals(RcVector(100, -100, 50, -50), loop.currentVector())
+    }
+
+    @Test fun `every manual channel and sign scales at each pilot speed mode`() = runTest {
+        val loop = RcControlLoop(backgroundScope, {}, FakeClock(1_000))
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+
+        RcSpeedMode.entries.forEach { mode ->
+            val magnitude = mode.rcMagnitude
+            loop.publish(ManualControlVector(1f, -1f, 1f, -1f), magnitude)
+            assertEquals(RcVector(magnitude, -magnitude, magnitude, -magnitude), loop.currentVector())
+            loop.publish(ManualControlVector(-1f, 1f, -1f, 1f), magnitude)
+            assertEquals(RcVector(-magnitude, magnitude, -magnitude, magnitude), loop.currentVector())
+        }
+    }
+
+    @Test fun `fast half stick is proportional and no manual channel exceeds SDK range`() = runTest {
+        val loop = RcControlLoop(backgroundScope, {}, FakeClock(1_000))
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+
+        loop.publish(ManualControlVector(.5f, -.5f, .5f, -.5f), RcSpeedMode.Fast.rcMagnitude)
+        assertEquals(RcVector(50, -50, 50, -50), loop.currentVector())
+        loop.publish(ManualControlVector(Float.MAX_VALUE, -Float.MAX_VALUE, 2f, -2f), Int.MAX_VALUE)
+        assertEquals(RcVector(100, -100, 100, -100), loop.currentVector())
     }
 
     @Test fun `stale desired input becomes zero movement`() = runTest {

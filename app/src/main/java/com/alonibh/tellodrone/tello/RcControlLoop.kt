@@ -45,7 +45,7 @@ class RcControlLoop(
     private val clock: MonotonicClock,
     private val periodMillis: Long = 50L,
     private val inputTtlMillis: Long = 250L,
-    private val maximumRcMagnitude: Int = 40,
+    private val maximumManualRcMagnitude: Int = MAXIMUM_MANUAL_RC_MAGNITUDE,
     private val onSendFailure: (Throwable) -> Unit = {},
     private val traceClockNanos: () -> Long = { clock.nowMillis() * NANOS_PER_MILLISECOND },
     private val onRcSent: (RcPublication) -> Unit = {},
@@ -98,12 +98,12 @@ class RcControlLoop(
     }
 
     /** Manual publication invalidates every previously issued autonomous generation first. */
-    fun publish(vector: ManualControlVector, speedPercent: Int) = synchronized(lock) {
+    fun publish(vector: ManualControlVector, manualRcMagnitude: Int) = synchronized(lock) {
         if (enabled && healthy && !lockedOut) {
             preemptAutonomyLocked()
-            val magnitude = speedPercent.coerceIn(MINIMUM_RC_MAGNITUDE, maximumRcMagnitude)
+            val magnitude = manualRcMagnitude.coerceIn(MINIMUM_RC_MAGNITUDE, maximumManualRcMagnitude)
             desired = Desired(
-                vector.toRcVector(magnitude, maximumRcMagnitude),
+                vector.toRcVector(magnitude, maximumManualRcMagnitude),
                 clock.nowMillis(),
                 RcInputKind.MANUAL,
             )
@@ -281,6 +281,7 @@ class RcControlLoop(
     companion object {
         private const val NANOS_PER_MILLISECOND = 1_000_000L
         const val MINIMUM_RC_MAGNITUDE = 10
+        const val MAXIMUM_MANUAL_RC_MAGNITUDE = 100
         const val AUTONOMOUS_YAW_RC_CAP = ProductionYawController.ABSOLUTE_YAW_RC_CAP
     }
 }

@@ -137,12 +137,12 @@ class TelloFlightSessionTest {
         assertEquals(listOf("command", "takeoff", "land"), fixture.transport.commands)
     }
 
-    @Test fun `speed presets update session state and scale manual RC within conservative cap`() = runTest {
+    @Test fun `speed presets update session state and scale manual RC across full SDK range`() = runTest {
         val fixture = connectedFixture()
         takeOffAndVerify(fixture)
         fixture.session.publishManualControl(ManualControlVector())
 
-        listOf(30 to 12, 65 to 26, 100 to 40).forEach { (percent, expectedRc) ->
+        listOf(30 to 30, 65 to 65, 100 to 100).forEach { (percent, expectedRc) ->
             fixture.session.setSpeed(percent)
             fixture.session.publishManualControl(ManualControlVector(forward = 1f))
             advanceTimeBy(50L)
@@ -153,6 +153,14 @@ class TelloFlightSessionTest {
 
         fixture.session.setSpeed(64)
         assertEquals(65, fixture.session.state.value.speedPercent)
+    }
+
+    @Test fun `yaw follow arm request is rejected outside valid flying target state`() = runTest {
+        val fixture = connectedFixture()
+        fixture.session.setYawFollowArmed(true)
+
+        assertEquals(YawFollowState.DISARMED, fixture.session.state.value.yawFollowDecision.state)
+        assertTrue(fixture.session.state.value.lastMessage?.contains("Yaw follow requires connected Flying state") == true)
     }
 
     @Test fun `disconnect is rejected while flying and does not clean up transport`() = runTest {
@@ -695,13 +703,13 @@ class TelloFlightSessionTest {
         runCurrent()
 
         assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
-        assertEquals(RcVector(forward = 13), fixture.transport.rc.last())
+        assertEquals(RcVector(forward = 33), fixture.transport.rc.last())
 
         fixture.session.setTrackingMode(TrackingMode.Off)
         runCurrent()
         advanceTimeBy(50L)
         runCurrent()
-        assertEquals(RcVector(forward = 13), fixture.transport.rc.last())
+        assertEquals(RcVector(forward = 33), fixture.transport.rc.last())
     }
 
     @Test fun `blocked first manual attempt preempts yaw then neutral permits the next manual command`() = runTest {
@@ -726,7 +734,7 @@ class TelloFlightSessionTest {
         fixture.session.publishManualControl(ManualControlVector(forward = .5f))
         advanceTimeBy(50L)
         runCurrent()
-        assertEquals(RcVector(forward = 13), fixture.transport.rc.last())
+        assertEquals(RcVector(forward = 33), fixture.transport.rc.last())
 
         fixture.detectorNowNanos.set(1_200_000_000L)
         video.publishDetections(
@@ -738,7 +746,7 @@ class TelloFlightSessionTest {
         advanceTimeBy(50L)
         runCurrent()
         assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
-        assertEquals(RcVector(forward = 13), fixture.transport.rc.last())
+        assertEquals(RcVector(forward = 33), fixture.transport.rc.last())
     }
 
     @Test fun `hover land emergency stale telemetry and video loss zero and latch`() = runTest {
@@ -751,6 +759,22 @@ class TelloFlightSessionTest {
         landFixture.session.setYawFollowArmed(true)
         landFixture.session.land()
         assertYawFollowLatchedAtZero(landFixture)
+        val landing = landFixture.session.state.value
+        assertEquals(FlightState.Landing, landing.flight)
+        assertEquals(TrackingMode.Off, landing.tracking)
+        assertEquals(PersonDetectionState.Off, landing.video.personDetectionState)
+        assertNull(landing.target)
+        assertNull(landing.trackingErrors)
+        assertEquals(TargetAssociationState.None, landing.targetAssociationState)
+        assertNull(landing.followDistanceReference)
+        assertEquals(com.alonibh.tellodrone.domain.FollowDistanceCalibrationState.NotSet, landing.followDistanceCalibrationState)
+        landFixture.session.setTrackingMode(TrackingMode.DetectOnly)
+        assertEquals(TrackingMode.Off, landFixture.session.state.value.tracking)
+        assertEquals(PersonDetectionState.Off, landFixture.session.state.value.video.personDetectionState)
+        landFixture.transport.emitTelemetry(landFixture.clock.value, heightMeters = 0f)
+        runCurrent()
+        assertEquals(FlightState.Grounded, landFixture.session.state.value.flight)
+        assertEquals(TrackingMode.Off, landFixture.session.state.value.tracking)
 
         val (emergencyFixture, _) = yawReadyFixture()
         emergencyFixture.session.setYawFollowArmed(true)
@@ -816,8 +840,8 @@ class TelloFlightSessionTest {
     }
 
     @Test fun `debounced external grounding transitions to grounded after continuous samples`() = runTest {
-        val fixture = connectedFixture()
-        takeOffAndVerify(fixture)
+        val (fixture, _) = yawReadyFixture()
+        fixture.session.setYawFollowArmed(true)
         assertEquals(FlightState.Flying, fixture.session.state.value.flight)
 
         // 1 grounded sample: should not transition
@@ -836,6 +860,10 @@ class TelloFlightSessionTest {
 
         assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
         assertTrue(fixture.session.state.value.lastMessage?.contains("Aircraft landed outside app command") == true)
+        assertEquals(TrackingMode.Off, fixture.session.state.value.tracking)
+        assertEquals(PersonDetectionState.Off, fixture.session.state.value.video.personDetectionState)
+        assertNull(fixture.session.state.value.target)
+        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
     }
 
 

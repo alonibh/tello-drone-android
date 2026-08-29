@@ -26,14 +26,14 @@ enum class DetectorModel(
 }
 enum class FollowDistanceCalibrationState { NotSet, Calibrating, Set }
 
-/** Pilot-facing RC rate presets. The percentages scale the existing conservative 40-RC cap. */
+/** Pilot-facing manual RC rate presets over the Tello SDK channel range (-100..100). */
 enum class RcSpeedMode(
     val percent: Int,
     val rcMagnitude: Int,
 ) {
-    Slow(percent = 30, rcMagnitude = 12),
-    Medium(percent = 65, rcMagnitude = 26),
-    Fast(percent = 100, rcMagnitude = 40);
+    Slow(percent = 30, rcMagnitude = 30),
+    Medium(percent = 65, rcMagnitude = 65),
+    Fast(percent = 100, rcMagnitude = 100);
 
     companion object {
         fun fromPercent(percent: Int): RcSpeedMode = entries.minBy { kotlin.math.abs(it.percent - percent) }

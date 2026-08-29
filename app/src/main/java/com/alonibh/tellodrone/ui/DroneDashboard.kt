@@ -9,7 +9,9 @@ import android.os.Build
 import android.provider.Settings
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -29,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -99,8 +102,8 @@ import com.alonibh.tellodrone.domain.RcSpeedMode
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
-import com.alonibh.tellodrone.domain.YawFollowState
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -227,7 +230,7 @@ private fun TopFlightStatusBar(
             compact,
             Modifier.width(if (compact) 126.dp else 164.dp).fillMaxHeight(),
         )
-        ConnectionButton(state, viewModel, compact)
+        ConnectionStatusOrAction(state, viewModel, compact)
         if (Build.VERSION.SDK_INT == 28 && state.connection != DroneConnectionState.Connected) WifiSettingsButton()
     }
 }
@@ -267,13 +270,7 @@ private fun TrackingHeaderChip(state: DroneSessionState, compact: Boolean) = Sur
     }
 }
 
-internal fun trackingHudLabel(state: DroneSessionState): String = when {
-    state.yawFollowDecision.state == YawFollowState.ACTIVE -> "ACTIVE"
-    state.targetAssociationState == TargetAssociationState.Lost -> "LOST"
-    state.targetAssociationState in setOf(TargetAssociationState.TemporarilyMissing, TargetAssociationState.Ambiguous) -> "SEARCHING"
-    state.video.personDetectionState in setOf(PersonDetectionState.Starting, PersonDetectionState.Detecting) -> "ON"
-    else -> "OFF"
-}
+internal fun trackingHudLabel(state: DroneSessionState): String = state.trackingHudState().label
 
 @Composable
 private fun SpeedModeSelector(selectedPercent: Int, onSelected: (Int) -> Unit, compact: Boolean) = Surface(
@@ -288,7 +285,10 @@ private fun SpeedModeSelector(selectedPercent: Int, onSelected: (Int) -> Unit, c
             Surface(
                 color = if (selected) activeBlue else Color.Transparent,
                 shape = RoundedCornerShape(7.dp),
-                modifier = Modifier.clickable { onSelected(mode.percent) }.testTag("speed_${mode.name.lowercase()}"),
+                modifier = Modifier
+                    .heightIn(min = if (compact) 40.dp else 44.dp)
+                    .clickable { onSelected(mode.percent) }
+                    .testTag("speed_${mode.name.lowercase()}"),
             ) {
                 Text(
                     if (compact) "${mode.percent}%" else "${mode.name}  ${mode.percent}%",
@@ -304,24 +304,37 @@ private fun SpeedModeSelector(selectedPercent: Int, onSelected: (Int) -> Unit, c
 }
 
 @Composable
-private fun ConnectionButton(state: DroneSessionState, vm: DroneDashboardActions, compact: Boolean) {
-    val connecting = state.connection == DroneConnectionState.Connecting
-    OutlinedButton(
-        onClick = { if (state.connection == DroneConnectionState.Connected) vm.disconnect() else vm.connect() },
-        enabled = !connecting,
-        border = BorderStroke(1.dp, connectionColor(state.connection).copy(alpha = .65f)),
-        shape = RoundedCornerShape(9.dp),
-        contentPadding = PaddingValues(horizontal = if (compact) 7.dp else 10.dp),
-        modifier = Modifier.height(if (compact) 38.dp else 44.dp).testTag("connection_action"),
-    ) {
+private fun ConnectionStatusOrAction(state: DroneSessionState, vm: DroneDashboardActions, compact: Boolean) {
+    val content: @Composable () -> Unit = {
         Box(Modifier.size(8.dp).background(connectionColor(state.connection), CircleShape))
         Spacer(Modifier.width(6.dp))
         Text(
-            if (connecting) "Connecting" else connectionLabel(state.connection),
+            connectionLabel(state.connection),
             color = connectionColor(state.connection),
             fontSize = if (compact) 10.sp else 11.sp,
             maxLines = 1,
         )
+    }
+    if (state.connection in setOf(DroneConnectionState.Disconnected, DroneConnectionState.Error)) {
+        OutlinedButton(
+            onClick = vm::connect,
+            border = BorderStroke(1.dp, connectionColor(state.connection).copy(alpha = .65f)),
+            shape = RoundedCornerShape(9.dp),
+            contentPadding = PaddingValues(horizontal = if (compact) 7.dp else 10.dp),
+            modifier = Modifier.height(if (compact) 40.dp else 44.dp).testTag("connection_action"),
+        ) { content() }
+    } else {
+        Surface(
+            color = if (state.connection == DroneConnectionState.Connected) TelloGreen.copy(alpha = .08f) else Color.Transparent,
+            shape = RoundedCornerShape(9.dp),
+            border = BorderStroke(1.dp, connectionColor(state.connection).copy(alpha = .4f)),
+            modifier = Modifier.height(if (compact) 40.dp else 44.dp).testTag("connection_status"),
+        ) {
+            Row(
+                Modifier.padding(horizontal = if (compact) 7.dp else 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) { content() }
+        }
     }
 }
 
@@ -338,7 +351,7 @@ private fun TelemetryOverlay(state: DroneSessionState, compact: Boolean, modifie
     PanelTitle("STATUS")
     TelemetryLine("Battery", telemetryValue(state) { it.batteryPercent?.let { value -> "$value%" } }, if (state.telemetry.isFresh) TelloGreen else TelloTextMuted)
     TelemetryLine("Altitude", telemetryValue(state) { it.heightMeters?.let { value -> "%.1f m".format(value) } })
-    TelemetryLine("Speed", telemetryValue(state) { it.speedMetersPerSecond?.let { value -> "%.1f m/s".format(value) } })
+    TelemetryLine("Speed", telemetrySpeedValue(state.telemetry))
     if (!compact) {
         TelemetryLine("Flight Time", telemetryValue(state) { it.flightTimeSeconds?.let(::formatTime) })
         TelemetryLine("Temperature", telemetryValue(state) { it.temperatureCelsius?.let { value -> "%.0f °C".format(value) } })
@@ -353,42 +366,43 @@ private fun TrackingOverlay(
     modifier: Modifier = Modifier,
 ) = HudPanel(modifier.testTag("tracking_overlay")) {
     val presentation = state.trackingUiPresentation()
-    val canStartDetection = state.connection == DroneConnectionState.Connected &&
-        state.video.availability == VideoAvailability.Streaming && state.video.analysisLatestSequence != null
     PanelTitle("TRACKING")
     val hudLabel = trackingHudLabel(state)
     TelemetryLine("Status", hudLabel, when (hudLabel) {
-        "ACTIVE", "ON" -> TelloGreen
+        "ACTIVE", "TARGET READY" -> TelloGreen
         "LOST" -> TelloRed
         "SEARCHING" -> Color(0xFFFFC857)
         else -> TelloTextMuted
     })
     if (!compact) {
         TelemetryLine("Target", presentation.target.value, presentation.target.color)
-        TelemetryLine("Yaw", presentation.yaw.value, presentation.yaw.color)
+        TelemetryLine("Yaw Follow", presentation.yaw.value, presentation.yaw.color)
     }
     when (presentation.primaryAction) {
-        TrackingPrimaryAction.StartDetection -> TrackingPrimaryButton("Start Tracking", canStartDetection) { viewModel.setTrackingMode(TrackingMode.DetectOnly) }
-        TrackingPrimaryAction.ArmYawFollow -> TrackingPrimaryButton("Start Tracking", true) { viewModel.setYawFollowArmed(true) }
-        TrackingPrimaryAction.RearmYawFollow -> TrackingPrimaryButton("Re-arm Tracking", true) { viewModel.setYawFollowArmed(true) }
-        TrackingPrimaryAction.DisarmYawFollow -> TrackingPrimaryButton("Stop Tracking", true) { viewModel.setYawFollowArmed(false) }
-        TrackingPrimaryAction.None -> TrackingPrimaryButton("Tap a person", false) {}
+        TrackingPrimaryAction.DetectPeople -> TrackingPrimaryButton("Detect People", state.canStartDetection()) { viewModel.setTrackingMode(TrackingMode.DetectOnly) }
+        TrackingPrimaryAction.StartFollow -> TrackingPrimaryButton("Start Follow", state.canStartFollow()) { viewModel.setYawFollowArmed(true) }
+        TrackingPrimaryAction.RearmFollow -> TrackingPrimaryButton("Re-arm Follow", state.canStartFollow()) { viewModel.setYawFollowArmed(true) }
+        TrackingPrimaryAction.StopFollow -> TrackingPrimaryButton("Stop Follow", state.connection == DroneConnectionState.Connected && state.flight == FlightState.Flying) { viewModel.setYawFollowArmed(false) }
+        TrackingPrimaryAction.None -> Unit
     }
-    Text(
-        presentation.instruction ?: "Selected target is highlighted in green",
-        color = TelloTextMuted,
-        fontSize = if (compact) 9.sp else 10.sp,
-        lineHeight = 13.sp,
-    )
-    if (presentation.showStopDetection && presentation.primaryAction != TrackingPrimaryAction.DisarmYawFollow) {
+    presentation.instruction?.let { instruction ->
+        Text(
+            instruction,
+            color = TelloTextMuted,
+            fontSize = if (compact) 9.sp else 10.sp,
+            lineHeight = 13.sp,
+            modifier = Modifier.testTag("tracking_instruction"),
+        )
+    }
+    if (presentation.showStopDetection && presentation.primaryAction != TrackingPrimaryAction.StopFollow) {
         TextButton(
             onClick = { viewModel.setTrackingMode(TrackingMode.Off) },
             contentPadding = PaddingValues(0.dp),
-            modifier = Modifier.height(26.dp).testTag("stop_detection"),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).testTag("stop_detection"),
         ) {
             Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Stop detection", fontSize = 10.sp)
+            Text("Stop detection", fontSize = 11.sp)
         }
     }
 }
@@ -618,7 +632,7 @@ private fun FlightActionControls(
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(7.dp),
 ) {
-    StopHoverAction(state, vm, Modifier.width(if (compact) 170.dp else 210.dp).height(if (compact) 36.dp else 42.dp))
+    StopHoverAction(state, vm, Modifier.width(if (compact) 176.dp else 218.dp).height(if (compact) 44.dp else 48.dp))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         TakeoffAction(state, vm, Modifier.weight(1f).height(if (compact) 44.dp else 58.dp))
         LandAction(state, vm, Modifier.weight(1f).height(if (compact) 44.dp else 58.dp))
@@ -681,15 +695,15 @@ private fun StopHoverAction(state: DroneSessionState, vm: DroneDashboardActions,
     OutlinedButton(
         onClick = vm::stopAndHover,
         enabled = enabled,
-        border = BorderStroke(1.dp, if (state.hoverActive) TelloGreen else Color.White.copy(alpha = .45f)),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.Black.copy(alpha = .68f)),
+        border = BorderStroke(1.5.dp, if (state.hoverActive) TelloGreen else Color.White.copy(alpha = .68f)),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.Black.copy(alpha = .80f)),
         shape = RoundedCornerShape(9.dp),
         contentPadding = PaddingValues(horizontal = 8.dp),
         modifier = modifier.testTag("stop_hover"),
     ) {
-        Icon(if (state.hoverActive) Icons.Default.CheckCircle else Icons.Default.PauseCircle, null, modifier = Modifier.size(17.dp))
-        Spacer(Modifier.width(5.dp))
-        Text(if (state.hoverActive) "Hover Active" else "STOP / HOVER", fontSize = 11.sp, maxLines = 1)
+        Icon(if (state.hoverActive) Icons.Default.CheckCircle else Icons.Default.PauseCircle, null, modifier = Modifier.size(19.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(if (state.hoverActive) "Hover Active" else "STOP / HOVER", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
@@ -753,18 +767,9 @@ private fun EmergencyHoldButton(
     compact: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    var pressing by remember { mutableStateOf(false) }
-    var triggered by remember { mutableStateOf(false) }
-    val progress by animateFloatAsState(if (pressing) 1f else 0f, label = "emergency hold")
-    LaunchedEffect(pressing) {
-        if (pressing) {
-            delay(EMERGENCY_HOLD_MILLIS)
-            if (pressing && !triggered) {
-                triggered = true
-                onTriggered()
-            }
-        } else triggered = false
-    }
+    val progress = remember { Animatable(0f) }
+    val completion = remember { EmergencyHoldCompletion() }
+    val currentTriggered by rememberUpdatedState(onTriggered)
     Surface(
         color = if (enabled) TelloRed.copy(alpha = .13f) else Color.White.copy(alpha = .03f),
         contentColor = if (enabled) TelloRed else TelloTextMuted,
@@ -773,9 +778,27 @@ private fun EmergencyHoldButton(
         modifier = modifier.pointerInput(enabled) {
             detectTapGestures(onPress = {
                 if (enabled) {
-                    pressing = true
-                    tryAwaitRelease()
-                    pressing = false
+                    completion.reset()
+                    progress.snapTo(0f)
+                    coroutineScope {
+                        val hold = launch {
+                            progress.animateTo(
+                                targetValue = 1f,
+                                animationSpec = tween(
+                                    durationMillis = EMERGENCY_HOLD_MILLIS.toInt(),
+                                    easing = LinearEasing,
+                                ),
+                            )
+                            if (completion.completeOnce()) currentTriggered()
+                        }
+                        try {
+                            tryAwaitRelease()
+                        } finally {
+                            hold.cancelAndJoin()
+                            progress.snapTo(0f)
+                            completion.reset()
+                        }
+                    }
                 }
             })
         }.testTag("emergency_motor_kill"),
@@ -785,9 +808,9 @@ private fun EmergencyHoldButton(
                 Icon(Icons.Default.Emergency, null, modifier = Modifier.size(if (compact) 16.dp else 18.dp))
                 Text("Emergency Stop", fontSize = if (compact) 9.sp else 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
             }
-            if (pressing) {
+            if (progress.value > 0f) {
                 LinearProgressIndicator(
-                    progress = { progress },
+                    progress = { progress.value },
                     color = Color.White,
                     trackColor = Color.Black.copy(alpha = .35f),
                     modifier = Modifier.fillMaxWidth().padding(top = 3.dp).height(2.dp),
@@ -889,10 +912,31 @@ private fun formatTime(totalSeconds: Int) = "%02d:%02d".format(totalSeconds / 60
 private fun telemetryValue(state: DroneSessionState, value: (com.alonibh.tellodrone.domain.TelemetrySnapshot) -> String?): String =
     if (!state.telemetry.isFresh) "—" else value(state.telemetry) ?: "—"
 
+internal fun formatTelemetrySpeed(metersPerSecond: Float): String =
+    if (metersPerSecond in 0f..<0.1f && metersPerSecond != 0f) "%.2f m/s".format(metersPerSecond)
+    else "%.1f m/s".format(metersPerSecond)
+
+internal fun telemetrySpeedValue(telemetry: com.alonibh.tellodrone.domain.TelemetrySnapshot): String =
+    if (!telemetry.isFresh) "—" else telemetry.speedMetersPerSecond?.let(::formatTelemetrySpeed) ?: "—"
+
 private fun DroneSessionState.canEmergency() = connection == DroneConnectionState.Connected &&
     flight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing, FlightState.Unknown)
 
 private const val TELLO_VIDEO_WIDTH = 960
 private const val TELLO_VIDEO_HEIGHT = 720
 private const val MANUAL_HEARTBEAT_MILLIS = 100L
-private const val EMERGENCY_HOLD_MILLIS = 900L
+internal const val EMERGENCY_HOLD_MILLIS = 900L
+
+internal class EmergencyHoldCompletion {
+    private var completed = false
+
+    fun completeOnce(): Boolean {
+        if (completed) return false
+        completed = true
+        return true
+    }
+
+    fun reset() {
+        completed = false
+    }
+}

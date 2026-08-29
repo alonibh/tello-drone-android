@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,12 +20,14 @@ import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
+import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.ui.DroneDashboard
 import com.alonibh.tellodrone.ui.DroneDashboardActions
 import com.alonibh.tellodrone.ui.NoOpDroneDashboardActions
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -72,6 +75,42 @@ class DroneDashboardTest {
         assertEquals(100, actions.selectedSpeed)
     }
 
+    @Test fun connected_status_is_passive_while_disconnected_state_is_an_explicit_action() {
+        val connectedActions = RecordingActions()
+        render(DroneSessionState(connection = DroneConnectionState.Connected), connectedActions)
+        val connected = compose.onNodeWithTag("connection_status").fetchSemanticsNode()
+        assertFalse(connected.config.contains(SemanticsActions.OnClick))
+        assertEquals(0, connectedActions.disconnectRequests)
+
+        val disconnectedActions = RecordingActions()
+        render(DroneSessionState(connection = DroneConnectionState.Disconnected), disconnectedActions)
+        compose.onNodeWithTag("connection_action").performClick()
+        assertEquals(1, disconnectedActions.connectRequests)
+        assertEquals(0, disconnectedActions.disconnectRequests)
+    }
+
+    @Test fun select_target_state_uses_instruction_only_and_compact_actions_keep_safe_touch_targets() {
+        render(
+            DroneSessionState(
+                connection = DroneConnectionState.Connected,
+                flight = FlightState.Flying,
+                telemetry = TelemetrySnapshot(isFresh = true),
+                tracking = TrackingMode.DetectOnly,
+                video = VideoState(
+                    availability = VideoAvailability.Streaming,
+                    analysisLatestSequence = 1L,
+                    personDetectionState = PersonDetectionState.Detecting,
+                ),
+            ),
+        )
+
+        compose.onNodeWithText("Tap a detected person to select").assertExists()
+        compose.onNodeWithTag("tracking_primary_action").assertDoesNotExist()
+        compose.onNodeWithText("Tap a person").assertDoesNotExist()
+        assertTrue(compose.onNodeWithTag("stop_detection").fetchSemanticsNode().boundsInRoot.height >= 44f)
+        assertTrue(compose.onNodeWithTag("speed_slow").fetchSemanticsNode().boundsInRoot.height >= 40f)
+    }
+
     @Test fun tapping_a_current_detection_selects_that_target_directly() {
         val detection = PersonDetection(
             boundingBox = NormalizedBoundingBox(.4f, .2f, .6f, .75f),
@@ -83,6 +122,7 @@ class DroneDashboardTest {
         render(
             DroneSessionState(
                 connection = DroneConnectionState.Connected,
+                tracking = TrackingMode.DetectOnly,
                 video = VideoState(
                     availability = VideoAvailability.Streaming,
                     analysisLatestSequence = 7L,
@@ -151,6 +191,16 @@ class DroneDashboardTest {
         val detached = mutableListOf<Surface>()
         var selectedSpeed: Int? = null
         var selectedTarget: PersonDetection? = null
+        var connectRequests = 0
+        var disconnectRequests = 0
+
+        override fun connect() {
+            connectRequests++
+        }
+
+        override fun disconnect() {
+            disconnectRequests++
+        }
 
         override fun setSpeed(percent: Int) {
             selectedSpeed = percent

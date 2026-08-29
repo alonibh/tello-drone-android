@@ -23,9 +23,9 @@ class TabletLandscapeLayoutTest {
     }
 
     @Test
-    fun `speed presets expose requested percentages and conservative RC mapping`() {
+    fun `speed presets expose requested percentages over full manual SDK range`() {
         assertEquals(listOf(30, 65, 100), RcSpeedMode.entries.map { it.percent })
-        assertEquals(listOf(12, 26, 40), RcSpeedMode.entries.map { it.rcMagnitude })
+        assertEquals(listOf(30, 65, 100), RcSpeedMode.entries.map { it.rcMagnitude })
         assertEquals(RcSpeedMode.Slow, RcSpeedMode.fromPercent(30))
         assertEquals(RcSpeedMode.Medium, RcSpeedMode.fromPercent(65))
         assertEquals(RcSpeedMode.Fast, RcSpeedMode.fromPercent(100))

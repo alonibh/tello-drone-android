@@ -37,13 +37,7 @@ object TelloTelemetryParser {
         val velocityX = fields["vgx"]?.toIntOrNull()
         val velocityY = fields["vgy"]?.toIntOrNull()
         val velocityZ = fields["vgz"]?.toIntOrNull()
-        val speed = if (velocityX != null && velocityY != null && velocityZ != null) {
-            sqrt(
-                velocityX.toDouble() * velocityX +
-                    velocityY.toDouble() * velocityY +
-                    velocityZ.toDouble() * velocityZ,
-            ).toFloat() / 100f
-        } else null
+        val speed = totalTranslationalSpeedMetersPerSecond(velocityX, velocityY, velocityZ)
         val lowTemperature = fields["templ"]?.toFiniteFloatOrNull()
         val highTemperature = fields["temph"]?.toFiniteFloatOrNull()
         val temperature = when {
@@ -75,6 +69,24 @@ object TelloTelemetryParser {
         "bat", "h", "time", "templ", "temph", "vgx", "vgy", "vgz",
     )
 }
+
+/** Total 3D translational speed from Tello SDK vgx/vgy/vgz values, which are reported in cm/s. */
+internal fun totalTranslationalSpeedMetersPerSecond(
+    velocityXCentimetersPerSecond: Int?,
+    velocityYCentimetersPerSecond: Int?,
+    velocityZCentimetersPerSecond: Int?,
+): Float? {
+    val x = velocityXCentimetersPerSecond ?: return null
+    val y = velocityYCentimetersPerSecond ?: return null
+    val z = velocityZCentimetersPerSecond ?: return null
+    return sqrt(
+        x.toDouble() * x +
+            y.toDouble() * y +
+            z.toDouble() * z,
+    ).toFloat() / CENTIMETERS_PER_METER
+}
+
+private const val CENTIMETERS_PER_METER = 100f
 
 data class RcVector(val lateral: Int = 0, val forward: Int = 0, val vertical: Int = 0, val yaw: Int = 0) {
     fun asCommand(): String = "rc $lateral $forward $vertical $yaw"

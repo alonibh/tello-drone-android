@@ -29,6 +29,25 @@ class TelloTelemetryParserTest {
         assertNull(TelloTelemetryParser.parse("not-state", receivedAtMonotonicMillis = 1))
     }
 
+    @Test fun `derives total translational speed from every real velocity component`() {
+        fun speed(vgx: Int, vgy: Int, vgz: Int) = TelloTelemetryParser.parse(
+            "vgx:$vgx;vgy:$vgy;vgz:$vgz;",
+            receivedAtMonotonicMillis = 1,
+        )!!.speedMetersPerSecond
+
+        assertEquals(1f, speed(100, 0, 0))
+        assertEquals(1f, speed(0, 100, 0))
+        assertEquals(1f, speed(0, 0, 100))
+        assertEquals(1.5f, speed(100, 100, 50))
+        assertEquals(0f, speed(0, 0, 0))
+        assertEquals(1.3f, speed(-30, -40, -120))
+    }
+
+    @Test fun `speed remains unavailable unless all velocity components are present`() {
+        assertNull(TelloTelemetryParser.parse("vgx:100;vgy:0;", receivedAtMonotonicMillis = 1)!!.speedMetersPerSecond)
+        assertNull(totalTranslationalSpeedMetersPerSecond(100, null, 0))
+    }
+
     @Test fun `rejects unrecognized packets and preserves invalid fields as unknown`() {
         assertNull(TelloTelemetryParser.parse("unexpected:1;", receivedAtMonotonicMillis = 1))
 

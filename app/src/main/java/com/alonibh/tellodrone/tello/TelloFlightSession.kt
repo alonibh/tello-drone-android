@@ -254,6 +254,7 @@ class TelloFlightSession(
         latchYawFollow(YawFollowReason.LANDING)
         rcLoop.clearAndSendZero()
         rcLoop.setEnabled(false)
+        stopDetectionAndClearTracking()
         mutableState.update {
             it.copy(
                 flight = FlightState.Landing,
@@ -326,17 +327,11 @@ class TelloFlightSession(
         requireManualNeutral()
         latchYawFollow(YawFollowReason.EMERGENCY)
         rcLoop.lockOutAfterZero()
-        video?.setPersonDetectionEnabled(false)
-        resetRealTracking()
+        stopDetectionAndClearTracking()
         mutableState.update {
-            it.copy(
+            it.withTrackingCleared().copy(
                 flight = FlightState.Emergency,
                 authority = ControlAuthority.Manual,
-                tracking = TrackingMode.Off,
-                personDetections = emptyList(),
-                target = null,
-                followDistanceReference = null,
-                followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
                 manualVector = ManualControlVector(),
                 hoverActive = false,
                 lastMessage = "EMERGENCY MOTOR KILL sent; further flight commands are locked out",
@@ -394,6 +389,10 @@ class TelloFlightSession(
     fun setYawFollowArmed(armed: Boolean) {
         var zeroGeneration: Long? = null
         synchronized(yawFollowLock) {
+            if (armed && !mutableState.value.canRequestYawFollowArm()) {
+                invalid("Yaw follow requires connected Flying state, fresh telemetry, live detection, and a valid selected target")
+                return@synchronized
+            }
             if (armed) {
                 // ARM is the explicit acknowledgement for a previous STOP / HOVER intervention.
                 // It clears only that sticky UI/session flag; every other yaw safety prerequisite
@@ -436,24 +435,18 @@ class TelloFlightSession(
         when (mode) {
             TrackingMode.Off -> {
                 latchYawFollowAndSendZero(YawFollowReason.DETECTOR_UNAVAILABLE)
-                activeVideo?.setPersonDetectionEnabled(false)
-                resetRealTracking()
+                stopDetectionAndClearTracking()
                 mutableState.update {
-                    it.copy(
-                        tracking = TrackingMode.Off,
-                        authority = ControlAuthority.Manual,
-                        personDetections = emptyList(),
-                        target = null,
-                        lastMessage = "Person detection off",
-                    )
+                    it.withTrackingCleared().copy(lastMessage = "Person detection off")
                 }
             }
             TrackingMode.DetectOnly -> {
                 val current = mutableState.value
                 if (current.connection != DroneConnectionState.Connected ||
-                    current.video.availability != VideoAvailability.Streaming
+                    current.video.availability != VideoAvailability.Streaming ||
+                    current.flight in setOf(FlightState.Landing, FlightState.Emergency)
                 ) {
-                    invalid("Person detection requires a connected live preview")
+                    invalid("Person detection requires a connected live preview outside Landing or Emergency")
                     return
                 }
                 val started = activeVideo?.setPersonDetectionEnabled(true)
@@ -676,6 +669,7 @@ class TelloFlightSession(
                 if (becameGrounded) {
                     landingAcknowledged = false
                     stopKeepalive()
+                    stopDetectionAndClearTracking()
                     visionTrace.recordFlightStateTransition(
                         FlightStateTransitionTrace(
                             timestampMillis = clock.nowMillis(),
@@ -697,6 +691,7 @@ class TelloFlightSession(
                     rcLoop.clearAndSendZero()
                     requireManualNeutral()
                     latchYawFollow(YawFollowReason.LANDING)
+                    stopDetectionAndClearTracking()
                     visionTrace.recordExternalGrounding(
                         ExternalGroundingTrace(
                             timestampMillis = sample.receivedAtMonotonicMillis,
@@ -938,6 +933,34 @@ class TelloFlightSession(
     }
 
     private fun resetRealTracking() = synchronized(trackingLock) { resetRealTrackingLocked() }
+
+    private fun stopDetectionAndClearTracking() {
+        video?.setPersonDetectionEnabled(false)
+        resetRealTracking()
+        mutableState.update { it.withTrackingCleared() }
+    }
+
+    private fun DroneSessionState.withTrackingCleared() = copy(
+        tracking = TrackingMode.Off,
+        authority = ControlAuthority.Manual,
+        video = video.copy(
+            personDetectionState = PersonDetectionState.Off,
+            detectorCandidates = emptyList(),
+            personDetections = emptyList(),
+            processedDetectorFrameSequence = null,
+            processedDetectorSourceTimestampNanos = null,
+        ),
+        personDetections = emptyList(),
+        target = null,
+        trackingErrors = null,
+        targetAssociationState = TargetAssociationState.None,
+        dryRunControlIntent = null,
+        followDistanceReference = null,
+        followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
+        followDistanceCalibrationSamples = 0,
+        shadowAutonomyDecision = null,
+        trackingStateTransitions = emptyList(),
+    )
 
     private fun resetYawFollowForNewSession(): YawFollowDecision = synchronized(yawFollowLock) {
         yawFollowGeneration = null
@@ -1302,6 +1325,16 @@ class TelloFlightSession(
             flight == FlightState.Grounded &&
             telemetry.isFresh &&
             (telemetry.batteryPercent ?: 0) >= MINIMUM_TAKEOFF_BATTERY_PERCENT
+
+    private fun DroneSessionState.canRequestYawFollowArm() =
+        connection == DroneConnectionState.Connected &&
+            flight == FlightState.Flying &&
+            telemetry.isFresh &&
+            video.availability == VideoAvailability.Streaming &&
+            video.personDetectionState == PersonDetectionState.Detecting &&
+            manualVector.isZero() &&
+            target != null && !target.identityUncertain &&
+            targetAssociationState in setOf(TargetAssociationState.Selected, TargetAssociationState.Matched)
 
     private fun TelloTelemetry.isVerifiedGrounded(): Boolean =
         heightMeters?.let { it.isFinite() && it >= 0f && it <= GROUNDED_HEIGHT_THRESHOLD_METERS } == true
