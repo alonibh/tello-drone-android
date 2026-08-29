@@ -158,6 +158,43 @@ class FlightSummaryTest {
         assertEquals(17.5, unconstrainedSummary.meanAbsYaw!!, 0.001)
     }
 
+    @Test fun `test H - diagnostic summary and export build successfully without vision frames`() {
+        val controls = listOf(
+            """{"eventType":"flightTransition","timestampMillis":1000,"fromState":"Grounded","toState":"TakingOff","triggerReason":"Takeoff in progress"}""",
+            """{"eventType":"flightTransition","timestampMillis":1400,"fromState":"TakingOff","toState":"Flying","triggerReason":"Takeoff stabilized by verified airborne telemetry"}""",
+            """{"eventType":"rcPublication","commandTimestampNanos":1450000000,"inputKind":"SAFETY_ZERO","sendSuppressionReason":"NONE","yawFollowState":"DISARMED","actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":0}}""",
+        )
+        val summary = FlightSummaryBuilder.build(traceLines = emptyList(), controlLines = controls)
+        val json = FlightSummaryBuilder.json(summary)
+        val text = FlightSummaryBuilder.text(summary)
+
+        assertTrue(json.contains("\"center_crossings_count\": 0"))
+        assertTrue(json.contains("\"non_yaw_autonomous_axis_violations\": 0"))
+        assertTrue(text.contains("FLIGHT / YAW FOLLOW SUMMARY"))
+        assertTrue(text.contains("NON-YAW AUTONOMOUS AXIS VIOLATIONS: 0"))
+
+        val zipFile = java.io.File.createTempFile("diag-bundle", ".zip")
+        try {
+            java.util.zip.ZipOutputStream(zipFile.outputStream()).use { zip ->
+                zip.putNextEntry(java.util.zip.ZipEntry("control.jsonl"))
+                zip.write(controls.joinToString("\n", postfix = "\n").toByteArray(Charsets.UTF_8))
+                zip.closeEntry()
+                zip.putNextEntry(java.util.zip.ZipEntry("flight_summary.json"))
+                zip.write(json.toByteArray(Charsets.UTF_8))
+                zip.closeEntry()
+                zip.putNextEntry(java.util.zip.ZipEntry("flight_summary.txt"))
+                zip.write(text.toByteArray(Charsets.UTF_8))
+                zip.closeEntry()
+            }
+            java.util.zip.ZipFile(zipFile).use { z ->
+                val entries = z.entries().asSequence().map { it.name }.toSet()
+                assertEquals(setOf("control.jsonl", "flight_summary.json", "flight_summary.txt"), entries)
+            }
+        } finally {
+            zipFile.delete()
+        }
+    }
+
     private fun trace(time: Long, state: String, inference: Int? = null) = "{\"sourceTimestampNanos\":$time,\"associationState\":\"$state\",\"detector\":{\"inferenceMillis\":${inference ?: "null"}}}"
     private fun control(time: Long, state: String = "ACTIVE", suppression: String = "NONE", reason: String = "ACTIVE", yaw: Int = 0, height: Double = 1.0, lateral: Int = 0, send: String = "NONE", frameSequence: Long = 1, error: Double? = null) = "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"frameSequence\":$frameSequence,\"perceptionAgeMillis\":100,\"yawFollowState\":\"$state\",\"yawFollowReason\":\"$reason\",\"suppressionReason\":\"$suppression\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$send\",\"telemetryHeightMeters\":$height,\"rawYawError\":${error ?: "null"},\"actualSentVector\":{\"lateral\":$lateral,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
 }

@@ -388,9 +388,52 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         val result = runCatching {
             writer?.flush()
             controlWriter?.flush()
-            val source = traceFile ?: throw IllegalStateException("No captured vision frames are available")
-            context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "wt")?.use { output ->
-                source.inputStream().buffered().use { input -> input.copyTo(output) }
+            val directory = activeDirectory
+            val sourceTrace = traceFile?.takeIf { it.exists() && it.length() > 0 }
+            val controlSource = ensureControlFile()
+            val traceLines = sourceTrace?.readLines(Charsets.UTF_8) ?: emptyList()
+            val controlLines = if (controlSource.exists()) controlSource.readLines(Charsets.UTF_8) else emptyList()
+            val summary = FlightSummaryBuilder.build(traceLines, controlLines)
+
+            context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "w")?.use { output ->
+                ZipOutputStream(output.buffered()).use { zip ->
+                    if (frames.isNotEmpty()) {
+                        val manifest = VisionSessionManifest(
+                            capturedFrameCount = frames.size,
+                            droppedFrameCount = activeEpoch?.drops?.total() ?: 0L,
+                            excludedAfterLimitFrameCount = activeEpoch?.excludedAfterLimit?.get() ?: 0L,
+                            captureStartReason = activeEpoch?.startReason ?: VisionCaptureStartReason.TargetSelected,
+                            frames = frames.toList(),
+                        )
+                        zip.putNextEntry(ZipEntry("manifest.json"))
+                        zip.write(VisionSessionManifestJson.encode(manifest).toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                    }
+                    if (sourceTrace != null) {
+                        zip.putNextEntry(ZipEntry("trace.jsonl"))
+                        sourceTrace.inputStream().buffered().use { it.copyTo(zip) }
+                        zip.closeEntry()
+                    }
+                    zip.putNextEntry(ZipEntry("control.jsonl"))
+                    controlSource.inputStream().buffered().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                    zip.putNextEntry(ZipEntry("flight_summary.json"))
+                    zip.write(FlightSummaryBuilder.json(summary).toByteArray(Charsets.UTF_8))
+                    zip.closeEntry()
+                    zip.putNextEntry(ZipEntry("flight_summary.txt"))
+                    zip.write(FlightSummaryBuilder.text(summary).toByteArray(Charsets.UTF_8))
+                    zip.closeEntry()
+                    if (directory != null && frames.isNotEmpty()) {
+                        frames.forEach { frame ->
+                            val frameFile = File(directory, frame.file)
+                            if (frameFile.exists()) {
+                                zip.putNextEntry(ZipEntry(frame.file))
+                                frameFile.inputStream().buffered().use { it.copyTo(zip) }
+                                zip.closeEntry()
+                            }
+                        }
+                    }
+                }
             } ?: throw IllegalStateException("Could not open the selected export destination")
             VisionTraceExport(frames.size.toLong(), activeEpoch?.drops?.total() ?: 0L)
         }

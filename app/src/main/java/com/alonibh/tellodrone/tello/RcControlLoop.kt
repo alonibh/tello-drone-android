@@ -20,7 +20,8 @@ enum class RcInputKind { MANUAL, AUTONOMOUS_YAW, SAFETY_ZERO }
 
 enum class RcSendSuppressionReason {
     NONE, DISABLED, UNHEALTHY, LOCKED_OUT, RC_TTL_EXPIRED, PERCEPTION_AGE_EXPIRED,
-    AUTONOMOUS_COMMAND_HOLD_EXPIRED,
+    AUTONOMOUS_COMMAND_HOLD_EXPIRED, STALE_FLIGHT_EPOCH, STALE_AUTONOMY_GENERATION,
+    TRACKING_INACTIVE, FLIGHT_STATE_INACTIVE,
 }
 
 data class AutonomousYawContext(
@@ -42,6 +43,8 @@ data class RcPublication(
     val desiredPublishedAtMillis: Long,
     val sentAtMillis: Long,
     val suppressionReason: RcSendSuppressionReason,
+    val flightEpoch: Long,
+    val autonomyGeneration: Long?,
     val autonomousContext: AutonomousYawContext?,
 )
 
@@ -55,12 +58,15 @@ class RcControlLoop(
     private val onSendFailure: (Throwable) -> Unit = {},
     private val traceClockNanos: () -> Long = { clock.nowMillis() * NANOS_PER_MILLISECOND },
     private val onRcSent: (RcPublication) -> Unit = {},
+    private val authorityValidator: ((RcInputKind, AutonomousYawContext?) -> RcSendSuppressionReason?)? = null,
 ) {
     private data class Desired(
         val vector: RcVector,
         val publishedAtMillis: Long,
         val publishedAtNanos: Long,
         val inputKind: RcInputKind,
+        val flightEpoch: Long,
+        val autonomyGeneration: Long? = null,
         val perceptionValidityMillis: Long? = null,
         val validityExpiryReason: RcSendSuppressionReason = RcSendSuppressionReason.PERCEPTION_AGE_EXPIRED,
         val autonomousContext: AutonomousYawContext? = null,
@@ -75,11 +81,13 @@ class RcControlLoop(
     private val lock = Any()
     /** Serializes physical sends so a safety zero cannot be overtaken by an already-selected RC vector. */
     private val sendMutex = Mutex()
+    private var flightEpoch = 0L
     private var desired = Desired(
         vector = RcVector.Zero,
         publishedAtMillis = -inputTtlMillis - 1L,
         publishedAtNanos = Long.MIN_VALUE,
         inputKind = RcInputKind.SAFETY_ZERO,
+        flightEpoch = 0L,
     )
     private var enabled = false
     private var healthy = false
@@ -98,6 +106,27 @@ class RcControlLoop(
                 }
             }
         }
+    }
+
+    /**
+     * Atomically arms RC for a newly started flying epoch.
+     * Increments flight epoch, clears any previous desired command to safety zero,
+     * invalidates past autonomy generations, and guarantees the initial publication is ZERO.
+     */
+    fun enableForNewFlight(): Long = synchronized(lock) {
+        flightEpoch += 1L
+        autonomyGeneration += 1L
+        activeAutonomyGeneration = null
+        desired = Desired(
+            vector = RcVector.Zero,
+            publishedAtMillis = clock.nowMillis(),
+            publishedAtNanos = traceClockNanos(),
+            inputKind = RcInputKind.SAFETY_ZERO,
+            flightEpoch = flightEpoch,
+        )
+        enabled = !lockedOut
+        healthy = !lockedOut
+        flightEpoch
     }
 
     fun setEnabled(value: Boolean) = synchronized(lock) {
@@ -120,6 +149,7 @@ class RcControlLoop(
                 clock.nowMillis(),
                 traceClockNanos(),
                 RcInputKind.MANUAL,
+                flightEpoch = flightEpoch,
             )
         }
     }
@@ -127,7 +157,14 @@ class RcControlLoop(
     fun beginAutonomousYaw(): Long = synchronized(lock) {
         autonomyGeneration += 1L
         activeAutonomyGeneration = autonomyGeneration
-        desired = Desired(RcVector.Zero, clock.nowMillis(), traceClockNanos(), RcInputKind.AUTONOMOUS_YAW)
+        desired = Desired(
+            vector = RcVector.Zero,
+            publishedAtMillis = clock.nowMillis(),
+            publishedAtNanos = traceClockNanos(),
+            inputKind = RcInputKind.AUTONOMOUS_YAW,
+            flightEpoch = flightEpoch,
+            autonomyGeneration = activeAutonomyGeneration,
+        )
         autonomyGeneration
     }
 
@@ -145,6 +182,8 @@ class RcControlLoop(
                 clock.nowMillis(),
                 traceClockNanos(),
                 RcInputKind.AUTONOMOUS_YAW,
+                flightEpoch = flightEpoch,
+                autonomyGeneration = generation,
                 perceptionValidityMillis = validForMillis.coerceAtLeast(0L),
                 validityExpiryReason = validityExpiryReason,
                 autonomousContext = context,
@@ -184,6 +223,8 @@ class RcControlLoop(
                             desiredPublishedAtMillis = selection.desired.publishedAtMillis,
                             sentAtMillis = nowMillis,
                             suppressionReason = selection.suppressionReason,
+                            flightEpoch = selection.desired.flightEpoch,
+                            autonomyGeneration = selection.desired.autonomyGeneration,
                             autonomousContext = selection.desired.autonomousContext,
                         ),
                     )
@@ -230,6 +271,8 @@ class RcControlLoop(
                             desiredPublishedAtMillis = currentDesired.publishedAtMillis,
                             sentAtMillis = sentAtMillis,
                             suppressionReason = RcSendSuppressionReason.NONE,
+                            flightEpoch = currentDesired.flightEpoch,
+                            autonomyGeneration = currentDesired.autonomyGeneration,
                             autonomousContext = currentDesired.autonomousContext,
                         ),
                     )
@@ -276,10 +319,11 @@ class RcControlLoop(
         autonomyGeneration += 1L
         activeAutonomyGeneration = null
         desired = Desired(
-            RcVector.Zero,
-            clock.nowMillis(),
-            traceClockNanos(),
-            RcInputKind.SAFETY_ZERO,
+            vector = RcVector.Zero,
+            publishedAtMillis = clock.nowMillis(),
+            publishedAtNanos = traceClockNanos(),
+            inputKind = RcInputKind.SAFETY_ZERO,
+            flightEpoch = flightEpoch,
             autonomousContext = previousAutonomousContext,
         )
         return autonomyGeneration
@@ -287,11 +331,17 @@ class RcControlLoop(
 
     private fun selectLocked(nowMillis: Long): Selection {
         val ageMillis = nowMillis - desired.publishedAtMillis
+        val validatorSuppression = authorityValidator?.invoke(desired.inputKind, desired.autonomousContext)
         val suppression = when {
             lockedOut -> RcSendSuppressionReason.LOCKED_OUT
             !enabled -> RcSendSuppressionReason.DISABLED
             !healthy -> RcSendSuppressionReason.UNHEALTHY
+            desired.flightEpoch != flightEpoch -> RcSendSuppressionReason.STALE_FLIGHT_EPOCH
+            validatorSuppression != null -> validatorSuppression
             ageMillis >= inputTtlMillis -> RcSendSuppressionReason.RC_TTL_EXPIRED
+            desired.inputKind == RcInputKind.AUTONOMOUS_YAW &&
+                desired.autonomyGeneration != activeAutonomyGeneration ->
+                RcSendSuppressionReason.STALE_AUTONOMY_GENERATION
             desired.inputKind == RcInputKind.AUTONOMOUS_YAW &&
                 ageMillis >= (desired.perceptionValidityMillis ?: 0L) ->
                 desired.validityExpiryReason
@@ -299,7 +349,7 @@ class RcControlLoop(
         }
         return Selection(
             desired = desired,
-            actualVector = if (suppression == RcSendSuppressionReason.NONE) desired.vector else RcVector.Zero,
+            actualVector = if (suppression == RcSendSuppressionReason.NONE && desired.inputKind != RcInputKind.SAFETY_ZERO) desired.vector else RcVector.Zero,
             suppressionReason = suppression,
         )
     }

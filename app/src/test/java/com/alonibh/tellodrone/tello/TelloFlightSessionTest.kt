@@ -2,6 +2,7 @@
 
 package com.alonibh.tellodrone.tello
 
+import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.HsvAppearanceHistogram
@@ -321,8 +322,15 @@ class TelloFlightSessionTest {
         fixture.transport.emitTelemetry(fixture.clock.value, TelloFlightSession.GROUNDED_HEIGHT_THRESHOLD_METERS)
         runCurrent()
         assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
-        fixture.transport.emitTelemetry(fixture.clock.value, TelloFlightSession.GROUNDED_HEIGHT_THRESHOLD_METERS + 0.01f)
-        runCurrent()
+        for (i in 0 until TelloFlightSession.TAKEOFF_STABILIZATION_MIN_SAMPLES) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = TelloFlightSession.TAKEOFF_AIRBORNE_HEIGHT_THRESHOLD_METERS + 0.10f,
+                velocityZCentimetersPerSecond = 0,
+            )
+            runCurrent()
+        }
         assertEquals(FlightState.Flying, fixture.session.state.value.flight)
 
         fixture.session.land()
@@ -1025,11 +1033,154 @@ class TelloFlightSessionTest {
         runCurrent()
     }
 
+    @Test fun `test A - no physical RC sent during takeoff maneuver`() = runTest {
+        val fixture = connectedFixture()
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        // Try publishing manual control during takeoff
+        fixture.session.publishManualControl(ManualControlVector(yaw = 1f))
+        advanceTimeBy(100L)
+        runCurrent()
+
+        // No RC packets sent while TakingOff
+        assertTrue(fixture.transport.rc.isEmpty())
+    }
+
+    @Test fun `test B - flying transition starts from zero`() = runTest {
+        val trace = FakeVisionTraceRecorder()
+        val fixture = fixture(visionTrace = trace)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        takeOffAndVerify(fixture)
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+
+        // Allow RC loop to tick
+        advanceTimeBy(100L)
+        runCurrent()
+
+        assertTrue(fixture.transport.rc.isNotEmpty())
+        assertTrue(fixture.transport.rc.all { it == RcVector.Zero })
+        val firstPub = trace.rcPublications.first()
+        assertEquals(RcVector.Zero, firstPub.actualSentVector)
+        assertEquals(RcInputKind.SAFETY_ZERO, firstPub.inputKind)
+    }
+
+    @Test fun `test C - stale manual command cannot cross flight epoch`() = runTest {
+        val fixture = connectedFixture()
+        // Pilot drags joystick while grounded before takeoff
+        fixture.session.publishManualControl(ManualControlVector(forward = 1f, yaw = 1f))
+        takeOffAndVerify(fixture)
+
+        advanceTimeBy(100L)
+        runCurrent()
+
+        // First publications in Flying must be zero
+        assertTrue(fixture.transport.rc.all { it == RcVector.Zero })
+    }
+
+    @Test fun `test D - stale autonomy cannot cross flight epoch`() = runTest {
+        val (fixture, _) = yawReadyFixture()
+        fixture.session.setYawFollowArmed(true)
+        runCurrent()
+        assertEquals(ControlAuthority.Autonomous, fixture.session.state.value.authority)
+
+        // Land drone to finish flight
+        landAndVerify(fixture)
+        assertEquals(FlightState.Grounded, fixture.session.state.value.flight)
+        assertEquals(ControlAuthority.Manual, fixture.session.state.value.authority)
+
+        // Take off for a second flight
+        takeOffAndVerify(fixture)
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+        assertEquals(ControlAuthority.Manual, fixture.session.state.value.authority)
+
+        advanceTimeBy(100L)
+        runCurrent()
+
+        // RC must remain zero
+        assertEquals(RcVector.Zero, fixture.transport.rc.last())
+    }
+
+    @Test fun `test E - tracking OFF produces continuous zero`() = runTest {
+        val fixture = connectedFixture()
+        takeOffAndVerify(fixture)
+        assertEquals(TrackingMode.Off, fixture.session.state.value.tracking)
+
+        advanceTimeBy(200L)
+        runCurrent()
+
+        assertTrue(fixture.transport.rc.all { it == RcVector.Zero })
+    }
+
+    @Test fun `test F - detection OFF invalidates follow`() = runTest {
+        val (fixture, video) = yawReadyFixture()
+        fixture.session.setYawFollowArmed(true)
+        runCurrent()
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+
+        fixture.session.setTrackingMode(TrackingMode.Off)
+        runCurrent()
+
+        assertEquals(TrackingMode.Off, fixture.session.state.value.tracking)
+        assertEquals(ControlAuthority.Manual, fixture.session.state.value.authority)
+        assertTrue(fixture.session.state.value.yawFollowDecision.state != YawFollowState.ACTIVE)
+        assertEquals(RcVector.Zero, fixture.transport.rc.last())
+    }
+
+    @Test fun `test G - stable takeoff transition requires multiple consecutive stable samples`() = runTest {
+        val fixture = connectedFixture()
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        // 1. Single sample crossing height > 0.20m with high vertical speed does NOT transition to Flying
+        fixture.clock.value += 100L
+        fixture.transport.emitTelemetry(
+            at = fixture.clock.value,
+            heightMeters = 0.35f,
+            velocityZCentimetersPerSecond = 80, // climbing fast
+        )
+        runCurrent()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        // 2. Three stable samples (less than minimum 4) do NOT transition to Flying yet
+        for (i in 1..3) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = 0.50f,
+                velocityZCentimetersPerSecond = 5,
+            )
+            runCurrent()
+            assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        }
+
+        // 3. 4th consecutive stable sample transitions to Flying
+        fixture.clock.value += 100L
+        fixture.transport.emitTelemetry(
+            at = fixture.clock.value,
+            heightMeters = 0.50f,
+            velocityZCentimetersPerSecond = 2,
+        )
+        runCurrent()
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+        assertEquals(RcVector.Zero, fixture.session.state.value.manualVector.let { RcVector() })
+    }
+
     private suspend fun TestScope.takeOffAndVerify(fixture: Fixture) {
         fixture.session.takeOff()
         assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
-        fixture.transport.emitTelemetry(fixture.clock.value, TelloFlightSession.GROUNDED_HEIGHT_THRESHOLD_METERS + 0.01f)
-        runCurrent()
+        for (i in 0 until TelloFlightSession.TAKEOFF_STABILIZATION_MIN_SAMPLES) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = TelloFlightSession.TAKEOFF_AIRBORNE_HEIGHT_THRESHOLD_METERS + 0.10f,
+                velocityZCentimetersPerSecond = 0,
+            )
+            runCurrent()
+        }
         assertEquals(FlightState.Flying, fixture.session.state.value.flight)
     }
 
@@ -1089,7 +1240,12 @@ class TelloFlightSessionTest {
         override suspend fun sendRc(vector: RcVector) { rc += vector }
         override suspend fun close() { closed = true }
 
-        suspend fun emitTelemetry(at: Long, heightMeters: Float? = 0f, batteryPercent: Int? = 80) {
+        suspend fun emitTelemetry(
+            at: Long,
+            heightMeters: Float? = 0f,
+            batteryPercent: Int? = 80,
+            velocityZCentimetersPerSecond: Int? = 0,
+        ) {
             samples.emit(
                 TelloTelemetry(
                     batteryPercent = batteryPercent,
@@ -1098,7 +1254,7 @@ class TelloFlightSessionTest {
                     temperatureCelsius = 30f,
                     velocityXCentimetersPerSecond = 0,
                     velocityYCentimetersPerSecond = 0,
-                    velocityZCentimetersPerSecond = 0,
+                    velocityZCentimetersPerSecond = velocityZCentimetersPerSecond,
                     speedMetersPerSecond = 0f,
                     receivedAt = Instant.parse("2026-08-10T00:00:00Z"),
                     receivedAtMonotonicMillis = at,

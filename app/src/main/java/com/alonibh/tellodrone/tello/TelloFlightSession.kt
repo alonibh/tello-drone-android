@@ -23,6 +23,7 @@ import com.alonibh.tellodrone.domain.TargetSelection
 import com.alonibh.tellodrone.domain.TelemetrySnapshot
 import com.alonibh.tellodrone.domain.TrackingErrorEngine
 import com.alonibh.tellodrone.domain.TrackingMode
+import kotlin.math.roundToInt
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.domain.YawFollowDecision
@@ -112,7 +113,8 @@ class TelloFlightSession(
     private val yawFollowLock = Any()
     private val yawFollowGate = YawFollowGate()
     private var yawFollowGeneration: Long? = null
-
+    private var takeoffStabilizationSamples = 0
+    private var firstTakeoffStabilizationAtMillis: Long? = null
 
     private val rcLoop = RcControlLoop(
         scope = scope,
@@ -121,6 +123,30 @@ class TelloFlightSession(
         onSendFailure = { error -> scope.launch { failConnection("RC transport failed: ${error.safeMessage()}") } },
         traceClockNanos = sourceNowNanos,
         onRcSent = ::recordRcPublication,
+        authorityValidator = { kind, _ ->
+            val current = mutableState.value
+            when (kind) {
+                RcInputKind.AUTONOMOUS_YAW -> {
+                    when {
+                        current.flight != FlightState.Flying -> RcSendSuppressionReason.FLIGHT_STATE_INACTIVE
+                        current.tracking == TrackingMode.Off ||
+                            current.authority != ControlAuthority.Autonomous ||
+                            current.yawFollowDecision.state != YawFollowState.ACTIVE ->
+                            RcSendSuppressionReason.TRACKING_INACTIVE
+                        else -> null
+                    }
+                }
+                RcInputKind.MANUAL -> {
+                    if (current.flight != FlightState.Flying &&
+                        current.flight != FlightState.TakingOff &&
+                        current.flight != FlightState.Landing
+                    ) {
+                        RcSendSuppressionReason.FLIGHT_STATE_INACTIVE
+                    } else null
+                }
+                RcInputKind.SAFETY_ZERO -> null
+            }
+        },
     )
 
     suspend fun connect(): Boolean = commandStateMutex.withLock {
@@ -129,6 +155,8 @@ class TelloFlightSession(
         val yawDecision = resetYawFollowForNewSession()
         takeoffAcknowledged = false
         landingAcknowledged = false
+        takeoffStabilizationSamples = 0
+        firstTakeoffStabilizationAtMillis = null
         videoStreamAcknowledged = false
         mutableState.update {
             it.copy(
@@ -203,6 +231,9 @@ class TelloFlightSession(
         }
         takeoffAcknowledged = false
         landingAcknowledged = false
+        takeoffStabilizationSamples = 0
+        firstTakeoffStabilizationAtMillis = null
+        rcLoop.setEnabled(false)
         requireManualNeutral()
         mutableState.update {
             it.copy(flight = FlightState.TakingOff, manualVector = ManualControlVector(), hoverActive = false, lastMessage = "Takeoff in progress")
@@ -707,6 +738,34 @@ class TelloFlightSession(
                 val currentBefore = mutableState.value
                 val isGroundedSample = sample.isVerifiedGrounded()
 
+                val isAirborneSample = sample.isVerifiedAirborne()
+                val isVerticallyStable = sample.velocityZCentimetersPerSecond == null ||
+                    kotlin.math.abs(sample.velocityZCentimetersPerSecond) <= TAKEOFF_MAX_VERTICAL_SPEED_CPS
+
+                if (currentBefore.connection == DroneConnectionState.Connected &&
+                    currentBefore.flight == FlightState.TakingOff && takeoffAcknowledged
+                ) {
+                    if (isAirborneSample && isVerticallyStable) {
+                        if (takeoffStabilizationSamples == 0) {
+                            firstTakeoffStabilizationAtMillis = sample.receivedAtMonotonicMillis
+                        }
+                        takeoffStabilizationSamples++
+                        val firstAt = firstTakeoffStabilizationAtMillis ?: sample.receivedAtMonotonicMillis
+                        val duration = sample.receivedAtMonotonicMillis - firstAt
+                        if (takeoffStabilizationSamples >= TAKEOFF_STABILIZATION_MIN_SAMPLES &&
+                            duration >= TAKEOFF_STABILIZATION_MIN_DURATION_MILLIS
+                        ) {
+                            becameFlying = true
+                        }
+                    } else {
+                        takeoffStabilizationSamples = 0
+                        firstTakeoffStabilizationAtMillis = null
+                    }
+                } else {
+                    takeoffStabilizationSamples = 0
+                    firstTakeoffStabilizationAtMillis = null
+                }
+
                 if (currentBefore.connection == DroneConnectionState.Connected && currentBefore.flight == FlightState.Flying) {
                     if (isGroundedSample) {
                         if (groundedSampleCount == 0) {
@@ -750,11 +809,7 @@ class TelloFlightSession(
                         current
                     } else {
                         val nextFlight = when {
-                            current.connection == DroneConnectionState.Connected &&
-                                current.flight == FlightState.TakingOff && takeoffAcknowledged && sample.isVerifiedAirborne() -> {
-                                becameFlying = true
-                                FlightState.Flying
-                            }
+                            becameFlying && current.flight == FlightState.TakingOff -> FlightState.Flying
                             current.connection == DroneConnectionState.Connected &&
                                 current.flight == FlightState.Landing && landingAcknowledged && sample.isVerifiedGrounded() -> {
                                 becameGrounded = true
@@ -771,7 +826,7 @@ class TelloFlightSession(
                             manualVector = if (nextFlight == FlightState.Flying) current.manualVector else ManualControlVector(),
                             lastMessage = when {
                                 becameExternalGrounded -> "Aircraft landed outside app command / firmware landing detected"
-                                becameFlying -> "Takeoff verified by airborne telemetry"
+                                becameFlying -> "Takeoff stabilized by verified airborne telemetry"
                                 becameGrounded -> "Landing verified by grounded telemetry"
                                 else -> current.lastMessage
                             },
@@ -780,14 +835,16 @@ class TelloFlightSession(
                 }
                 if (becameFlying) {
                     takeoffAcknowledged = false
-                    rcLoop.setEnabled(true)
+                    takeoffStabilizationSamples = 0
+                    firstTakeoffStabilizationAtMillis = null
+                    rcLoop.enableForNewFlight()
                     startKeepalive()
                     visionTrace.recordFlightStateTransition(
                         FlightStateTransitionTrace(
                             timestampMillis = clock.nowMillis(),
                             fromState = FlightState.TakingOff.name,
                             toState = FlightState.Flying.name,
-                            triggerReason = "Takeoff verified by airborne telemetry",
+                            triggerReason = "Takeoff stabilized by verified airborne telemetry",
                             batteryPercent = sample.batteryPercent,
                             heightMeters = sample.heightMeters,
                         ),
@@ -1255,6 +1312,14 @@ class TelloFlightSession(
         val sourceTimestampNanos = publication.autonomousContext?.control?.sourceTimestampNanos ?:
             current.video.processedDetectorSourceTimestampNanos
         val ageNanos = sourceTimestampNanos?.let { commandTimestampNanos - it }
+        val manualVec = current.manualVector.let {
+            RcVector(
+                lateral = (it.lateral * current.speedPercent).roundToInt(),
+                forward = (it.forward * current.speedPercent).roundToInt(),
+                vertical = (it.vertical * current.speedPercent).roundToInt(),
+                yaw = (it.yaw * current.speedPercent).roundToInt(),
+            )
+        }
         visionTrace.recordRcPublication(
             RcPublicationTrace(
                 commandTimestampNanos = commandTimestampNanos,
@@ -1287,6 +1352,12 @@ class TelloFlightSession(
                 telloYawDegrees = control?.telloYawDegrees ?: current.telemetry.yawDegrees,
                 telloYawRateDegreesPerSecond = control?.telloYawRateDegreesPerSecond ?: current.telemetry.yawRateDegreesPerSecond,
                 yawDecisionTimestampNanos = control?.commandTimestampNanos,
+                flightState = current.flight,
+                trackingMode = current.tracking,
+                controlAuthority = current.authority,
+                manualVector = manualVec,
+                flightControlEpoch = publication.flightEpoch,
+                yawFollowGeneration = publication.autonomyGeneration,
             ),
         )
     }
@@ -1555,6 +1626,10 @@ class TelloFlightSession(
         const val CONNECTION_LOST_MILLIS = 4_000L
         const val HEALTH_CHECK_PERIOD_MILLIS = 250L
         const val GROUNDED_HEIGHT_THRESHOLD_METERS = 0.20f
+        const val TAKEOFF_AIRBORNE_HEIGHT_THRESHOLD_METERS = 0.20f
+        const val TAKEOFF_STABILIZATION_MIN_SAMPLES = 4
+        const val TAKEOFF_STABILIZATION_MIN_DURATION_MILLIS = 300L
+        const val TAKEOFF_MAX_VERTICAL_SPEED_CPS = 20
         const val MAX_TRACKING_TRANSITIONS = 100
     }
 }

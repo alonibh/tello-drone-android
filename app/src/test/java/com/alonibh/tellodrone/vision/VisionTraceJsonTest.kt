@@ -122,6 +122,12 @@ class VisionTraceJsonTest {
                 desiredPublishedAtNanos = 1_135_000_000L,
                 sendStartedAtNanos = 1_150_000_000L,
                 actualSentAtNanos = 1_151_000_000L,
+                flightState = com.alonibh.tellodrone.domain.FlightState.Flying,
+                trackingMode = com.alonibh.tellodrone.domain.TrackingMode.TargetLocked,
+                controlAuthority = com.alonibh.tellodrone.domain.ControlAuthority.Autonomous,
+                manualVector = RcVector.Zero,
+                flightControlEpoch = 3L,
+                yawFollowGeneration = 7L,
             ),
         )
 
@@ -138,6 +144,12 @@ class VisionTraceJsonTest {
         assertTrue(publication.contains("\"telloYawRateDegreesPerSecond\":12.5"))
         assertTrue(publication.contains("\"yawDecisionTimestampNanos\":1134000000"))
         assertTrue(publication.contains("\"actualSentAtNanos\":1151000000"))
+        assertTrue(publication.contains("\"flightState\":\"Flying\""))
+        assertTrue(publication.contains("\"trackingMode\":\"TargetLocked\""))
+        assertTrue(publication.contains("\"controlAuthority\":\"Autonomous\""))
+        assertTrue(publication.contains("\"manualVector\":{\"lateral\":0,\"forward\":0,\"vertical\":0,\"yaw\":0}"))
+        assertTrue(publication.contains("\"flightControlEpoch\":3"))
+        assertTrue(publication.contains("\"yawFollowGeneration\":7"))
         assertFalse(publication.contains('\n'))
     }
 

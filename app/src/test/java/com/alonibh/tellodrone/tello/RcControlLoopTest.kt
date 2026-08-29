@@ -211,6 +211,7 @@ class RcControlLoopTest {
         loop.setEnabled(true)
         loop.setHealthy(true)
         val generation = loop.beginAutonomousYaw()
+
         loop.publishAutonomousYaw(12, generation)
         loop.sendCycle()
 
@@ -237,6 +238,84 @@ class RcControlLoopTest {
         loop.sendCycle()
 
         assertEquals(listOf(RcVector(yaw = 20)), sent)
+    }
+
+    @Test fun `enableForNewFlight atomically resets desired vector to safety zero and starts fresh epoch`() = runTest {
+        val sent = mutableListOf<RcVector>()
+        val publications = mutableListOf<RcPublication>()
+        val clock = FakeClock(1_000)
+        val loop = RcControlLoop(
+            scope = backgroundScope,
+            sender = { sent += it },
+            clock = clock,
+            onRcSent = { publications += it },
+        )
+        // Simulate previous flight with manual input
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+        loop.publish(ManualControlVector(yaw = 1f), 30)
+        assertEquals(RcVector(yaw = 30), loop.currentVector())
+
+        // Arm for new flight
+        val newEpoch = loop.enableForNewFlight()
+        assertTrue(newEpoch > 0L)
+        assertEquals(RcVector.Zero, loop.currentVector())
+
+        loop.sendCycle()
+        assertEquals(listOf(RcVector.Zero), sent)
+        val pub = publications.single()
+        assertEquals(RcInputKind.SAFETY_ZERO, pub.inputKind)
+        assertEquals(RcVector.Zero, pub.actualVector)
+        assertEquals(newEpoch, pub.flightEpoch)
+    }
+
+    @Test fun `stale flight epoch command cannot produce non-zero output`() = runTest {
+        val publications = mutableListOf<RcPublication>()
+        val clock = FakeClock(1_000)
+        val loop = RcControlLoop(
+            scope = backgroundScope,
+            sender = {},
+            clock = clock,
+            onRcSent = { publications += it },
+        )
+        loop.enableForNewFlight()
+        loop.publish(ManualControlVector(forward = 1f), 50)
+        assertEquals(RcVector(forward = 50), loop.currentVector())
+
+        // New flight epoch arrives without new manual input
+        val epoch2 = loop.enableForNewFlight()
+        assertTrue(epoch2 > 1L)
+        assertEquals(RcVector.Zero, loop.currentVector())
+
+        loop.sendCycle()
+        val pub = publications.last()
+        assertEquals(RcVector.Zero, pub.actualVector)
+        assertEquals(RcInputKind.SAFETY_ZERO, pub.inputKind)
+    }
+
+    @Test fun `authority validator suppressing autonomous yaw enforces zero actual vector`() = runTest {
+        val publications = mutableListOf<RcPublication>()
+        val clock = FakeClock(1_000)
+        var allowAutonomous = false
+        val loop = RcControlLoop(
+            scope = backgroundScope,
+            sender = {},
+            clock = clock,
+            onRcSent = { publications += it },
+            authorityValidator = { kind, _ ->
+                if (kind == RcInputKind.AUTONOMOUS_YAW && !allowAutonomous) {
+                    RcSendSuppressionReason.TRACKING_INACTIVE
+                } else null
+            },
+        )
+        loop.enableForNewFlight()
+        val gen = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(15, gen)
+
+        loop.sendCycle()
+        val pub = publications.single()
+        assertEquals(RcVector.Zero, pub.actualVector)
+        assertEquals(RcSendSuppressionReason.TRACKING_INACTIVE, pub.suppressionReason)
     }
 
     internal class FakeClock(var value: Long) : MonotonicClock { override fun nowMillis() = value }

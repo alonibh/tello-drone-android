@@ -13,6 +13,9 @@ import com.alonibh.tellodrone.domain.YawControllerPhase
 import com.alonibh.tellodrone.domain.YawControlSuppressionReason
 import com.alonibh.tellodrone.domain.YawFollowReason
 import com.alonibh.tellodrone.domain.YawFollowState
+import com.alonibh.tellodrone.domain.ControlAuthority
+import com.alonibh.tellodrone.domain.FlightState
+import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.TargetSelectionAttemptResult
 import com.alonibh.tellodrone.tello.RcInputKind
 import com.alonibh.tellodrone.tello.RcSendSuppressionReason
@@ -120,6 +123,12 @@ data class RcPublicationTrace(
     val telloYawDegrees: Int? = null,
     val telloYawRateDegreesPerSecond: Float? = null,
     val yawDecisionTimestampNanos: Long? = null,
+    val flightState: FlightState? = null,
+    val trackingMode: TrackingMode? = null,
+    val controlAuthority: ControlAuthority? = null,
+    val manualVector: RcVector? = null,
+    val flightControlEpoch: Long? = null,
+    val yawFollowGeneration: Long? = null,
 )
 
 enum class SdkCommandCategory { CONNECT, TAKEOFF, LAND, EMERGENCY, KEEPALIVE, STREAM, CONTROL_MODE, OTHER }
@@ -290,6 +299,14 @@ internal object VisionTraceJson {
         comma(); field("telemetryHeightMeters", trace.telemetryHeightMeters)
         comma(); field("yawFollowState", trace.yawFollowState.name)
         comma(); field("yawFollowReason", trace.yawFollowReason.name)
+        comma(); field("flightState", trace.flightState?.name)
+        comma(); field("trackingMode", trace.trackingMode?.name)
+        comma(); field("controlAuthority", trace.controlAuthority?.name)
+        if (trace.manualVector != null) {
+            comma(); name("manualVector"); vector(trace.manualVector)
+        }
+        comma(); field("flightControlEpoch", trace.flightControlEpoch)
+        comma(); field("yawFollowGeneration", trace.yawFollowGeneration)
         append('}')
     }
 
