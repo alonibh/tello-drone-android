@@ -72,6 +72,7 @@ class PixelCopyDecodedFrameSource(
     }
 
     override fun onFrameRendered(captureTimestampNanos: Long) {
+        val captureRequestTimestampNanos = System.nanoTime()
         val generation = synchronized(lock) {
             if (closed || copyInFlight || surface?.isValid != true) return
             if (lastCaptureRequestNanos != Long.MIN_VALUE &&
@@ -81,7 +82,10 @@ class PixelCopyDecodedFrameSource(
             copyInFlight = true
             surfaceGeneration
         }
-        if (!captureHandler.post { requestCopy(generation, captureTimestampNanos) }) {
+        if (!captureHandler.post {
+                requestCopy(generation, captureTimestampNanos, captureRequestTimestampNanos)
+            }
+        ) {
             finishCopyAttempt()
         }
     }
@@ -119,7 +123,11 @@ class PixelCopyDecodedFrameSource(
         withTimeoutOrNull(CLOSE_WAIT_MILLIS) { closeComplete.await() }
     }
 
-    private fun requestCopy(generation: Long, captureTimestampNanos: Long) {
+    private fun requestCopy(
+        generation: Long,
+        captureTimestampNanos: Long,
+        captureRequestTimestampNanos: Long,
+    ) {
         val targetSurface = synchronized(lock) {
             surface?.takeIf { !closed && generation == surfaceGeneration && it.isValid }
         }
@@ -144,6 +152,9 @@ class PixelCopyDecodedFrameSource(
                         captureTimestampNanos = captureTimestampNanos,
                         pixelRepresentation = AnalysisPixelRepresentation.ARGB_8888_BITMAP,
                         sequence = frameSequence,
+                        renderedFrameTimestampNanos = captureTimestampNanos,
+                        captureRequestTimestampNanos = captureRequestTimestampNanos,
+                        pixelCopyCompletedTimestampNanos = nowNanos,
                     )
                     val frame = PooledDecodedVideoFrame(metadata, bitmap, bitmapPool::release)
                     val accepted = latestFrame.offer(frame)
@@ -158,6 +169,9 @@ class PixelCopyDecodedFrameSource(
                                 latestSequence = frameSequence,
                                 capturedFrames = capturedCount,
                                 droppedFrames = latestFrame.droppedFrames,
+                                latestCaptureRequestTimestampNanos = captureRequestTimestampNanos,
+                                latestPixelCopyCompletedTimestampNanos = nowNanos,
+                                pendingFrameDepth = latestFrame.pendingCount,
                             ),
                         )
                         scheduleConsumerDrain()
@@ -305,7 +319,7 @@ class PixelCopyDecodedFrameSource(
     companion object {
         const val ANALYSIS_WIDTH = 320
         const val ANALYSIS_HEIGHT = 240
-        const val MAX_ANALYSIS_FPS = 8
+        const val MAX_ANALYSIS_FPS = 15
         private const val BITMAP_POOL_CAPACITY = 3
         private const val CAPTURE_INTERVAL_NANOS = 1_000_000_000L / MAX_ANALYSIS_FPS
         private const val FPS_WINDOW_NANOS = 1_000_000_000L

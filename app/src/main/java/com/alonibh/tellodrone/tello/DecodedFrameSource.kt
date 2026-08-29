@@ -14,6 +14,9 @@ data class AnalysisFrameMetadata(
     val captureTimestampNanos: Long,
     val pixelRepresentation: AnalysisPixelRepresentation,
     val sequence: Long,
+    val renderedFrameTimestampNanos: Long = captureTimestampNanos,
+    val captureRequestTimestampNanos: Long = captureTimestampNanos,
+    val pixelCopyCompletedTimestampNanos: Long = captureTimestampNanos,
 )
 
 /**
@@ -39,6 +42,9 @@ data class AnalysisFrameDiagnostics(
     val latestSequence: Long? = null,
     val capturedFrames: Long = 0,
     val droppedFrames: Long = 0,
+    val latestCaptureRequestTimestampNanos: Long? = null,
+    val latestPixelCopyCompletedTimestampNanos: Long? = null,
+    val pendingFrameDepth: Int = 0,
 )
 
 /**

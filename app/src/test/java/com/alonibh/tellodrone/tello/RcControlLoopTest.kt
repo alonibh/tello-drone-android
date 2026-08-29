@@ -10,6 +10,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RcControlLoopTest {
@@ -165,6 +166,38 @@ class RcControlLoopTest {
         loop.sendCycle()
         assertEquals(RcVector.Zero, sent.single())
         assertEquals(RcSendSuppressionReason.PERCEPTION_AGE_EXPIRED, publications.single().suppressionReason)
+    }
+
+    @Test fun `autonomous command hold expiry is separately identified and send timestamps are ordered`() = runTest {
+        val clock = FakeClock(1_000)
+        var traceNow = 10_000L
+        val publications = mutableListOf<RcPublication>()
+        val loop = RcControlLoop(
+            scope = backgroundScope,
+            sender = { traceNow += 10L },
+            clock = clock,
+            inputTtlMillis = 250,
+            traceClockNanos = { traceNow += 10L; traceNow },
+            onRcSent = { publications += it },
+        )
+        loop.setEnabled(true)
+        loop.setHealthy(true)
+        val generation = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(
+            yawRc = 8,
+            generation = generation,
+            validForMillis = 110L,
+            validityExpiryReason = RcSendSuppressionReason.AUTONOMOUS_COMMAND_HOLD_EXPIRED,
+        )
+        clock.value = 1_110L
+
+        loop.sendCycle()
+
+        val publication = publications.single()
+        assertEquals(RcVector.Zero, publication.actualVector)
+        assertEquals(RcSendSuppressionReason.AUTONOMOUS_COMMAND_HOLD_EXPIRED, publication.suppressionReason)
+        assertTrue(publication.desiredPublishedAtNanos <= publication.sendStartedAtNanos)
+        assertTrue(publication.sendStartedAtNanos <= publication.sentAtNanos)
     }
 
     @Test fun `every physically published autonomous vector is structurally yaw only`() = runTest {

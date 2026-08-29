@@ -18,7 +18,10 @@ import kotlin.math.roundToInt
 
 enum class RcInputKind { MANUAL, AUTONOMOUS_YAW, SAFETY_ZERO }
 
-enum class RcSendSuppressionReason { NONE, DISABLED, UNHEALTHY, LOCKED_OUT, RC_TTL_EXPIRED, PERCEPTION_AGE_EXPIRED }
+enum class RcSendSuppressionReason {
+    NONE, DISABLED, UNHEALTHY, LOCKED_OUT, RC_TTL_EXPIRED, PERCEPTION_AGE_EXPIRED,
+    AUTONOMOUS_COMMAND_HOLD_EXPIRED,
+}
 
 data class AutonomousYawContext(
     val control: YawControlOutcome,
@@ -30,6 +33,9 @@ data class AutonomousYawContext(
 
 data class RcPublication(
     val commandTimestampNanos: Long,
+    val desiredPublishedAtNanos: Long,
+    val sendStartedAtNanos: Long,
+    val sentAtNanos: Long,
     val requestedVector: RcVector,
     val actualVector: RcVector,
     val inputKind: RcInputKind,
@@ -53,8 +59,10 @@ class RcControlLoop(
     private data class Desired(
         val vector: RcVector,
         val publishedAtMillis: Long,
+        val publishedAtNanos: Long,
         val inputKind: RcInputKind,
         val perceptionValidityMillis: Long? = null,
+        val validityExpiryReason: RcSendSuppressionReason = RcSendSuppressionReason.PERCEPTION_AGE_EXPIRED,
         val autonomousContext: AutonomousYawContext? = null,
     )
 
@@ -67,7 +75,12 @@ class RcControlLoop(
     private val lock = Any()
     /** Serializes physical sends so a safety zero cannot be overtaken by an already-selected RC vector. */
     private val sendMutex = Mutex()
-    private var desired = Desired(RcVector.Zero, -inputTtlMillis - 1L, RcInputKind.SAFETY_ZERO)
+    private var desired = Desired(
+        vector = RcVector.Zero,
+        publishedAtMillis = -inputTtlMillis - 1L,
+        publishedAtNanos = Long.MIN_VALUE,
+        inputKind = RcInputKind.SAFETY_ZERO,
+    )
     private var enabled = false
     private var healthy = false
     private var lockedOut = false
@@ -105,6 +118,7 @@ class RcControlLoop(
             desired = Desired(
                 vector.toRcVector(magnitude, maximumManualRcMagnitude),
                 clock.nowMillis(),
+                traceClockNanos(),
                 RcInputKind.MANUAL,
             )
         }
@@ -113,7 +127,7 @@ class RcControlLoop(
     fun beginAutonomousYaw(): Long = synchronized(lock) {
         autonomyGeneration += 1L
         activeAutonomyGeneration = autonomyGeneration
-        desired = Desired(RcVector.Zero, clock.nowMillis(), RcInputKind.AUTONOMOUS_YAW)
+        desired = Desired(RcVector.Zero, clock.nowMillis(), traceClockNanos(), RcInputKind.AUTONOMOUS_YAW)
         autonomyGeneration
     }
 
@@ -122,14 +136,17 @@ class RcControlLoop(
         yawRc: Int,
         generation: Long,
         validForMillis: Long = inputTtlMillis,
+        validityExpiryReason: RcSendSuppressionReason = RcSendSuppressionReason.PERCEPTION_AGE_EXPIRED,
         context: AutonomousYawContext? = null,
     ) = synchronized(lock) {
         if (enabled && healthy && !lockedOut && activeAutonomyGeneration == generation) {
             desired = Desired(
                 RcVector(yaw = yawRc.coerceIn(-AUTONOMOUS_YAW_RC_CAP, AUTONOMOUS_YAW_RC_CAP)),
                 clock.nowMillis(),
+                traceClockNanos(),
                 RcInputKind.AUTONOMOUS_YAW,
                 perceptionValidityMillis = validForMillis.coerceAtLeast(0L),
+                validityExpiryReason = validityExpiryReason,
                 autonomousContext = context,
             )
         }
@@ -151,12 +168,16 @@ class RcControlLoop(
                 // either sends its zero first or waits for this already-sent vector and finishes with zero.
                 val nowMillis = clock.nowMillis()
                 val selection = synchronized(lock) { selectLocked(nowMillis) }
-                val commandTimestampNanos = traceClockNanos()
+                val sendStartedAtNanos = traceClockNanos()
                 sender(selection.actualVector)
+                val sentAtNanos = traceClockNanos()
                 runCatching {
                     onRcSent(
                         RcPublication(
-                            commandTimestampNanos = commandTimestampNanos,
+                            commandTimestampNanos = sendStartedAtNanos,
+                            desiredPublishedAtNanos = selection.desired.publishedAtNanos,
+                            sendStartedAtNanos = sendStartedAtNanos,
+                            sentAtNanos = sentAtNanos,
                             requestedVector = selection.desired.vector,
                             actualVector = selection.actualVector,
                             inputKind = selection.desired.inputKind,
@@ -192,13 +213,17 @@ class RcControlLoop(
             }
             if (currentDesired == null) return@withLock
             try {
-                val commandTimestampNanos = traceClockNanos()
+                val sendStartedAtNanos = traceClockNanos()
                 sender(RcVector.Zero)
+                val sentAtNanos = traceClockNanos()
                 val sentAtMillis = clock.nowMillis()
                 runCatching {
                     onRcSent(
                         RcPublication(
-                            commandTimestampNanos = commandTimestampNanos,
+                            commandTimestampNanos = sendStartedAtNanos,
+                            desiredPublishedAtNanos = currentDesired.publishedAtNanos,
+                            sendStartedAtNanos = sendStartedAtNanos,
+                            sentAtNanos = sentAtNanos,
                             requestedVector = RcVector.Zero,
                             actualVector = RcVector.Zero,
                             inputKind = RcInputKind.SAFETY_ZERO,
@@ -253,6 +278,7 @@ class RcControlLoop(
         desired = Desired(
             RcVector.Zero,
             clock.nowMillis(),
+            traceClockNanos(),
             RcInputKind.SAFETY_ZERO,
             autonomousContext = previousAutonomousContext,
         )
@@ -268,7 +294,7 @@ class RcControlLoop(
             ageMillis >= inputTtlMillis -> RcSendSuppressionReason.RC_TTL_EXPIRED
             desired.inputKind == RcInputKind.AUTONOMOUS_YAW &&
                 ageMillis >= (desired.perceptionValidityMillis ?: 0L) ->
-                RcSendSuppressionReason.PERCEPTION_AGE_EXPIRED
+                desired.validityExpiryReason
             else -> RcSendSuppressionReason.NONE
         }
         return Selection(

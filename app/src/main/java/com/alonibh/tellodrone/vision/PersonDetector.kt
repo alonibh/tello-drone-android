@@ -36,6 +36,14 @@ interface PersonDetector : AutoCloseable {
 data class PersonDetectorOutput(
     val candidates: List<PersonDetection>,
     val duplicateDetectionCount: Int,
+    val stageTiming: PersonDetectorStageTiming? = null,
+)
+
+data class PersonDetectorStageTiming(
+    val preprocessingNanos: Long,
+    val modelInferenceNanos: Long,
+    val decodeAndNmsNanos: Long,
+    val appearanceNanos: Long,
 )
 
 fun interface PersonDetectorCreator {

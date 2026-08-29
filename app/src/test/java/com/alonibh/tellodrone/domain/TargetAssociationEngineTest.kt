@@ -83,6 +83,83 @@ class TargetAssociationEngineTest {
         assertEquals(TargetAssociationDecision.TemporarilyMissing, evaluation.diagnostics.decision)
         assertEquals(0, evaluation.diagnostics.eligibleCandidateCount)
         assertTrue(evaluation.diagnostics.candidates.single().strict.appearanceSimilarity < TargetAssociationEngine.MIN_APPEARANCE_SIMILARITY)
+        assertEquals(
+            setOf(TargetAssociationRejectionReason.APPEARANCE),
+            evaluation.diagnostics.candidates.single().strict.rejectionReasons,
+        )
+    }
+
+    @Test fun `unique continuously visible person remains matched across irregular detector intervals`() {
+        var target = TargetSelection.select(
+            detection(box(.20f, .20f, .40f, .80f), timestamp = 1_000_000_000L, appearance = appearanceA),
+        )
+        val observations = listOf(
+            detection(box(.56f, .20f, .76f, .80f), frame = 2, timestamp = 1_200_000_000L, appearance = appearanceA),
+            detection(box(.69f, .19f, .90f, .81f), frame = 3, timestamp = 1_335_000_000L, appearance = appearanceA),
+            detection(box(.76f, .18f, .98f, .82f), frame = 4, timestamp = 1_515_000_000L, appearance = appearanceA),
+        )
+
+        observations.forEach { observation ->
+            val evaluation = engine.evaluate(
+                target,
+                observation.frameSequence,
+                observation.sourceTimestampNanos,
+                listOf(observation),
+            )
+            assertEquals(TargetAssociationDecision.Matched, evaluation.diagnostics.decision)
+            assertTrue(evaluation.result is TargetAssociationResult.Matched)
+            target = evaluation.result.target!!
+        }
+    }
+
+    @Test fun `time aware continuity bonus requires one strong appearance candidate`() {
+        val selected = TargetSelection.select(
+            detection(box(.20f, .20f, .40f, .80f), timestamp = 1_000_000_000L, appearance = appearanceA),
+        )
+        val moving = detection(
+            box(.58f, .20f, .78f, .80f),
+            frame = 2,
+            timestamp = 1_300_000_000L,
+            appearance = appearanceA,
+        )
+        val competitor = detection(
+            box(.80f, .20f, .98f, .80f),
+            frame = 2,
+            timestamp = 1_300_000_000L,
+            appearance = appearanceB,
+        )
+
+        val unique = engine.evaluate(selected, 2, 1_300_000_000L, listOf(moving))
+        val crowded = engine.evaluate(selected, 2, 1_300_000_000L, listOf(moving, competitor))
+
+        assertTrue(unique.diagnostics.candidates.single().strict.usedTimeAwareContinuity)
+        assertEquals(TargetAssociationDecision.Matched, unique.diagnostics.decision)
+        assertEquals(TargetAssociationEngine.MAX_CENTER_DISPLACEMENT, crowded.diagnostics.candidates.first().strict.maximumCenterDisplacement)
+        assertTrue(crowded.diagnostics.candidates.none { it.strict.usedTimeAwareContinuity })
+        assertEquals(
+            crowded.diagnostics.candidates.toString(),
+            TargetAssociationDecision.TemporarilyMissing,
+            crowded.diagnostics.decision,
+        )
+    }
+
+    @Test fun `diagnostics identify every failed association gate without automatic reassignment`() {
+        val selected = TargetSelection.select(detection(appearance = appearanceA))
+        val rejected = detection(
+            box(.75f, .20f, .79f, .30f),
+            confidence = .20f,
+            frame = 2,
+            timestamp = 200_000_000L,
+            appearance = appearanceB,
+        )
+        val evaluation = engine.evaluate(selected, 2, 200_000_000L, listOf(rejected))
+
+        assertEquals(TargetAssociationDecision.TemporarilyMissing, evaluation.diagnostics.decision)
+        assertEquals(
+            TargetAssociationRejectionReason.entries.toSet(),
+            evaluation.diagnostics.candidates.single().strict.rejectionReasons,
+        )
+        assertSame(selected, evaluation.result.target)
     }
 
     @Test fun `frozen constants match validated benchmark`() {

@@ -29,6 +29,21 @@ data class VisionTraceFrame(
     val selectedTargetAfter: TrackedTarget?,
     val associationState: TargetAssociationState,
     val associationDiagnostics: TargetAssociationDiagnostics?,
+    val renderedFrameTimestampNanos: Long? = null,
+    val captureRequestTimestampNanos: Long? = null,
+    val pixelCopyCompletedTimestampNanos: Long? = null,
+    val detectorInferenceStartedTimestampNanos: Long? = null,
+    val detectorInferenceCompletedTimestampNanos: Long? = null,
+    val associationCompletedTimestampNanos: Long? = null,
+    val detectorPreprocessingNanos: Long? = null,
+    val detectorModelInferenceNanos: Long? = null,
+    val detectorDecodeAndNmsNanos: Long? = null,
+    val detectorAppearanceNanos: Long? = null,
+    val analysisMeasuredFps: Float? = null,
+    val analysisCapturedFrames: Long? = null,
+    val analysisDroppedFrames: Long? = null,
+    val analysisPendingFrameDepth: Int? = null,
+    val detectorMeasuredFps: Float? = null,
 )
 
 data class VisionTraceExport(val frameCount: Long, val droppedFrameCount: Long)
@@ -49,6 +64,12 @@ data class YawControlMeasurementTrace(
     val telemetryHeightMeters: Float?,
     val yawFollowState: YawFollowState,
     val yawFollowReason: YawFollowReason,
+    val estimatedTargetCenterX: Float? = null,
+    val targetCenterVelocityPerSecond: Float? = null,
+    val predictionHorizonMillis: Long? = null,
+    val controlYawError: Float? = null,
+    val associationCompletedTimestampNanos: Long? = null,
+    val yawDecisionTimestampNanos: Long = commandTimestampNanos,
 )
 
 data class RcPublicationTrace(
@@ -71,6 +92,14 @@ data class RcPublicationTrace(
     val telemetryHeightMeters: Float?,
     val yawFollowState: YawFollowState,
     val yawFollowReason: YawFollowReason,
+    val desiredPublishedAtNanos: Long? = null,
+    val sendStartedAtNanos: Long? = null,
+    val actualSentAtNanos: Long? = null,
+    val estimatedTargetCenterX: Float? = null,
+    val targetCenterVelocityPerSecond: Float? = null,
+    val predictionHorizonMillis: Long? = null,
+    val controlYawError: Float? = null,
+    val yawDecisionTimestampNanos: Long? = null,
 )
 
 enum class SdkCommandCategory { CONNECT, TAKEOFF, LAND, EMERGENCY, KEEPALIVE, STREAM, CONTROL_MODE, OTHER }
@@ -142,7 +171,7 @@ internal object VisionTraceJson {
         capturedFrameFile: String? = null,
     ): String = buildString(1_024) {
         append('{')
-        field("schemaVersion", 1)
+        field("schemaVersion", 2)
         comma(); field("frameSequence", frame.frameSequence)
         comma(); field("sourceTimestampNanos", frame.sourceTimestampNanos)
         comma(); field("capturedFrameFile", capturedFrameFile)
@@ -158,6 +187,21 @@ internal object VisionTraceJson {
         comma(); name("selectedTargetAfter"); target(frame.selectedTargetAfter)
         comma(); field("associationState", frame.associationState.name)
         comma(); name("associationDiagnostics"); diagnostics(frame.associationDiagnostics)
+        comma(); field("renderedFrameTimestampNanos", frame.renderedFrameTimestampNanos)
+        comma(); field("captureRequestTimestampNanos", frame.captureRequestTimestampNanos)
+        comma(); field("pixelCopyCompletedTimestampNanos", frame.pixelCopyCompletedTimestampNanos)
+        comma(); field("detectorInferenceStartedTimestampNanos", frame.detectorInferenceStartedTimestampNanos)
+        comma(); field("detectorInferenceCompletedTimestampNanos", frame.detectorInferenceCompletedTimestampNanos)
+        comma(); field("associationCompletedTimestampNanos", frame.associationCompletedTimestampNanos)
+        comma(); field("detectorPreprocessingNanos", frame.detectorPreprocessingNanos)
+        comma(); field("detectorModelInferenceNanos", frame.detectorModelInferenceNanos)
+        comma(); field("detectorDecodeAndNmsNanos", frame.detectorDecodeAndNmsNanos)
+        comma(); field("detectorAppearanceNanos", frame.detectorAppearanceNanos)
+        comma(); field("analysisMeasuredFps", frame.analysisMeasuredFps)
+        comma(); field("analysisCapturedFrames", frame.analysisCapturedFrames)
+        comma(); field("analysisDroppedFrames", frame.analysisDroppedFrames)
+        comma(); field("analysisPendingFrameDepth", frame.analysisPendingFrameDepth)
+        comma(); field("detectorMeasuredFps", frame.detectorMeasuredFps)
         comma(); field("droppedBeforeFrame", droppedBeforeFrame)
         append('}')
     }
@@ -172,6 +216,12 @@ internal object VisionTraceJson {
         comma(); field("targetCenterX", trace.targetCenterX)
         comma(); field("rawYawError", trace.rawYawError)
         comma(); field("filteredYawError", trace.filteredYawError)
+        comma(); field("estimatedTargetCenterX", trace.estimatedTargetCenterX)
+        comma(); field("targetCenterVelocityPerSecond", trace.targetCenterVelocityPerSecond)
+        comma(); field("predictionHorizonMillis", trace.predictionHorizonMillis)
+        comma(); field("controlYawError", trace.controlYawError)
+        comma(); field("associationCompletedTimestampNanos", trace.associationCompletedTimestampNanos)
+        comma(); field("yawDecisionTimestampNanos", trace.yawDecisionTimestampNanos)
         comma(); field("associationState", trace.associationState.name)
         comma(); field("previousYawRc", trace.previousYawRc)
         comma(); field("requestedYawRc", trace.requestedYawRc)
@@ -193,6 +243,14 @@ internal object VisionTraceJson {
         comma(); field("targetCenterX", trace.targetCenterX)
         comma(); field("rawYawError", trace.rawYawError)
         comma(); field("filteredYawError", trace.filteredYawError)
+        comma(); field("estimatedTargetCenterX", trace.estimatedTargetCenterX)
+        comma(); field("targetCenterVelocityPerSecond", trace.targetCenterVelocityPerSecond)
+        comma(); field("predictionHorizonMillis", trace.predictionHorizonMillis)
+        comma(); field("controlYawError", trace.controlYawError)
+        comma(); field("yawDecisionTimestampNanos", trace.yawDecisionTimestampNanos)
+        comma(); field("desiredPublishedAtNanos", trace.desiredPublishedAtNanos)
+        comma(); field("sendStartedAtNanos", trace.sendStartedAtNanos)
+        comma(); field("actualSentAtNanos", trace.actualSentAtNanos)
         comma(); field("associationState", trace.associationState.name)
         comma(); field("previousYawRc", trace.previousYawRc)
         comma(); field("requestedYawRc", trace.requestedYawRc)
@@ -320,6 +378,15 @@ internal object VisionTraceJson {
         append('{'); field("centerDisplacement", value.centerDisplacement)
         comma(); field("iou", value.iou)
         comma(); field("areaRatio", value.areaRatio)
+        comma(); field("appearanceSimilarity", value.appearanceSimilarity)
+        comma(); field("maximumCenterDisplacement", value.maximumCenterDisplacement)
+        comma(); field("usedTimeAwareContinuity", value.usedTimeAwareContinuity)
+        comma(); name("rejectionReasons"); append('[')
+        value.rejectionReasons.forEachIndexed { index, reason ->
+            if (index > 0) comma()
+            string(reason.name)
+        }
+        append(']')
         comma(); field("eligible", value.eligible)
         comma(); field("score", value.score)
         append('}')

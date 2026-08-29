@@ -45,16 +45,34 @@ class Yolo11nLiteRtPersonDetector(
 
     override val descriptor = PersonDetectorDescriptor(model.displayName, DetectorBackend.Cpu)
 
-    override fun detect(frame: PersonDetectorFrame): List<PersonDetection> {
+    override fun detect(frame: PersonDetectorFrame): List<PersonDetection> = detectDetailed(frame).candidates
+
+    override fun detectDetailed(frame: PersonDetectorFrame): PersonDetectorOutput {
         val source = frame.bitmap
+        val preprocessingStartedAt = System.nanoTime()
         val geometry = preprocess(source)
+        val preprocessingNanos = (System.nanoTime() - preprocessingStartedAt).coerceAtLeast(0L)
+        val inferenceStartedAt = System.nanoTime()
         inputBuffers[0].writeFloat(input)
         compiledModel.run(inputBuffers, outputBuffers)
         val output = outputBuffers[0].readFloat()
+        val modelInferenceNanos = (System.nanoTime() - inferenceStartedAt).coerceAtLeast(0L)
         require(output.size == OUTPUT_CHANNELS * OUTPUT_CANDIDATES) {
             "Unexpected YOLO11n output size ${output.size}"
         }
-        return decode(output, source, frame, geometry)
+        val decodeStartedAt = System.nanoTime()
+        val decoded = decode(output, source, frame, geometry)
+        val postprocessingNanos = (System.nanoTime() - decodeStartedAt).coerceAtLeast(0L)
+        return PersonDetectorOutput(
+            candidates = decoded.detections,
+            duplicateDetectionCount = 0,
+            stageTiming = PersonDetectorStageTiming(
+                preprocessingNanos = preprocessingNanos,
+                modelInferenceNanos = modelInferenceNanos,
+                decodeAndNmsNanos = (postprocessingNanos - decoded.appearanceNanos).coerceAtLeast(0L),
+                appearanceNanos = decoded.appearanceNanos,
+            ),
+        )
     }
 
     private fun preprocess(source: Bitmap): LetterboxGeometry {
@@ -85,7 +103,7 @@ class Yolo11nLiteRtPersonDetector(
         source: Bitmap,
         frame: PersonDetectorFrame,
         geometry: LetterboxGeometry,
-    ): List<PersonDetection> {
+    ): DecodeResult {
         val raw = ArrayList<DecodedBox>()
         for (candidateIndex in 0 until OUTPUT_CANDIDATES) {
             var bestClass = 0
@@ -114,21 +132,26 @@ class Yolo11nLiteRtPersonDetector(
                 retained += candidate
             }
         }
-        return retained.map { box ->
+        var appearanceNanos = 0L
+        val detections = retained.map { box ->
             val normalized = NormalizedBoundingBox(
                 box.left / source.width,
                 box.top / source.height,
                 box.right / source.width,
                 box.bottom / source.height,
             )
+            val appearanceStartedAt = System.nanoTime()
+            val appearance = extractAppearance(source, normalized)
+            appearanceNanos += (System.nanoTime() - appearanceStartedAt).coerceAtLeast(0L)
             PersonDetection(
                 boundingBox = normalized,
                 confidence = box.confidence.coerceIn(0f, 1f),
                 frameSequence = frame.metadata.sequence,
                 sourceTimestampNanos = frame.metadata.captureTimestampNanos,
-                appearance = extractAppearance(source, normalized),
+                appearance = appearance,
             )
         }
+        return DecodeResult(detections, appearanceNanos)
     }
 
     override fun close() {
@@ -139,6 +162,7 @@ class Yolo11nLiteRtPersonDetector(
     }
 
     private data class LetterboxGeometry(val scale: Float, val padLeft: Float, val padTop: Float)
+    private data class DecodeResult(val detections: List<PersonDetection>, val appearanceNanos: Long)
     private data class DecodedBox(
         val left: Float,
         val top: Float,

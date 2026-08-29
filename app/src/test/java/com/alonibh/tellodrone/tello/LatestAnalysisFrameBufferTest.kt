@@ -8,6 +8,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LatestAnalysisFrameBufferTest {
+    @Test fun `production capture opportunity is fifteen fps while handoff remains single slot`() {
+        assertEquals(15, PixelCopyDecodedFrameSource.MAX_ANALYSIS_FPS)
+        assertEquals(0, LatestAnalysisFrameBuffer<FakeFrame>().pendingCount)
+    }
+
     @Test fun `newer unread frame replaces and releases old frame`() {
         val buffer = LatestAnalysisFrameBuffer<FakeFrame>()
         val old = FakeFrame(1, 100)

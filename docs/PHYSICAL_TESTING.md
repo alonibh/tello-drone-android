@@ -1,5 +1,38 @@
 # Physical validation
 
+## Current yaw-follow latency and stability validation — pending
+
+This code revision requires a fresh guarded-flight run on the target tablet before latency targets
+or the reported late-recording false-loss cause can be considered physically verified. Export the
+debug vision/flight trace from the same run; do not estimate timings from screen-recording frames.
+
+1. Grounded, connect and start person detection. Confirm analysis reports approximately 15 FPS,
+   detector input remains newest-frame/drop-old, maximum pending depth is at most one, and dropped
+   counts may rise under detector load without memory growth or preview degradation.
+2. Select one person in a clear single-person scene, take off low with guards, arm yaw follow, and
+   remain centered. Introduce natural bounding-box jitter without deliberate movement; physical yaw
+   must remain zero.
+3. Move decisively left and right. Confirm correction begins on the first fresh trustworthy result,
+   remains bounded to 28 RC, and lateral/forward/vertical autonomous axes remain zero.
+4. Stop near center after a large correction. The first fresh raw measurement inside the release
+   region must send yaw zero immediately. Repeat a center crossing and confirm zero braking precedes
+   any opposite command.
+5. Briefly obstruct detection or overload perception. A prior nonzero command must zero after at
+   most 110 ms without a newer accepted match; RC TTL remains independently active.
+6. Repeat the former continuous-visible walking/yaw scenario. If association becomes missing or
+   lost, inspect each candidate's confidence, geometry, area, appearance, ambiguity, source interval,
+   and rejection reasons. Do not reselect automatically during diagnosis.
+7. Export the trace and record p50/p95 for render-to-PixelCopy, render-to-detector start/complete,
+   detector stages, detector-to-association, source-to-yaw-decision, yaw-decision-to-actual-send,
+   source-to-actual-send, physical perception age, analysis/detector FPS, drops, and pending depth.
+8. Reconfirm manual 30/65/100, STOP/HOVER, landing cleanup, 900 ms Emergency hold, passive Connected
+   status, overlay alignment, 4:3 aspect-fit video, and symmetric joysticks.
+
+No device/AVD was available during the implementation verification, and the referenced screen
+recording was not present in the attachment payload. Consequently, before/after target-tablet FPS
+and latency percentiles and the exact 176-180 second rejection cause remain unmeasured pending this
+procedure.
+
 ## Phase 3A video validation — complete
 
 Phase 3A was physically validated on the Blaupunkt BP_6010 tablet. Real live Tello video remained

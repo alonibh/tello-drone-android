@@ -77,6 +77,45 @@ class PersonDetectionPipelineTest {
         assertTrue(measurements.last().measuredFps != null)
     }
 
+    @Test fun `stage timestamps preserve render capture inference ordering and detector profile`() {
+        val measurements = mutableListOf<DetectorInferenceMeasurement>()
+        var now = 120L
+        val stageTiming = PersonDetectorStageTiming(3L, 5L, 2L, 1L)
+        val detector = object : PersonDetector {
+            override val descriptor = descriptor()
+            override fun detect(frame: PersonDetectorFrame) = emptyList<PersonDetection>()
+            override fun detectDetailed(frame: PersonDetectorFrame) =
+                PersonDetectorOutput(emptyList(), 0, stageTiming)
+            override fun close() = Unit
+        }
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { _, _ -> detector },
+            clockNanos = { now += 10L; now },
+            onSnapshot = {},
+            onInferenceMeasurement = measurements::add,
+        )
+        val metadata = AnalysisFrameMetadata(
+            width = 320,
+            height = 240,
+            captureTimestampNanos = 100L,
+            pixelRepresentation = AnalysisPixelRepresentation.ARGB_8888_BITMAP,
+            sequence = 7L,
+            renderedFrameTimestampNanos = 100L,
+            captureRequestTimestampNanos = 110L,
+            pixelCopyCompletedTimestampNanos = 120L,
+        )
+
+        pipeline.start()
+        pipeline.process(PersonDetectorFrame(metadata) { error("pixels not required") })
+
+        val measurement = measurements.single()
+        assertTrue(measurement.renderedFrameTimestampNanos <= measurement.captureRequestTimestampNanos)
+        assertTrue(measurement.captureRequestTimestampNanos <= measurement.pixelCopyCompletedTimestampNanos)
+        assertTrue(measurement.pixelCopyCompletedTimestampNanos <= measurement.inferenceStartedAtNanos)
+        assertTrue(measurement.inferenceStartedAtNanos <= measurement.completedAtNanos)
+        assertEquals(stageTiming, measurement.stageTiming)
+    }
+
     @Test fun `fake detector result is published and zero result clears immediately`() {
         var result = listOf(detection(sourceTimestamp = 100L))
         val fake = FakePersonDetector { result }

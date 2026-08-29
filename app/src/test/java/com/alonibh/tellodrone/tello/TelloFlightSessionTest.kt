@@ -9,6 +9,7 @@ import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
+import com.alonibh.tellodrone.domain.ProductionYawController
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
@@ -540,8 +541,8 @@ class TelloFlightSessionTest {
         val command = fixture.transport.rc.last()
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
         assertTrue(command.yaw > 0)
-        assertEquals(4, command.yaw)
-        assertTrue(kotlin.math.abs(command.yaw) <= 16)
+        assertEquals(ProductionYawController.MAXIMUM_ACCELERATION_STEP, command.yaw)
+        assertTrue(kotlin.math.abs(command.yaw) <= ProductionYawController.ABSOLUTE_YAW_RC_CAP)
         assertEquals(0, command.lateral)
         assertEquals(0, command.forward)
         assertEquals(0, command.vertical)
@@ -550,7 +551,7 @@ class TelloFlightSessionTest {
         leftFixture.session.setYawFollowArmed(true)
         advanceTimeBy(50L)
         runCurrent()
-        assertEquals(-4, leftFixture.transport.rc.last().yaw)
+        assertEquals(-ProductionYawController.MAXIMUM_ACCELERATION_STEP, leftFixture.transport.rc.last().yaw)
     }
 
     @Test fun `centered matched target sends zero`() = runTest {

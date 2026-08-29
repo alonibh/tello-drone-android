@@ -798,6 +798,21 @@ class TelloFlightSession(
                         selectedTargetAfter = after.target,
                         associationState = after.targetAssociationState,
                         associationDiagnostics = associationDiagnostics,
+                        renderedFrameTimestampNanos = videoState.processedRenderedFrameTimestampNanos,
+                        captureRequestTimestampNanos = videoState.processedCaptureRequestTimestampNanos,
+                        pixelCopyCompletedTimestampNanos = videoState.processedPixelCopyCompletedTimestampNanos,
+                        detectorInferenceStartedTimestampNanos = videoState.processedDetectorInferenceStartedTimestampNanos,
+                        detectorInferenceCompletedTimestampNanos = videoState.processedDetectorInferenceCompletedTimestampNanos,
+                        associationCompletedTimestampNanos = sourceNowNanos(),
+                        detectorPreprocessingNanos = videoState.detectorPreprocessingNanos,
+                        detectorModelInferenceNanos = videoState.detectorModelInferenceNanos,
+                        detectorDecodeAndNmsNanos = videoState.detectorDecodeAndNmsNanos,
+                        detectorAppearanceNanos = videoState.detectorAppearanceNanos,
+                        analysisMeasuredFps = videoState.analysisMeasuredFps,
+                        analysisCapturedFrames = videoState.analysisCapturedFrames,
+                        analysisDroppedFrames = videoState.analysisDroppedFrames,
+                        analysisPendingFrameDepth = videoState.analysisPendingFrameDepth,
+                        detectorMeasuredFps = videoState.detectorMeasuredFps,
                     )
                 }
             }
@@ -947,8 +962,17 @@ class TelloFlightSession(
             personDetectionState = PersonDetectionState.Off,
             detectorCandidates = emptyList(),
             personDetections = emptyList(),
-            processedDetectorFrameSequence = null,
-            processedDetectorSourceTimestampNanos = null,
+              processedDetectorFrameSequence = null,
+              processedDetectorSourceTimestampNanos = null,
+              processedRenderedFrameTimestampNanos = null,
+              processedCaptureRequestTimestampNanos = null,
+              processedPixelCopyCompletedTimestampNanos = null,
+              processedDetectorInferenceStartedTimestampNanos = null,
+              processedDetectorInferenceCompletedTimestampNanos = null,
+              detectorPreprocessingNanos = null,
+              detectorModelInferenceNanos = null,
+              detectorDecodeAndNmsNanos = null,
+              detectorAppearanceNanos = null,
         ),
         personDetections = emptyList(),
         target = null,
@@ -1040,6 +1064,11 @@ class TelloFlightSession(
             yawRc = control?.safetyFilteredYawRc ?: 0,
             generation = generation,
             validForMillis = control?.validForMillis ?: 0L,
+            validityExpiryReason = if (control?.validityLimitedByCommandHold == true) {
+                RcSendSuppressionReason.AUTONOMOUS_COMMAND_HOLD_EXPIRED
+            } else {
+                RcSendSuppressionReason.PERCEPTION_AGE_EXPIRED
+            },
             context = control?.let {
                 AutonomousYawContext(
                     control = it,
@@ -1074,6 +1103,12 @@ class TelloFlightSession(
                 telemetryHeightMeters = current.telemetry.heightMeters,
                 yawFollowState = decision.state,
                 yawFollowReason = decision.reason,
+                estimatedTargetCenterX = control?.estimatedTargetCenterX,
+                targetCenterVelocityPerSecond = control?.targetCenterVelocityPerSecond,
+                predictionHorizonMillis = control?.predictionHorizonMillis,
+                controlYawError = control?.controlYawError,
+                associationCompletedTimestampNanos = frame.associationCompletedTimestampNanos,
+                yawDecisionTimestampNanos = commandTimestampNanos,
             ),
         )
     }
@@ -1111,7 +1146,15 @@ class TelloFlightSession(
                 telemetryHeightMeters = activeContext?.telemetryHeightMeters ?: current.telemetry.heightMeters,
                 yawFollowState = activeContext?.yawFollowState ?: current.yawFollowDecision.state,
                 yawFollowReason = activeContext?.yawFollowReason ?: current.yawFollowDecision.reason,
-            ),
+                desiredPublishedAtNanos = publication.desiredPublishedAtNanos,
+                sendStartedAtNanos = publication.sendStartedAtNanos,
+                actualSentAtNanos = publication.sentAtNanos,
+                estimatedTargetCenterX = control?.estimatedTargetCenterX,
+                targetCenterVelocityPerSecond = control?.targetCenterVelocityPerSecond,
+                predictionHorizonMillis = control?.predictionHorizonMillis,
+                  controlYawError = control?.controlYawError,
+                  yawDecisionTimestampNanos = control?.commandTimestampNanos,
+              ),
         )
     }
 

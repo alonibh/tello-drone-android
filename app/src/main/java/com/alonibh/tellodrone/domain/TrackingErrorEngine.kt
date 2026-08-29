@@ -46,7 +46,10 @@ class TrackingErrorEngine {
         } ?: 0f
         previous = TrackingErrors(
             rawYawError = rawYaw,
-            yawError = if (seeded) ema(previous.yawError, controlYaw, YAW_EMA_ALPHA) else controlYaw,
+            yawError = if (seeded) {
+                val alpha = if (abs(rawYaw) >= RESPONSIVE_YAW_ERROR) FAR_YAW_EMA_ALPHA else NEAR_YAW_EMA_ALPHA
+                ema(previous.yawError, controlYaw, alpha)
+            } else controlYaw,
             verticalError = if (seeded) ema(previous.verticalError, rawVertical, VERTICAL_DISTANCE_EMA_ALPHA) else rawVertical,
             forwardBackError = if (seeded && distanceReference != null) {
                 ema(previous.forwardBackError, rawDistance, VERTICAL_DISTANCE_EMA_ALPHA)
@@ -77,7 +80,9 @@ class TrackingErrorEngine {
         const val Y_DEADZONE = 15f / 720f
         /** Relative visual-scale jitter tolerance (7%); no pixel or meter calibration is implied. */
         const val DISTANCE_DEADZONE = .07f
-        const val YAW_EMA_ALPHA = .65f
+        const val RESPONSIVE_YAW_ERROR = .08f
+        const val FAR_YAW_EMA_ALPHA = .90f
+        const val NEAR_YAW_EMA_ALPHA = .45f
         const val VERTICAL_DISTANCE_EMA_ALPHA = .4f
     }
 }

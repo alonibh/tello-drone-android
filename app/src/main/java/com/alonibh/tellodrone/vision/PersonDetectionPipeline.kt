@@ -28,9 +28,21 @@ data class PersonDetectionSnapshot(
     /** Present only for a completed detector inference; it is retained when that result is empty. */
     val processedFrameSequence: Long? = null,
     val processedSourceTimestampNanos: Long? = null,
+    val renderedFrameTimestampNanos: Long? = null,
+    val captureRequestTimestampNanos: Long? = null,
+    val pixelCopyCompletedTimestampNanos: Long? = null,
+    val detectorInferenceStartedTimestampNanos: Long? = null,
+    val detectorInferenceCompletedTimestampNanos: Long? = null,
+    val detectorStageTiming: PersonDetectorStageTiming? = null,
 )
 
 data class DetectorInferenceMeasurement(
+    val frameSequence: Long,
+    val sourceTimestampNanos: Long,
+    val renderedFrameTimestampNanos: Long,
+    val captureRequestTimestampNanos: Long,
+    val pixelCopyCompletedTimestampNanos: Long,
+    val inferenceStartedAtNanos: Long,
     val completedAtNanos: Long,
     val inferenceNanos: Long,
     /** Creation time only for the first inference after a detector start/recreate. */
@@ -42,6 +54,7 @@ data class DetectorInferenceMeasurement(
     val inferenceP95Millis: Float?,
     val analyzedFrames: Long,
     val measuredFps: Float?,
+    val stageTiming: PersonDetectorStageTiming?,
 )
 
 /** Pure lifecycle/staleness state used by the service-owned runtime and JVM tests. */
@@ -74,6 +87,10 @@ class PersonDetectionStore(
         inferenceP50Millis: Float? = null,
         inferenceP95Millis: Float? = null,
         analyzedFrames: Long = 0,
+        frameMetadata: com.alonibh.tellodrone.tello.AnalysisFrameMetadata? = null,
+        inferenceStartedAtNanos: Long? = null,
+        inferenceCompletedAtNanos: Long? = null,
+        detectorStageTiming: PersonDetectorStageTiming? = null,
     ): PersonDetectionSnapshot {
         snapshot = PersonDetectionSnapshot(
             state = PersonDetectionState.Detecting,
@@ -91,6 +108,12 @@ class PersonDetectionStore(
             confidenceThreshold = confidenceThreshold,
             processedFrameSequence = processedFrameSequence,
             processedSourceTimestampNanos = processedSourceTimestampNanos,
+            renderedFrameTimestampNanos = frameMetadata?.renderedFrameTimestampNanos,
+            captureRequestTimestampNanos = frameMetadata?.captureRequestTimestampNanos,
+            pixelCopyCompletedTimestampNanos = frameMetadata?.pixelCopyCompletedTimestampNanos,
+            detectorInferenceStartedTimestampNanos = inferenceStartedAtNanos,
+            detectorInferenceCompletedTimestampNanos = inferenceCompletedAtNanos,
+            detectorStageTiming = detectorStageTiming,
         )
         return snapshot
     }
@@ -222,7 +245,7 @@ class PersonDetectionPipeline(
         val request = activeRequestSnapshot() ?: return
         try {
             var creationNanos: Long? = null
-            val (detections, descriptor, inferenceNanos) = synchronized(detectorLock) {
+            val completed = synchronized(detectorLock) {
                 if (!isRequestCurrent(request)) return
                 if (detectorModel != request.model || detectorPreference != request.preference) {
                     runCatching { detector?.close() }
@@ -246,9 +269,19 @@ class PersonDetectionPipeline(
                 if (!isRequestCurrent(request)) return
                 onAnalyzedFrame(frame)
                 val inferenceStartedAt = clockNanos()
-                val detected = activeDetector.detect(frame)
-                Triple(detected, activeDetector.descriptor, (clockNanos() - inferenceStartedAt).coerceAtLeast(0L))
+                val detected = activeDetector.detectDetailed(frame)
+                val inferenceCompletedAt = clockNanos()
+                CompletedDetection(
+                    output = detected,
+                    descriptor = activeDetector.descriptor,
+                    inferenceStartedAtNanos = inferenceStartedAt,
+                    inferenceCompletedAtNanos = inferenceCompletedAt,
+                    totalInferenceNanos = (inferenceCompletedAt - inferenceStartedAt).coerceAtLeast(0L),
+                )
             }
+            val detections = completed.output.candidates
+            val descriptor = completed.descriptor
+            val inferenceNanos = completed.totalInferenceNanos
             val filteredDetections = detections.filter { it.confidence >= request.confidenceThreshold }
             val finishedAt = clockNanos()
             val measuredFps = frameRate.onResult(finishedAt)
@@ -269,11 +302,21 @@ class PersonDetectionPipeline(
                         inferenceP50Millis = timingSnapshot.p50Millis,
                         inferenceP95Millis = timingSnapshot.p95Millis,
                         analyzedFrames = timingSnapshot.frames,
+                        frameMetadata = frame.metadata,
+                        inferenceStartedAtNanos = completed.inferenceStartedAtNanos,
+                        inferenceCompletedAtNanos = completed.inferenceCompletedAtNanos,
+                        detectorStageTiming = completed.output.stageTiming,
                     ),
                 )
                 onInferenceMeasurement(
                     DetectorInferenceMeasurement(
-                        completedAtNanos = finishedAt,
+                        frameSequence = frame.metadata.sequence,
+                        sourceTimestampNanos = frame.metadata.captureTimestampNanos,
+                        renderedFrameTimestampNanos = frame.metadata.renderedFrameTimestampNanos,
+                        captureRequestTimestampNanos = frame.metadata.captureRequestTimestampNanos,
+                        pixelCopyCompletedTimestampNanos = frame.metadata.pixelCopyCompletedTimestampNanos,
+                        inferenceStartedAtNanos = completed.inferenceStartedAtNanos,
+                        completedAtNanos = completed.inferenceCompletedAtNanos,
                         inferenceNanos = inferenceNanos,
                         startupNanos = creationNanos,
                         descriptor = descriptor,
@@ -282,6 +325,7 @@ class PersonDetectionPipeline(
                         inferenceP95Millis = timingSnapshot.p95Millis,
                         analyzedFrames = timingSnapshot.frames,
                         measuredFps = measuredFps,
+                        stageTiming = completed.output.stageTiming,
                     ),
                 )
             }
@@ -350,6 +394,14 @@ class PersonDetectionPipeline(
         val model: DetectorModel,
         val preference: DetectorBackendPreference,
         val confidenceThreshold: Float,
+    )
+
+    private data class CompletedDetection(
+        val output: PersonDetectorOutput,
+        val descriptor: PersonDetectorDescriptor,
+        val inferenceStartedAtNanos: Long,
+        val inferenceCompletedAtNanos: Long,
+        val totalInferenceNanos: Long,
     )
 
     private class DetectionFrameRate {

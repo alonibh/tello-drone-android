@@ -500,6 +500,9 @@ class AndroidTelloVideoController(
                 analysisLatestSequence = diagnostics.latestSequence,
                 analysisCapturedFrames = diagnostics.capturedFrames,
                 analysisDroppedFrames = diagnostics.droppedFrames,
+                analysisLatestCaptureRequestTimestampNanos = diagnostics.latestCaptureRequestTimestampNanos,
+                analysisLatestPixelCopyCompletedTimestampNanos = diagnostics.latestPixelCopyCompletedTimestampNanos,
+                analysisPendingFrameDepth = diagnostics.pendingFrameDepth,
             )
         }
     }
@@ -532,6 +535,15 @@ class AndroidTelloVideoController(
                 detectorConfidenceThreshold = snapshot.confidenceThreshold,
                 processedDetectorFrameSequence = snapshot.processedFrameSequence,
                 processedDetectorSourceTimestampNanos = snapshot.processedSourceTimestampNanos,
+                processedRenderedFrameTimestampNanos = snapshot.renderedFrameTimestampNanos,
+                processedCaptureRequestTimestampNanos = snapshot.captureRequestTimestampNanos,
+                processedPixelCopyCompletedTimestampNanos = snapshot.pixelCopyCompletedTimestampNanos,
+                processedDetectorInferenceStartedTimestampNanos = snapshot.detectorInferenceStartedTimestampNanos,
+                processedDetectorInferenceCompletedTimestampNanos = snapshot.detectorInferenceCompletedTimestampNanos,
+                detectorPreprocessingNanos = snapshot.detectorStageTiming?.preprocessingNanos,
+                detectorModelInferenceNanos = snapshot.detectorStageTiming?.modelInferenceNanos,
+                detectorDecodeAndNmsNanos = snapshot.detectorStageTiming?.decodeAndNmsNanos,
+                detectorAppearanceNanos = snapshot.detectorStageTiming?.appearanceNanos,
                 detectorCandidates = snapshot.candidates,
                 personDetections = snapshot.detections,
             )

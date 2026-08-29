@@ -17,6 +17,7 @@ sealed interface TargetAssociationResult {
 }
 
 enum class TargetAssociationDecision { NoTarget, Ignored, Matched, TemporarilyMissing, Lost, Ambiguous }
+enum class TargetAssociationRejectionReason { LOW_CONFIDENCE, GEOMETRY_CONTINUITY, AREA_RATIO, APPEARANCE }
 
 data class TargetAssociationMetrics(
     val centerDisplacement: Float,
@@ -25,6 +26,9 @@ data class TargetAssociationMetrics(
     val eligible: Boolean,
     val score: Float,
     val appearanceSimilarity: Float = 0f,
+    val maximumCenterDisplacement: Float = TargetAssociationEngine.MAX_CENTER_DISPLACEMENT,
+    val usedTimeAwareContinuity: Boolean = false,
+    val rejectionReasons: Set<TargetAssociationRejectionReason> = emptySet(),
 )
 
 data class TargetCandidateDiagnostic(
@@ -83,7 +87,7 @@ class TargetAssociationEngine {
             it.frameSequence == frameSequence && it.sourceTimestampNanos == sourceTimestampNanos
         }
         val candidates = frameDetections.mapIndexed { index, detection ->
-            Candidate(index, detection, metrics(target, detection))
+            Candidate(index, detection, metrics(target, detection, frameDetections.size == 1))
         }
         val eligible = candidates.filter { it.metrics.eligible }.sortedByDescending { it.metrics.score }
         fun diagnostics(decision: TargetAssociationDecision, selected: Int? = null) = TargetAssociationDiagnostics(
@@ -120,7 +124,11 @@ class TargetAssociationEngine {
         return TargetAssociationEvaluation(result, diagnostics(TargetAssociationDecision.Matched, best.detectionIndex))
     }
 
-    private fun metrics(target: TrackedTarget, detection: PersonDetection): TargetAssociationMetrics {
+    private fun metrics(
+        target: TrackedTarget,
+        detection: PersonDetection,
+        uniqueDetection: Boolean,
+    ): TargetAssociationMetrics {
         val previous = target.boundingBox
         val next = detection.boundingBox
         val previousArea = area(previous)
@@ -132,14 +140,36 @@ class TargetAssociationEngine {
         val iou = if (union > 0f) intersection / union else 0f
         val areaRatio = if (previousArea > 0f) nextArea / previousArea else 0f
         val appearance = appearanceSimilarity(target.appearance, detection.appearance)
-        val eligible = detection.confidence >= DETECTOR_CONFIDENCE &&
-            (iou >= MIN_IOU || distance <= MAX_CENTER_DISPLACEMENT) &&
-            areaRatio in MIN_AREA_RATIO..MAX_AREA_RATIO &&
-            appearance >= MIN_APPEARANCE_SIMILARITY
-        val distanceScore = (1f - distance / MAX_CENTER_DISPLACEMENT).coerceIn(0f, 1f)
+        val elapsedNanos = (detection.sourceTimestampNanos - target.lastSeenSourceTimestampNanos).coerceAtLeast(0L)
+        val elapsedSeconds = elapsedNanos / NANOS_PER_SECOND
+        val timeAwareEligible = uniqueDetection && appearance >= TIME_AWARE_MIN_APPEARANCE_SIMILARITY &&
+            elapsedSeconds in BASE_ASSOCIATION_INTERVAL_SECONDS..MAX_TIME_AWARE_INTERVAL_SECONDS
+        val extraDisplacement = if (timeAwareEligible) {
+            ((elapsedSeconds - BASE_ASSOCIATION_INTERVAL_SECONDS) * PLAUSIBLE_CENTER_VELOCITY_PER_SECOND)
+                .coerceIn(0f, MAX_TIME_AWARE_DISPLACEMENT_BONUS)
+        } else 0f
+        val maximumDisplacement = MAX_CENTER_DISPLACEMENT + extraDisplacement
+        val rejectionReasons = buildSet {
+            if (detection.confidence < DETECTOR_CONFIDENCE) add(TargetAssociationRejectionReason.LOW_CONFIDENCE)
+            if (iou < MIN_IOU && distance > maximumDisplacement) add(TargetAssociationRejectionReason.GEOMETRY_CONTINUITY)
+            if (areaRatio !in MIN_AREA_RATIO..MAX_AREA_RATIO) add(TargetAssociationRejectionReason.AREA_RATIO)
+            if (appearance < MIN_APPEARANCE_SIMILARITY) add(TargetAssociationRejectionReason.APPEARANCE)
+        }
+        val eligible = rejectionReasons.isEmpty()
+        val distanceScore = (1f - distance / maximumDisplacement).coerceIn(0f, 1f)
         val score = IOU_WEIGHT * iou + DISTANCE_WEIGHT * distanceScore +
             APPEARANCE_WEIGHT * appearance + CONFIDENCE_WEIGHT * detection.confidence
-        return TargetAssociationMetrics(distance, iou, areaRatio, eligible, score, appearance)
+        return TargetAssociationMetrics(
+            distance,
+            iou,
+            areaRatio,
+            eligible,
+            score,
+            appearance,
+            maximumDisplacement,
+            extraDisplacement > 0f,
+            rejectionReasons,
+        )
     }
 
     private fun appearanceSimilarity(first: HsvAppearanceHistogram?, second: HsvAppearanceHistogram?): Float {
@@ -213,6 +243,11 @@ class TargetAssociationEngine {
         const val MISSING_TIMEOUT_NANOS = 400_000_000L
         const val MIN_AREA_RATIO = 0.35f
         const val MAX_AREA_RATIO = 2.80f
+        const val TIME_AWARE_MIN_APPEARANCE_SIMILARITY = .65f
+        const val MAX_TIME_AWARE_DISPLACEMENT_BONUS = .06f
+        const val PLAUSIBLE_CENTER_VELOCITY_PER_SECOND = .30f
+        const val BASE_ASSOCIATION_INTERVAL_SECONDS = .125f
+        const val MAX_TIME_AWARE_INTERVAL_SECONDS = .30f
         const val CANDIDATE_AMBIGUITY_MARGIN = AMBIGUITY_MARGIN
         const val ASSIGNMENT_AMBIGUITY_MARGIN = AMBIGUITY_MARGIN
         private const val IOU_WEIGHT = 0.42f
@@ -220,6 +255,7 @@ class TargetAssociationEngine {
         private const val APPEARANCE_WEIGHT = 0.27f
         private const val CONFIDENCE_WEIGHT = 0.08f
         private const val APPEARANCE_BLEND = 0.04f
+        private const val NANOS_PER_SECOND = 1_000_000_000f
     }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

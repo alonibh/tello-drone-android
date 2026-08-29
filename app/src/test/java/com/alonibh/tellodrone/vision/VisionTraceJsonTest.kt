@@ -39,6 +39,21 @@ class VisionTraceJsonTest {
                     selectedDetectionIndex = 0,
                     eligibleCandidateCount = 1,
                 ),
+                renderedFrameTimestampNanos = 90L,
+                captureRequestTimestampNanos = 91L,
+                pixelCopyCompletedTimestampNanos = 92L,
+                detectorInferenceStartedTimestampNanos = 93L,
+                detectorInferenceCompletedTimestampNanos = 96L,
+                associationCompletedTimestampNanos = 97L,
+                detectorPreprocessingNanos = 1L,
+                detectorModelInferenceNanos = 2L,
+                detectorDecodeAndNmsNanos = 3L,
+                detectorAppearanceNanos = 4L,
+                analysisMeasuredFps = 15f,
+                analysisCapturedFrames = 12L,
+                analysisDroppedFrames = 2L,
+                analysisPendingFrameDepth = 1,
+                detectorMeasuredFps = 9f,
             ),
             droppedBeforeFrame = 2L,
         )
@@ -50,6 +65,9 @@ class VisionTraceJsonTest {
         assertTrue(line.contains("\"selectedTargetBefore\":{"))
         assertTrue(line.contains("\"decision\":\"Matched\""))
         assertTrue(line.contains("\"droppedBeforeFrame\":2"))
+        assertTrue(line.contains("\"detectorInferenceStartedTimestampNanos\":93"))
+        assertTrue(line.contains("\"detectorAppearanceNanos\":4"))
+        assertTrue(line.contains("\"analysisPendingFrameDepth\":1"))
         assertFalse(line.contains('\n'))
     }
 
@@ -94,6 +112,10 @@ class VisionTraceJsonTest {
                 telemetryHeightMeters = 1.2f,
                 yawFollowState = YawFollowState.ACTIVE,
                 yawFollowReason = YawFollowReason.ACTIVE,
+                yawDecisionTimestampNanos = 1_134_000_000L,
+                desiredPublishedAtNanos = 1_135_000_000L,
+                sendStartedAtNanos = 1_150_000_000L,
+                actualSentAtNanos = 1_151_000_000L,
             ),
         )
 
@@ -102,6 +124,8 @@ class VisionTraceJsonTest {
         assertTrue(measurement.contains("\"safetyFilteredYawRc\":6"))
         assertTrue(publication.contains("\"actualSentVector\":{\"lateral\":0,\"forward\":0,\"vertical\":0,\"yaw\":6}"))
         assertTrue(publication.contains("\"inputKind\":\"AUTONOMOUS_YAW\""))
+        assertTrue(publication.contains("\"yawDecisionTimestampNanos\":1134000000"))
+        assertTrue(publication.contains("\"actualSentAtNanos\":1151000000"))
         assertFalse(publication.contains('\n'))
     }
 }

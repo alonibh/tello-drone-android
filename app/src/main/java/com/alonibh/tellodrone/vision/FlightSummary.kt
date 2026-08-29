@@ -9,6 +9,18 @@ internal data class FlightSummary(
     val durationMs: Long, val armedMs: Long, val activeMs: Long, val matchedPercent: Double?,
     val missingCount: Int, val missingMs: Long, val longestMissingMs: Long, val lostCount: Int, val requiresRearmCount: Int,
     val inferenceP50: Double?, val inferenceP95: Double?, val detectorFps: Double?, val analysisFps: Double?, val previewFps: Double?,
+    val renderToPixelCopyP50: Double?, val renderToPixelCopyP95: Double?,
+    val renderToDetectorStartP50: Double?, val renderToDetectorStartP95: Double?,
+    val renderToDetectorCompleteP50: Double?, val renderToDetectorCompleteP95: Double?,
+    val detectorCompleteToAssociationP50: Double?, val detectorCompleteToAssociationP95: Double?,
+    val sourceToDecisionP50: Double?, val sourceToDecisionP95: Double?,
+    val decisionToSendP50: Double?, val decisionToSendP95: Double?,
+    val sourceToPhysicalSendP50: Double?, val sourceToPhysicalSendP95: Double?,
+    val analysisDroppedFrames: Long?, val maximumAnalysisPendingDepth: Int?,
+    val preprocessingP50: Double?, val preprocessingP95: Double?,
+    val modelInferenceP50: Double?, val modelInferenceP95: Double?,
+    val decodeAndNmsP50: Double?, val decodeAndNmsP95: Double?,
+    val appearanceP50: Double?, val appearanceP95: Double?,
     val ageP50: Double?, val ageP95: Double?, val ageMax: Long?, val excessiveAgeRejections: Int,
     val meanAbsYaw: Double?, val p95AbsYaw: Double?, val maxAbsYaw: Int?, val maxYawStep: Int?, val slewLimited: Int,
     val jumpSuppressions: Int, val crossingBrakes: Int, val stableRecoverySuppressions: Int, val physicalExpirations: Int,
@@ -36,6 +48,24 @@ internal object FlightSummaryBuilder {
         val matchedMs = associations.filter { it.value == "Matched" }.sumOf { it.durationMs }
         val inference = traces.mapNotNull { it.double("detector", "inferenceMillis") }
         val publications = controls.filter { it.string("eventType") == "rcPublication" }
+        fun elapsedMillis(records: List<Record>, start: String, end: String): List<Double> = records.mapNotNull { record ->
+            val startNanos = record.long(start) ?: return@mapNotNull null
+            val endNanos = record.long(end) ?: return@mapNotNull null
+            (endNanos - startNanos).takeIf { it >= 0L }?.div(1_000_000.0)
+        }
+        fun stageMillis(key: String) = traces.mapNotNull { it.long(key)?.div(1_000_000.0) }
+        val renderToPixelCopy = elapsedMillis(traces, "renderedFrameTimestampNanos", "pixelCopyCompletedTimestampNanos")
+        val renderToDetectorStart = elapsedMillis(traces, "renderedFrameTimestampNanos", "detectorInferenceStartedTimestampNanos")
+        val renderToDetectorComplete = elapsedMillis(traces, "renderedFrameTimestampNanos", "detectorInferenceCompletedTimestampNanos")
+        val detectorToAssociation = elapsedMillis(traces, "detectorInferenceCompletedTimestampNanos", "associationCompletedTimestampNanos")
+        val controlMeasurements = controls.filter { it.string("eventType") == "controlMeasurement" }
+        val sourceToDecision = elapsedMillis(controlMeasurements, "sourceTimestampNanos", "yawDecisionTimestampNanos")
+        val decisionToSend = elapsedMillis(publications, "yawDecisionTimestampNanos", "actualSentAtNanos")
+        val sourceToSend = elapsedMillis(publications, "sourceTimestampNanos", "actualSentAtNanos")
+        val preprocessing = stageMillis("detectorPreprocessingNanos")
+        val modelInference = stageMillis("detectorModelInferenceNanos")
+        val decodeAndNms = stageMillis("detectorDecodeAndNmsNanos")
+        val appearance = stageMillis("detectorAppearanceNanos")
         val ages = publications.mapNotNull { it.long("perceptionAgeMillis") }.ifEmpty { controls.mapNotNull { it.long("perceptionAgeMillis") } }
         val sentAutonomous = publications.filter { it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("sendSuppressionReason") == "NONE" }
         val sentYaw = sentAutonomous.mapNotNull { it.int("actualSentVector", "yaw") }
@@ -122,7 +152,22 @@ internal object FlightSummaryBuilder {
             matchedPercent = if (selectedMs == 0L) null else matchedMs * 100.0 / selectedMs,
             missingCount = missing.size, missingMs = missing.sumOf { it.durationMs }, longestMissingMs = missing.maxOfOrNull { it.durationMs } ?: 0L,
             lostCount = episodes(traces) { it.string("associationState") == "Lost" }.size, requiresRearmCount = rearm,
-            inferenceP50 = percentile(inference, .50), inferenceP95 = percentile(inference, .95), detectorFps = fps(traces.filter { it.double("detector", "inferenceMillis") != null }), analysisFps = fps(traces), previewFps = null,
+            inferenceP50 = percentile(inference, .50), inferenceP95 = percentile(inference, .95),
+            detectorFps = percentile(traces.mapNotNull { it.double("detectorMeasuredFps") }, .50) ?: fps(traces.filter { it.double("detector", "inferenceMillis") != null }),
+            analysisFps = percentile(traces.mapNotNull { it.double("analysisMeasuredFps") }, .50), previewFps = null,
+            renderToPixelCopyP50 = percentile(renderToPixelCopy, .50), renderToPixelCopyP95 = percentile(renderToPixelCopy, .95),
+            renderToDetectorStartP50 = percentile(renderToDetectorStart, .50), renderToDetectorStartP95 = percentile(renderToDetectorStart, .95),
+            renderToDetectorCompleteP50 = percentile(renderToDetectorComplete, .50), renderToDetectorCompleteP95 = percentile(renderToDetectorComplete, .95),
+            detectorCompleteToAssociationP50 = percentile(detectorToAssociation, .50), detectorCompleteToAssociationP95 = percentile(detectorToAssociation, .95),
+            sourceToDecisionP50 = percentile(sourceToDecision, .50), sourceToDecisionP95 = percentile(sourceToDecision, .95),
+            decisionToSendP50 = percentile(decisionToSend, .50), decisionToSendP95 = percentile(decisionToSend, .95),
+            sourceToPhysicalSendP50 = percentile(sourceToSend, .50), sourceToPhysicalSendP95 = percentile(sourceToSend, .95),
+            analysisDroppedFrames = traces.mapNotNull { it.long("analysisDroppedFrames") }.maxOrNull(),
+            maximumAnalysisPendingDepth = traces.mapNotNull { it.int("analysisPendingFrameDepth") }.maxOrNull(),
+            preprocessingP50 = percentile(preprocessing, .50), preprocessingP95 = percentile(preprocessing, .95),
+            modelInferenceP50 = percentile(modelInference, .50), modelInferenceP95 = percentile(modelInference, .95),
+            decodeAndNmsP50 = percentile(decodeAndNms, .50), decodeAndNmsP95 = percentile(decodeAndNms, .95),
+            appearanceP50 = percentile(appearance, .50), appearanceP95 = percentile(appearance, .95),
             ageP50 = percentile(ages.map { it.toDouble() }, .50), ageP95 = percentile(ages.map { it.toDouble() }, .95), ageMax = ages.maxOrNull(), excessiveAgeRejections = stale,
             meanAbsYaw = absYaw.takeIf { it.isNotEmpty() }?.average(), p95AbsYaw = percentile(absYaw.map { it.toDouble() }, .95), maxAbsYaw = absYaw.maxOrNull(), maxYawStep = sentYaw.zipWithNext { a, b -> abs(b - a) }.maxOrNull(),
             slewLimited = controls.count { it.string("eventType") == "controlMeasurement" && it.string("suppressionReason") == "NONE" && it.int("requestedYawRc") != it.int("safetyFilteredYawRc") },
@@ -150,6 +195,18 @@ internal object FlightSummaryBuilder {
         "session_duration_ms" to s.durationMs, "yaw_follow_armed_duration_ms" to s.armedMs, "yaw_follow_active_duration_ms" to s.activeMs,
         "matched_percent_of_selected_target_time" to s.matchedPercent, "temporarily_missing_count" to s.missingCount, "temporarily_missing_total_ms" to s.missingMs, "longest_temporarily_missing_ms" to s.longestMissingMs, "lost_count" to s.lostCount, "requires_rearm_count" to s.requiresRearmCount,
         "detector_inference_p50_ms" to s.inferenceP50, "detector_inference_p95_ms" to s.inferenceP95, "detector_fps" to s.detectorFps, "analysis_fps" to s.analysisFps, "preview_fps" to s.previewFps,
+        "render_to_pixelcopy_p50_ms" to s.renderToPixelCopyP50, "render_to_pixelcopy_p95_ms" to s.renderToPixelCopyP95,
+        "render_to_detector_start_p50_ms" to s.renderToDetectorStartP50, "render_to_detector_start_p95_ms" to s.renderToDetectorStartP95,
+        "render_to_detector_complete_p50_ms" to s.renderToDetectorCompleteP50, "render_to_detector_complete_p95_ms" to s.renderToDetectorCompleteP95,
+        "detector_complete_to_association_p50_ms" to s.detectorCompleteToAssociationP50, "detector_complete_to_association_p95_ms" to s.detectorCompleteToAssociationP95,
+        "source_to_yaw_decision_p50_ms" to s.sourceToDecisionP50, "source_to_yaw_decision_p95_ms" to s.sourceToDecisionP95,
+        "yaw_decision_to_actual_rc_send_p50_ms" to s.decisionToSendP50, "yaw_decision_to_actual_rc_send_p95_ms" to s.decisionToSendP95,
+        "source_to_actual_rc_send_p50_ms" to s.sourceToPhysicalSendP50, "source_to_actual_rc_send_p95_ms" to s.sourceToPhysicalSendP95,
+        "analysis_dropped_frames" to s.analysisDroppedFrames, "maximum_analysis_pending_depth" to s.maximumAnalysisPendingDepth,
+        "detector_preprocessing_p50_ms" to s.preprocessingP50, "detector_preprocessing_p95_ms" to s.preprocessingP95,
+        "detector_model_p50_ms" to s.modelInferenceP50, "detector_model_p95_ms" to s.modelInferenceP95,
+        "detector_decode_nms_p50_ms" to s.decodeAndNmsP50, "detector_decode_nms_p95_ms" to s.decodeAndNmsP95,
+        "detector_appearance_p50_ms" to s.appearanceP50, "detector_appearance_p95_ms" to s.appearanceP95,
         "perception_age_p50_ms" to s.ageP50, "perception_age_p95_ms" to s.ageP95, "perception_age_max_ms" to s.ageMax, "measurements_rejected_for_excessive_age" to s.excessiveAgeRejections,
         "mean_absolute_physical_yaw_rc" to s.meanAbsYaw, "p95_absolute_yaw_rc" to s.p95AbsYaw, "maximum_absolute_yaw_rc" to s.maxAbsYaw, "maximum_yaw_step" to s.maxYawStep, "slew_limited_commands" to s.slewLimited,
         "target_error_jump_suppressions" to s.jumpSuppressions, "center_crossing_brake_events" to s.crossingBrakes, "stable_recovery_consistency_suppressions" to s.stableRecoverySuppressions, "physical_command_expirations" to s.physicalExpirations,
@@ -172,6 +229,10 @@ internal object FlightSummaryBuilder {
         appendLine("FLIGHT / YAW FOLLOW SUMMARY"); appendLine("Duration: ${duration(s.durationMs)}"); appendLine("Yaw armed / active: ${duration(s.armedMs)} / ${duration(s.activeMs)}")
         appendLine("Tracking matched: ${metric(s.matchedPercent, "%")}"); appendLine("Missing: ${s.missingCount} events / longest ${duration(s.longestMissingMs)}"); appendLine("Lost: ${s.lostCount}"); appendLine()
         appendLine("Perception age p50/p95/max: ${metric(s.ageP50, " ms")} / ${metric(s.ageP95, " ms")} / ${s.ageMax?.let { "$it ms" } ?: "unavailable"}")
+        appendLine("Source -> yaw decision p50/p95: ${metric(s.sourceToDecisionP50, " ms")} / ${metric(s.sourceToDecisionP95, " ms")}")
+        appendLine("Yaw decision -> physical send p50/p95: ${metric(s.decisionToSendP50, " ms")} / ${metric(s.decisionToSendP95, " ms")}")
+        appendLine("Source -> physical send p50/p95: ${metric(s.sourceToPhysicalSendP50, " ms")} / ${metric(s.sourceToPhysicalSendP95, " ms")}")
+        appendLine("Analysis/detector FPS: ${metric(s.analysisFps)} / ${metric(s.detectorFps)}; dropped ${s.analysisDroppedFrames ?: "unavailable"}, max pending ${s.maximumAnalysisPendingDepth ?: "unavailable"}")
         appendLine("Yaw RC p95/max: ${metric(s.p95AbsYaw)} / ${s.maxAbsYaw ?: "unavailable"}"); appendLine("Safety suppressions: stale ${s.excessiveAgeRejections}, jump ${s.jumpSuppressions}, crossing ${s.crossingBrakes}")
         appendLine("Autonomous yaw activity: ${metric(s.fractionOfActiveNonZeroYaw?.times(100.0), "% non-zero")} (expiry suppressions: ${s.perceptionAgeExpiredCount}, longest gap: ${s.longestPerceptionExpiryZeroIntervalMs}ms)")
         appendLine("Inter-measurement p50/p95: ${metric(s.interMeasurementP50Ms, " ms")} / ${metric(s.interMeasurementP95Ms, " ms")}")
@@ -192,7 +253,11 @@ internal object FlightSummaryBuilder {
     private fun record(line: String): Record? = runCatching { Record(CompactJson.parseObject(line)) }.getOrNull()
     private const val MS_NANOS = 1_000_000L
     private val SELECTED_STATES = setOf("Selected", "Matched", "TemporarilyMissing", "Ambiguous")
-    private val EXPIRATION_REASONS = setOf("RC_TTL_EXPIRED", "PERCEPTION_AGE_EXPIRED")
+    private val EXPIRATION_REASONS = setOf(
+        "RC_TTL_EXPIRED",
+        "PERCEPTION_AGE_EXPIRED",
+        "AUTONOMOUS_COMMAND_HOLD_EXPIRED",
+    )
 }
 
 private class Record(private val values: Map<String, Any?>) {

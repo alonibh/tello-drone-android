@@ -1,5 +1,48 @@
 # Architecture and safety contracts
 
+## Current production person yaw-follow loop
+
+The foreground service/session remains the sole owner of real connectivity and autonomous RC
+publication. The Activity and ViewModel own neither sockets nor a flight session. Person follow is
+yaw-only: autonomous lateral, forward, and vertical axes are always zero, while manual Slow,
+Medium, and Fast remain independently mapped to 30, 65, and 100 RC.
+
+The preview renders continuously. `PixelCopyDecodedFrameSource` offers 320x240 analysis captures at
+up to 15 FPS and hands them through `LatestAnalysisFrameBuffer`, whose pending depth is exactly zero
+or one. A newer capture replaces and closes an older pending lease; detector work never creates a
+FIFO backlog and never runs on decoder, telemetry, or RC threads. Production detection remains
+YOLO11n 320x320 FP32 LiteRT on four CPU threads. Per-stage timing covers preprocessing, model work,
+decode/NMS, and appearance extraction. Appearance extraction is unchanged until target-tablet
+profiling and the frozen identity corpus justify an optimization.
+
+`ProductionYawController` uses raw fresh center geometry for a 0.035 release threshold, so a newly
+centered target brakes immediately. A 0.065 engage threshold prevents centered detector jitter from
+starting rotation. Adaptive yaw filtering favors the latest measurement at large error; a bounded
+source-timestamp estimator caps center velocity at 0.80 normalized units/second, prediction horizon
+at 120 ms, and predicted offset at 0.08. Missing, ambiguous, lost, stale, out-of-order, jump-rejected,
+manual-override, STOP/HOVER, landing, emergency, or unhealthy input resets or brakes estimation.
+
+Autonomous yaw has its own 28 RC cap and scheduled gains of 78/92/108. Same-direction acceleration
+is limited to 8 RC per accepted measurement, braking may reduce by 20, a fresh centered measurement
+goes directly to zero, and reversal brakes to zero before a later measurement may command the
+opposite direction. A nonzero decision expires after 110 ms without a newer accepted match even
+though the separate global perception limit remains 225 ms. RC TTL and serialized safety-zero
+publication remain independent stronger fail-safes.
+
+Association retains the frozen confidence, IoU, area, appearance, ambiguity, and terminal-loss
+rules. For exactly one detection with strong appearance evidence, a source-time-aware center bound
+may add at most 0.06 to the 0.24 normalized-diagonal tolerance over 125-300 ms intervals. It is not
+available with competitors or weak appearance. Trace diagnostics record exact rejected gates; no
+visible person is automatically reassigned to the selected identity. LightTrack, NanoTrack, and
+other single-object trackers are not part of production.
+
+Debug trace export records render, capture request, PixelCopy completion, detector start/end,
+association, yaw decision, autonomous desired publication, send start, and actual send timestamps.
+It derives separate capture/detector FPS, dropped frames and maximum pending depth, detector-stage
+percentiles, source-to-decision, decision-to-send, and source-to-physical-send metrics. These fields
+are diagnostics only and are not added to the normal HUD. Target-tablet values must be collected in
+a new real-device run; deterministic JVM timing tests do not substitute for physical measurements.
+
 ## Phase 3 runtime ownership
 
 `DroneController` remains the UI boundary. `TelloApplication` exposes a single

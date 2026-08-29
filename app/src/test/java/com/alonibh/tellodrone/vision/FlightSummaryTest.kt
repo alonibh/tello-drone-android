@@ -42,6 +42,28 @@ class FlightSummaryTest {
         assertTrue(FlightSummaryBuilder.json(summary).contains("\"preview_fps\": null"))
     }
 
+    @Test fun derives_distinct_end_to_end_and_detector_stage_latency_metrics() {
+        val traces = listOf(
+            """{"sourceTimestampNanos":1000000000,"associationState":"Matched","detector":{"inferenceMillis":30},"renderedFrameTimestampNanos":1000000000,"pixelCopyCompletedTimestampNanos":1010000000,"detectorInferenceStartedTimestampNanos":1020000000,"detectorInferenceCompletedTimestampNanos":1050000000,"associationCompletedTimestampNanos":1055000000,"detectorPreprocessingNanos":3000000,"detectorModelInferenceNanos":20000000,"detectorDecodeAndNmsNanos":5000000,"detectorAppearanceNanos":2000000,"analysisMeasuredFps":15.0,"detectorMeasuredFps":9.0,"analysisDroppedFrames":3,"analysisPendingFrameDepth":1}""",
+        )
+        val controls = listOf(
+            """{"eventType":"controlMeasurement","sourceTimestampNanos":1000000000,"yawDecisionTimestampNanos":1060000000,"commandTimestampNanos":1060000000,"yawFollowState":"ACTIVE"}""",
+            """{"eventType":"rcPublication","sourceTimestampNanos":1000000000,"yawDecisionTimestampNanos":1060000000,"actualSentAtNanos":1080000000,"commandTimestampNanos":1079000000,"inputKind":"AUTONOMOUS_YAW","sendSuppressionReason":"NONE","yawFollowState":"ACTIVE","actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":8}}""",
+        )
+
+        val summary = FlightSummaryBuilder.build(traces, controls)
+
+        assertEquals(10.0, summary.renderToPixelCopyP50!!, .001)
+        assertEquals(60.0, summary.sourceToDecisionP50!!, .001)
+        assertEquals(20.0, summary.decisionToSendP50!!, .001)
+        assertEquals(80.0, summary.sourceToPhysicalSendP50!!, .001)
+        assertEquals(15.0, summary.analysisFps!!, .001)
+        assertEquals(9.0, summary.detectorFps!!, .001)
+        assertEquals(3L, summary.analysisDroppedFrames)
+        assertEquals(1, summary.maximumAnalysisPendingDepth)
+        assertEquals(20.0, summary.modelInferenceP50!!, .001)
+    }
+
     @Test fun counts_distinct_episodes_from_chronological_false_to_true_transitions() {
         val controls = listOf(
             // Jump episode 1 (2 consecutive records) -> count 1
