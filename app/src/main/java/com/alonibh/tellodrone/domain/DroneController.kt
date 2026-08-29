@@ -17,7 +17,9 @@ interface DroneController {
     fun emergencyMotorKill()
     fun setTrackingMode(mode: TrackingMode)
     /** Explicit observational selection only; implementations must never infer a target. */
-    fun selectTarget(detection: PersonDetection)
+    fun selectTargetAt(normalizedX: Float, normalizedY: Float, displayedFrameSequence: Long? = null)
+    fun selectTargetAt(point: TargetSelectionPoint, displayedFrameSequence: Long? = null) =
+        selectTargetAt(point.normalizedX, point.normalizedY, displayedFrameSequence)
     fun setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = Unit
     fun setYawFollowArmed(armed: Boolean)

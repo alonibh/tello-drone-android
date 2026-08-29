@@ -53,7 +53,9 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -117,6 +119,7 @@ private val activeBlue = Color(0xFF2864EE)
 fun DroneDashboard(
     state: DroneSessionState,
     viewModel: DroneDashboardActions,
+    onExportTrace: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     BoxWithConstraints(
@@ -131,6 +134,7 @@ fun DroneDashboard(
             UnifiedFlightScreen(
                 state = state,
                 viewModel = viewModel,
+                onExportTrace = onExportTrace,
                 width = maxWidth,
                 height = maxHeight,
                 modifier = Modifier.fillMaxSize().testTag("unified_flight_screen"),
@@ -145,6 +149,7 @@ internal fun isPortraitOperationalWindow(width: Dp, height: Dp): Boolean = heigh
 private fun UnifiedFlightScreen(
     state: DroneSessionState,
     viewModel: DroneDashboardActions,
+    onExportTrace: () -> Unit,
     width: Dp,
     height: Dp,
     modifier: Modifier = Modifier,
@@ -167,6 +172,7 @@ private fun UnifiedFlightScreen(
         TrackingOverlay(
             state,
             viewModel,
+            onExportTrace,
             compact,
             Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = if (compact) 68.dp else 86.dp)
                 .width(if (compact) 216.dp else 258.dp),
@@ -362,6 +368,7 @@ private fun TelemetryOverlay(state: DroneSessionState, compact: Boolean, modifie
 private fun TrackingOverlay(
     state: DroneSessionState,
     viewModel: DroneDashboardActions,
+    onExportTrace: () -> Unit,
     compact: Boolean,
     modifier: Modifier = Modifier,
 ) = HudPanel(modifier.testTag("tracking_overlay")) {
@@ -403,6 +410,17 @@ private fun TrackingOverlay(
             Icon(Icons.Default.Close, null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(4.dp))
             Text("Stop detection", fontSize = 11.sp)
+        }
+    }
+    if (com.alonibh.tellodrone.BuildConfig.DEBUG) {
+        TextButton(
+            onClick = onExportTrace,
+            contentPadding = PaddingValues(0.dp),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 36.dp).testTag("export_trace"),
+        ) {
+            Icon(Icons.Default.Share, null, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Export Trace", fontSize = 11.sp)
         }
     }
 }
@@ -485,28 +503,50 @@ private fun VideoCanvas(
 
 @Composable
 private fun DetectionOverlay(state: DroneSessionState, vm: DroneDashboardActions, overlayWidth: Float, overlayHeight: Float) {
-    state.targetOverlayPresentation()?.let { presentation ->
-        val color = when (presentation.kind) {
-            TargetOverlayKind.Current -> TelloGreen
-            TargetOverlayKind.LastSeenMissing -> Color(0xFFFFC857)
-            TargetOverlayKind.IdentityUncertain -> TelloRed
+    Box(
+        Modifier.fillMaxSize().pointerInput(state.video.processedDetectorFrameSequence) {
+            detectTapGestures { offsetPx ->
+                val point = VideoOverlayCoordinateMapper.mapPixelTapToNormalized(
+                    tapX = offsetPx.x,
+                    tapY = offsetPx.y,
+                    containerWidth = size.width.toFloat(),
+                    containerHeight = size.height.toFloat(),
+                    sourceWidth = TELLO_VIDEO_WIDTH.toFloat(),
+                    sourceHeight = TELLO_VIDEO_HEIGHT.toFloat(),
+                )
+                if (point != null) {
+                    vm.selectTargetAt(point.normalizedX, point.normalizedY, state.video.processedDetectorFrameSequence)
+                }
+            }
         }
-        DetectionBox(presentation.target.boundingBox, presentation.label, color, overlayWidth, overlayHeight)
-    }
-    state.personDetections.filterNot(state::isCurrentTargetDetection).forEachIndexed { index, detection ->
-        val selectable = state.connection == DroneConnectionState.Connected &&
-            state.video.availability == VideoAvailability.Streaming &&
-            state.video.personDetectionState == PersonDetectionState.Detecting &&
-            state.video.processedDetectorFrameSequence == detection.frameSequence &&
-            state.video.processedDetectorSourceTimestampNanos == detection.sourceTimestampNanos
-        DetectionBox(
-            detection.boundingBox,
-            "PERSON ${(detection.confidence * 100f).roundToInt()}%",
-            Color(0xFFFFC857),
-            overlayWidth,
-            overlayHeight,
-            Modifier.clickable(enabled = selectable) { vm.selectTarget(detection) }.testTag("person_detection_$index"),
-        )
+    ) {
+        state.targetOverlayPresentation()?.let { presentation ->
+            val color = when (presentation.kind) {
+                TargetOverlayKind.Current -> TelloGreen
+                TargetOverlayKind.LastSeenMissing -> Color(0xFFFFC857)
+                TargetOverlayKind.IdentityUncertain -> TelloRed
+            }
+            DetectionBox(presentation.target.boundingBox, presentation.label, color, overlayWidth, overlayHeight)
+        }
+        state.personDetections.filterNot(state::isCurrentTargetDetection).forEachIndexed { index, detection ->
+            val selectable = state.connection == DroneConnectionState.Connected &&
+                state.video.availability == VideoAvailability.Streaming &&
+                state.video.personDetectionState == PersonDetectionState.Detecting &&
+                state.video.processedDetectorFrameSequence == detection.frameSequence &&
+                state.video.processedDetectorSourceTimestampNanos == detection.sourceTimestampNanos
+            val centerX = (detection.boundingBox.left + detection.boundingBox.right) / 2f
+            val centerY = (detection.boundingBox.top + detection.boundingBox.bottom) / 2f
+            DetectionBox(
+                detection.boundingBox,
+                "PERSON ${(detection.confidence * 100f).roundToInt()}%",
+                Color(0xFFFFC857),
+                overlayWidth,
+                overlayHeight,
+                Modifier.clickable(enabled = selectable) {
+                    vm.selectTargetAt(centerX, centerY, detection.frameSequence)
+                }.testTag("person_detection_$index"),
+            )
+        }
     }
 }
 

@@ -41,6 +41,9 @@ import com.alonibh.tellodrone.vision.YawControlMeasurementTrace
 import com.alonibh.tellodrone.vision.RcPublicationTrace
 import com.alonibh.tellodrone.vision.SdkCommandCategory
 import com.alonibh.tellodrone.vision.SdkCommandTrace
+import com.alonibh.tellodrone.domain.TargetSelectionPoint
+import com.alonibh.tellodrone.domain.TargetSelectionAttemptResult
+import com.alonibh.tellodrone.vision.TargetSelectionAttemptTrace
 import com.alonibh.tellodrone.vision.FlightStateTransitionTrace
 import com.alonibh.tellodrone.vision.ExternalGroundingTrace
 import kotlinx.coroutines.CompletableDeferred
@@ -476,44 +479,144 @@ class TelloFlightSession(
     }
 
     /**
-     * Explicit real-mode selection boundary. The service session accepts only the exact object
-     * currently rendered from the newest fresh detector result; it never derives a target itself.
+     * Explicit real-mode selection boundary. Resolves user's tap point against the current
+     * newest detector frame detections with a bounded hit-slop.
      */
-    fun selectTarget(detection: PersonDetection) = synchronized(trackingLock) {
+    fun selectTargetAt(
+        normalizedX: Float,
+        normalizedY: Float,
+        displayedFrameSequence: Long? = null,
+    ) = synchronized(trackingLock) {
         val nowNanos = sourceNowNanos()
         val current = mutableState.value
-        if (!current.isSelectableRealDetection(detection, latestAcceptedDetectorFrame, nowNanos)) {
-            invalid("Select a fresh person box from the current detector frame")
+        val currentFrame = current.video.detectorFrameIdentity()
+        val isConnected = current.connection == DroneConnectionState.Connected
+        val isStreaming = current.video.availability == VideoAvailability.Streaming
+        val isDetecting = current.video.personDetectionState == PersonDetectionState.Detecting
+        val frameAgeNanos = if (currentFrame != null) nowNanos - currentFrame.sourceTimestampNanos else null
+        val frameAgeMillis = frameAgeNanos?.let { (it / 1_000_000L).coerceAtLeast(0L) }
+
+        if (!isConnected || !isStreaming || !isDetecting || currentFrame == null || currentFrame != latestAcceptedDetectorFrame) {
+            visionTrace.recordTargetSelectionAttempt(
+                TargetSelectionAttemptTrace(
+                    tapTimestampNanos = nowNanos,
+                    normalizedTapX = normalizedX,
+                    normalizedTapY = normalizedY,
+                    displayedFrameSequence = displayedFrameSequence,
+                    sessionCurrentFrameSequence = currentFrame?.sequence,
+                    detectorFrameAgeMillis = frameAgeMillis,
+                    currentDetectionsCount = current.personDetections.size,
+                    hitCandidatesCount = 0,
+                    result = TargetSelectionAttemptResult.DETECTOR_NOT_READY,
+                ),
+            )
+            invalid("Detector not ready for target selection")
             return@synchronized
         }
-        val target = TargetSelection.select(detection)
+
+        if (frameAgeNanos !in 0 until PersonDetectionStore.STALE_AFTER_NANOS) {
+            visionTrace.recordTargetSelectionAttempt(
+                TargetSelectionAttemptTrace(
+                    tapTimestampNanos = nowNanos,
+                    normalizedTapX = normalizedX,
+                    normalizedTapY = normalizedY,
+                    displayedFrameSequence = displayedFrameSequence,
+                    sessionCurrentFrameSequence = currentFrame.sequence,
+                    detectorFrameAgeMillis = frameAgeMillis,
+                    currentDetectionsCount = current.personDetections.size,
+                    hitCandidatesCount = 0,
+                    result = TargetSelectionAttemptResult.STALE_FRAME,
+                ),
+            )
+            invalid("Detector frame is stale; wait for fresh frame")
+            return@synchronized
+        }
+
+        // Inspect ONLY personDetections belonging to the CURRENT newest detector frame
+        val currentDetections = current.personDetections.filter {
+            it.frameSequence == currentFrame.sequence && it.sourceTimestampNanos == currentFrame.sourceTimestampNanos
+        }
+
+        val matchingCandidates = currentDetections.filter { detection ->
+            detection.boundingBox.containsWithHitSlop(normalizedX, normalizedY)
+        }
+
+        if (matchingCandidates.isEmpty()) {
+            visionTrace.recordTargetSelectionAttempt(
+                TargetSelectionAttemptTrace(
+                    tapTimestampNanos = nowNanos,
+                    normalizedTapX = normalizedX,
+                    normalizedTapY = normalizedY,
+                    displayedFrameSequence = displayedFrameSequence,
+                    sessionCurrentFrameSequence = currentFrame.sequence,
+                    detectorFrameAgeMillis = frameAgeMillis,
+                    currentDetectionsCount = currentDetections.size,
+                    hitCandidatesCount = 0,
+                    result = TargetSelectionAttemptResult.NO_MATCH,
+                ),
+            )
+            invalid("No person detected at tap location")
+            return@synchronized
+        }
+
+        if (matchingCandidates.size > 1) {
+            visionTrace.recordTargetSelectionAttempt(
+                TargetSelectionAttemptTrace(
+                    tapTimestampNanos = nowNanos,
+                    normalizedTapX = normalizedX,
+                    normalizedTapY = normalizedY,
+                    displayedFrameSequence = displayedFrameSequence,
+                    sessionCurrentFrameSequence = currentFrame.sequence,
+                    detectorFrameAgeMillis = frameAgeMillis,
+                    currentDetectionsCount = currentDetections.size,
+                    hitCandidatesCount = matchingCandidates.size,
+                    result = TargetSelectionAttemptResult.AMBIGUOUS,
+                ),
+            )
+            invalid("Multiple people overlap tap location; tap a distinct person")
+            return@synchronized
+        }
+
+        val selected = matchingCandidates.first()
+        visionTrace.recordTargetSelectionAttempt(
+            TargetSelectionAttemptTrace(
+                tapTimestampNanos = nowNanos,
+                normalizedTapX = normalizedX,
+                normalizedTapY = normalizedY,
+                displayedFrameSequence = displayedFrameSequence,
+                sessionCurrentFrameSequence = currentFrame.sequence,
+                detectorFrameAgeMillis = frameAgeMillis,
+                currentDetectionsCount = currentDetections.size,
+                hitCandidatesCount = 1,
+                result = TargetSelectionAttemptResult.ACCEPTED,
+            ),
+        )
+
+        val target = TargetSelection.select(selected)
         trackingErrors.reset()
         dryRunPlanner.reset()
-        lastPlannerFrameTimestampNanos = detection.sourceTimestampNanos
+        lastPlannerFrameTimestampNanos = selected.sourceTimestampNanos
         val errors = trackingErrors.update(target, targetFresh = true)
         var selectionAccepted = false
         mutableState.update { state ->
-            if (!state.isSelectableRealDetection(detection, latestAcceptedDetectorFrame, nowNanos)) state else {
-                selectionAccepted = true
-                state.copy(
-                    tracking = TrackingMode.TargetLocked,
-                    authority = ControlAuthority.Manual,
-                    target = target,
-                    trackingErrors = errors,
-                    targetAssociationState = TargetAssociationState.Selected,
-                    trackingStateTransitions = state.trackingStateTransitions.appendTransition(
-                        from = state.targetAssociationState,
-                        to = TargetAssociationState.Selected,
-                        frameSequence = detection.frameSequence,
-                        sourceTimestampNanos = detection.sourceTimestampNanos,
-                    ),
-                    // A selection has no preceding detector-result interval. The planner fail-closes.
-                    dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Selected, Float.NaN),
-                    followDistanceReference = null,
-                    followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
-                    lastMessage = "Real target selected; dry run only, no commands sent",
-                )
-            }
+            selectionAccepted = true
+            state.copy(
+                tracking = TrackingMode.TargetLocked,
+                authority = ControlAuthority.Manual,
+                target = target,
+                trackingErrors = errors,
+                targetAssociationState = TargetAssociationState.Selected,
+                trackingStateTransitions = state.trackingStateTransitions.appendTransition(
+                    from = state.targetAssociationState,
+                    to = TargetAssociationState.Selected,
+                    frameSequence = selected.frameSequence,
+                    sourceTimestampNanos = selected.sourceTimestampNanos,
+                ),
+                dryRunControlIntent = dryRunPlanner.plan(errors, TargetAssociationState.Selected, Float.NaN),
+                followDistanceReference = null,
+                followDistanceCalibrationState = FollowDistanceCalibrationState.NotSet,
+                lastMessage = "Real target selected; dry run only, no commands sent",
+            )
         }
         if (selectionAccepted) visionTrace.onTargetSelected(target)
         reconcileYawFollow()
@@ -1376,23 +1479,6 @@ class TelloFlightSession(
         val sequence = processedDetectorFrameSequence ?: return null
         val timestamp = processedDetectorSourceTimestampNanos ?: return null
         return DetectorFrameIdentity(sequence, timestamp)
-    }
-
-    private fun DroneSessionState.isSelectableRealDetection(
-        detection: PersonDetection,
-        newestAcceptedFrame: DetectorFrameIdentity?,
-        nowNanos: Long,
-    ): Boolean {
-        val currentFrame = video.detectorFrameIdentity()
-        val ageNanos = nowNanos - detection.sourceTimestampNanos
-        return connection == DroneConnectionState.Connected &&
-            video.availability == VideoAvailability.Streaming &&
-            video.personDetectionState == PersonDetectionState.Detecting &&
-            currentFrame != null && currentFrame == newestAcceptedFrame &&
-            detection.frameSequence == currentFrame.sequence &&
-            detection.sourceTimestampNanos == currentFrame.sourceTimestampNanos &&
-            ageNanos in 0 until PersonDetectionStore.STALE_AFTER_NANOS &&
-            personDetections.any { it === detection }
     }
 
     private fun DroneSessionState.canTakeOff() =

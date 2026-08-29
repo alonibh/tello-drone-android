@@ -15,6 +15,8 @@ import com.alonibh.tellodrone.domain.TrackingMode
 import com.alonibh.tellodrone.domain.VideoAvailability
 import com.alonibh.tellodrone.domain.VideoState
 import com.alonibh.tellodrone.domain.YawFollowState
+import com.alonibh.tellodrone.domain.TargetSelectionAttemptResult
+import com.alonibh.tellodrone.vision.TargetSelectionAttemptTrace
 import com.alonibh.tellodrone.vision.VisionTraceExport
 import com.alonibh.tellodrone.vision.VisionTraceFrame
 import com.alonibh.tellodrone.vision.VisionTraceRecorder
@@ -471,29 +473,147 @@ class TelloFlightSessionTest {
         assertTrue(fixture.session.state.value.dryRunControlIntent!!.actionable)
     }
 
-    @Test fun `real selection rejects stale fabricated and previous frame detections`() = runTest {
+    @Test fun `target selection succeeds when frame advances from N to N plus 1 between render and tap`() = runTest {
         val video = FakeVideoController()
         val fixture = fixture(video)
         fixture.transport.emitTelemetry(fixture.clock.value)
         assertTrue(fixture.session.connect())
         runCurrent()
-        val first = detection(frame = 1L, timestamp = 1_000_000_000L)
-        video.publishDetections(1L, 1_000_000_000L, listOf(first))
+
+        // UI renders frame 1
+        val frame1Box = NormalizedBoundingBox(.40f, .20f, .60f, .80f)
+        val frame1Detection = detection(box = frame1Box, frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(frame1Detection))
         runCurrent()
 
-        fixture.session.selectTarget(first.copy())
-        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
-
-        fixture.detectorNowNanos.set(1_100_000_000L)
-        val current = detection(frame = 2L, timestamp = 1_100_000_000L)
-        video.publishDetections(2L, 1_100_000_000L, listOf(current))
+        // User sees frame 1 (taps at center 0.50, 0.50), but before tap reaches session, frame 2 arrives with slight motion
+        fixture.detectorNowNanos.set(1_080_000_000L)
+        val frame2Box = NormalizedBoundingBox(.42f, .20f, .62f, .80f)
+        val frame2Detection = detection(box = frame2Box, frame = 2L, timestamp = 1_080_000_000L)
+        video.publishDetections(2L, 1_080_000_000L, listOf(frame2Detection))
         runCurrent()
-        fixture.session.selectTarget(first)
-        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
 
-        fixture.detectorNowNanos.set(1_700_000_000L)
-        fixture.session.selectTarget(current)
+        // User's tap from frame 1 reaches session
+        fixture.session.selectTargetAt(0.50f, 0.50f, displayedFrameSequence = 1L)
+
+        assertEquals(TargetAssociationState.Selected, fixture.session.state.value.targetAssociationState)
+        assertEquals(2L, fixture.session.state.value.target?.selectedFrameSequence)
+        assertEquals(frame2Box, fixture.session.state.value.target?.boundingBox)
+    }
+
+    @Test fun `target selection does not depend on object reference equality`() = runTest {
+        val video = FakeVideoController()
+        val fixture = fixture(video)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        val det = detection(box = NormalizedBoundingBox(.30f, .20f, .50f, .80f), frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(det))
+        runCurrent()
+
+        // Pass coordinates directly without referencing 'det' instance
+        fixture.session.selectTargetAt(0.40f, 0.50f)
+        assertEquals(TargetAssociationState.Selected, fixture.session.state.value.targetAssociationState)
+        assertEquals(det.boundingBox, fixture.session.state.value.target?.boundingBox)
+    }
+
+    @Test fun `target selection rejects tap with no person under coordinates`() = runTest {
+        val video = FakeVideoController()
+        val recorder = FakeVisionTraceRecorder()
+        val fixture = fixture(video, visionTrace = recorder)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        val det = detection(box = NormalizedBoundingBox(.20f, .20f, .40f, .80f), frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(det))
+        runCurrent()
+
+        // Tap empty area at (0.80, 0.50)
+        fixture.session.selectTargetAt(0.80f, 0.50f)
         assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
+        assertNull(fixture.session.state.value.target)
+        assertEquals(TargetSelectionAttemptResult.NO_MATCH, recorder.targetSelectionAttempts.last().result)
+    }
+
+    @Test fun `target selection rejects ambiguous overlapping detections`() = runTest {
+        val video = FakeVideoController()
+        val recorder = FakeVisionTraceRecorder()
+        val fixture = fixture(video, visionTrace = recorder)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        val p1 = detection(box = NormalizedBoundingBox(.40f, .20f, .60f, .80f), frame = 1L, timestamp = 1_000_000_000L)
+        val p2 = detection(box = NormalizedBoundingBox(.45f, .20f, .65f, .80f), frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(p1, p2))
+        runCurrent()
+
+        // Tap at (0.50, 0.50) where p1 and p2 overlap
+        fixture.session.selectTargetAt(0.50f, 0.50f)
+        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
+        assertNull(fixture.session.state.value.target)
+        assertEquals(TargetSelectionAttemptResult.AMBIGUOUS, recorder.targetSelectionAttempts.last().result)
+        assertEquals(2, recorder.targetSelectionAttempts.last().hitCandidatesCount)
+    }
+
+    @Test fun `target selection succeeds on small hit-slop outside box`() = runTest {
+        val video = FakeVideoController()
+        val recorder = FakeVisionTraceRecorder()
+        val fixture = fixture(video, visionTrace = recorder)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        val det = detection(box = NormalizedBoundingBox(.40f, .20f, .60f, .80f), frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(det))
+        runCurrent()
+
+        // Tap slightly outside left edge: x = 0.38f (0.02 < 0.04 hit-slop)
+        fixture.session.selectTargetAt(0.38f, 0.50f)
+        assertEquals(TargetAssociationState.Selected, fixture.session.state.value.targetAssociationState)
+        assertEquals(det.boundingBox, fixture.session.state.value.target?.boundingBox)
+        assertEquals(TargetSelectionAttemptResult.ACCEPTED, recorder.targetSelectionAttempts.last().result)
+    }
+
+    @Test fun `target selection rejects large miss beyond hit-slop`() = runTest {
+        val video = FakeVideoController()
+        val recorder = FakeVisionTraceRecorder()
+        val fixture = fixture(video, visionTrace = recorder)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        val det = detection(box = NormalizedBoundingBox(.40f, .20f, .60f, .80f), frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(det))
+        runCurrent()
+
+        // Tap far outside left edge: x = 0.30f (0.10 > 0.04 hit-slop)
+        fixture.session.selectTargetAt(0.30f, 0.50f)
+        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
+        assertNull(fixture.session.state.value.target)
+        assertEquals(TargetSelectionAttemptResult.NO_MATCH, recorder.targetSelectionAttempts.last().result)
+    }
+
+    @Test fun `target selection rejects stale detector frame`() = runTest {
+        val video = FakeVideoController()
+        val recorder = FakeVisionTraceRecorder()
+        val fixture = fixture(video, visionTrace = recorder)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        val det = detection(box = NormalizedBoundingBox(.40f, .20f, .60f, .80f), frame = 1L, timestamp = 1_000_000_000L)
+        video.publishDetections(1L, 1_000_000_000L, listOf(det))
+        runCurrent()
+
+        // Advance monotonic clock by 700ms (> 600ms stale threshold)
+        fixture.detectorNowNanos.set(1_700_000_001L)
+        fixture.session.selectTargetAt(0.50f, 0.50f)
+        assertEquals(TargetAssociationState.None, fixture.session.state.value.targetAssociationState)
+        assertNull(fixture.session.state.value.target)
+        assertEquals(TargetSelectionAttemptResult.STALE_FRAME, recorder.targetSelectionAttempts.last().result)
     }
 
     @Test fun `empty real frames become missing then lost without reacquisition`() = runTest {
@@ -1049,13 +1169,23 @@ class TelloFlightSessionTest {
         val controlMeasurements = mutableListOf<YawControlMeasurementTrace>()
         val rcPublications = mutableListOf<RcPublicationTrace>()
         val selectedTargets = mutableListOf<com.alonibh.tellodrone.domain.TrackedTarget>()
+        val targetSelectionAttempts = mutableListOf<TargetSelectionAttemptTrace>()
         override fun onTargetSelected(target: com.alonibh.tellodrone.domain.TrackedTarget) {
             selectedTargets += target
         }
         override fun record(frame: VisionTraceFrame) { frames += frame }
         override fun recordControlMeasurement(trace: YawControlMeasurementTrace) { controlMeasurements += trace }
         override fun recordRcPublication(trace: RcPublicationTrace) { rcPublications += trace }
+        override fun recordTargetSelectionAttempt(trace: TargetSelectionAttemptTrace) {
+            targetSelectionAttempts += trace
+        }
         override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) = Unit
+    }
+
+    private fun TelloFlightSession.selectTarget(detection: PersonDetection) {
+        val centerX = (detection.boundingBox.left + detection.boundingBox.right) / 2f
+        val centerY = (detection.boundingBox.top + detection.boundingBox.bottom) / 2f
+        selectTargetAt(centerX, centerY, detection.frameSequence)
     }
 
     private fun detection(

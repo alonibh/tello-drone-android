@@ -25,8 +25,9 @@ class DroneViewModel(private val controller: DroneController) : ViewModel(), Dro
     override fun land() = controller.land()
     override fun stopAndHover() = controller.stopAndHover()
     override fun emergencyMotorKill() = controller.emergencyMotorKill()
+    override fun selectTargetAt(normalizedX: Float, normalizedY: Float, displayedFrameSequence: Long?) =
+        controller.selectTargetAt(normalizedX, normalizedY, displayedFrameSequence)
     override fun setTrackingMode(mode: TrackingMode) = controller.setTrackingMode(mode)
-    override fun selectTarget(detection: PersonDetection) = controller.selectTarget(detection)
     fun setCurrentFollowDistance() = controller.setCurrentFollowDistance()
     fun setShadowAutonomyArmed(armed: Boolean) = controller.setShadowAutonomyArmed(armed)
     override fun setYawFollowArmed(armed: Boolean) = controller.setYawFollowArmed(armed)

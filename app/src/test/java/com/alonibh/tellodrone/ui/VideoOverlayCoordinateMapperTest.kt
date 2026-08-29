@@ -65,5 +65,56 @@ class VideoOverlayCoordinateMapperTest {
         assertEquals(VideoContentFrame(200f, 0f, 1200f, 900f), wide)
         assertEquals(4f / 3f, wide.width / wide.height, .0001f)
     }
+
+    @Test fun `mapPixelTapToNormalized converts valid content tap and rejects pillarbox tap`() {
+        // Container: 1600 x 900. Content: left=200, top=0, width=1200, height=900
+        val centerTap = VideoOverlayCoordinateMapper.mapPixelTapToNormalized(
+            tapX = 800f,
+            tapY = 450f,
+            containerWidth = 1600f,
+            containerHeight = 900f,
+            sourceWidth = 960f,
+            sourceHeight = 720f,
+        )
+        assertEquals(0.5f, centerTap!!.normalizedX, 0.001f)
+        assertEquals(0.5f, centerTap.normalizedY, 0.001f)
+
+        // Pillarbox tap on the left (x = 50 < 200)
+        val leftPillarTap = VideoOverlayCoordinateMapper.mapPixelTapToNormalized(
+            tapX = 50f,
+            tapY = 450f,
+            containerWidth = 1600f,
+            containerHeight = 900f,
+            sourceWidth = 960f,
+            sourceHeight = 720f,
+        )
+        assertNull(leftPillarTap)
+
+        // Pillarbox tap on the right (x = 1500 > 1400)
+        val rightPillarTap = VideoOverlayCoordinateMapper.mapPixelTapToNormalized(
+            tapX = 1500f,
+            tapY = 450f,
+            containerWidth = 1600f,
+            containerHeight = 900f,
+            sourceWidth = 960f,
+            sourceHeight = 720f,
+        )
+        assertNull(rightPillarTap)
+    }
+
+    @Test fun `containsWithHitSlop accepts points within hit slop boundary and rejects far points`() {
+        val box = NormalizedBoundingBox(.40f, .20f, .60f, .80f)
+        assertTrue(box.containsWithHitSlop(0.50f, 0.50f))
+        // Point slightly outside left edge (0.38 is within 0.04 hit-slop of 0.40)
+        assertTrue(box.containsWithHitSlop(0.38f, 0.50f))
+        // Point slightly outside right edge (0.63 is within 0.04 hit-slop of 0.60)
+        assertTrue(box.containsWithHitSlop(0.63f, 0.50f))
+        // Point slightly outside top edge (0.17 is within 0.04 hit-slop of 0.20)
+        assertTrue(box.containsWithHitSlop(0.50f, 0.17f))
+        // Point slightly outside bottom edge (0.83 is within 0.04 hit-slop of 0.80)
+        assertTrue(box.containsWithHitSlop(0.50f, 0.83f))
+        // Far point outside (0.30 is > 0.04 away from 0.40)
+        assertFalse(box.containsWithHitSlop(0.30f, 0.50f))
+    }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

@@ -136,8 +136,19 @@ class DroneDashboardTest {
         )
 
         compose.onNodeWithTag("person_detection_0").performClick()
-        assertEquals(detection, actions.selectedTarget)
+        assertEquals(0.5f, actions.selectedPoint?.normalizedX ?: 0f, 0.001f)
+        assertEquals(0.475f, actions.selectedPoint?.normalizedY ?: 0f, 0.001f)
+        assertEquals(7L, actions.selectedFrameSequence)
         compose.onNodeWithText("Select Target").assertDoesNotExist()
+    }
+
+    @Test fun export_trace_action_is_available_in_debug_build() {
+        render(DroneSessionState())
+        if (BuildConfig.DEBUG) {
+            compose.onNodeWithTag("export_trace").assertExists()
+        } else {
+            compose.onNodeWithTag("export_trace").assertDoesNotExist()
+        }
     }
 
     @Test fun one_aspect_fit_video_surface_is_attached_for_the_unified_screen() {
@@ -190,7 +201,8 @@ class DroneDashboardTest {
         val attached = mutableListOf<Surface>()
         val detached = mutableListOf<Surface>()
         var selectedSpeed: Int? = null
-        var selectedTarget: PersonDetection? = null
+        var selectedPoint: com.alonibh.tellodrone.domain.TargetSelectionPoint? = null
+        var selectedFrameSequence: Long? = null
         var connectRequests = 0
         var disconnectRequests = 0
 
@@ -206,8 +218,9 @@ class DroneDashboardTest {
             selectedSpeed = percent
         }
 
-        override fun selectTarget(detection: PersonDetection) {
-            selectedTarget = detection
+        override fun selectTargetAt(normalizedX: Float, normalizedY: Float, displayedFrameSequence: Long?) {
+            selectedPoint = com.alonibh.tellodrone.domain.TargetSelectionPoint(normalizedX, normalizedY)
+            selectedFrameSequence = displayedFrameSequence
         }
 
         override fun attachVideoSurface(surface: Surface) {

@@ -48,12 +48,27 @@ class MainActivity : ComponentActivity() {
                         TelloPermissionPolicy.missingPermissions(this@MainActivity).isEmpty(),
                     )
                 }
+                val exportTraceLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.CreateDocument("application/zip"),
+                ) { uri ->
+                    if (uri != null) {
+                        viewModel.exportVisionTrace(uri.toString())
+                    }
+                }
                 LaunchedEffect(state.networkSelection) {
                     if (state.networkSelection == NetworkSelectionState.PermissionRequired) {
                         permissionLauncher.launch(TelloPermissionPolicy.requiredRuntimePermissions())
                     }
                 }
-                DroneDashboard(state, viewModel)
+                DroneDashboard(
+                    state = state,
+                    viewModel = viewModel,
+                    onExportTrace = {
+                        val timestamp = java.time.LocalDateTime.now()
+                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+                        exportTraceLauncher.launch("tello-follow-trace-$timestamp.zip")
+                    },
+                )
             }
         }
     }

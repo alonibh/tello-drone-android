@@ -88,7 +88,9 @@ class RealDroneController(context: Context) : DroneController {
             TelloServiceGateway.setTrackingMode(mode)
         } else outOfScope()
     }
-    override fun selectTarget(detection: PersonDetection) { TelloServiceGateway.selectTarget(detection) }
+    override fun selectTargetAt(normalizedX: Float, normalizedY: Float, displayedFrameSequence: Long?) {
+        TelloServiceGateway.selectTargetAt(normalizedX, normalizedY, displayedFrameSequence)
+    }
     override fun setCurrentFollowDistance() { TelloServiceGateway.setCurrentFollowDistance() }
     override fun setYawFollowArmed(armed: Boolean) { TelloServiceGateway.setYawFollowArmed(armed) }
     override fun exportVisionTrace(destinationUri: String) {

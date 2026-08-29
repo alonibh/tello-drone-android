@@ -46,7 +46,35 @@ data class NormalizedBoundingBox(
     val top: Float,
     val right: Float,
     val bottom: Float,
+) {
+    fun containsWithHitSlop(
+        pointX: Float,
+        pointY: Float,
+        hitSlop: Float = TARGET_SELECTION_HIT_SLOP_NORMALIZED,
+    ): Boolean {
+        if (!pointX.isFinite() || !pointY.isFinite()) return false
+        return pointX >= (left - hitSlop) &&
+            pointX <= (right + hitSlop) &&
+            pointY >= (top - hitSlop) &&
+            pointY <= (bottom + hitSlop)
+    }
+}
+
+const val TARGET_SELECTION_HIT_SLOP_NORMALIZED = 0.04f
+
+/** Normalized source-video coordinates (0f..1f) representing an explicit user tap. */
+data class TargetSelectionPoint(
+    val normalizedX: Float,
+    val normalizedY: Float,
 )
+
+enum class TargetSelectionAttemptResult {
+    ACCEPTED,
+    NO_MATCH,
+    AMBIGUOUS,
+    STALE_FRAME,
+    DETECTOR_NOT_READY,
+}
 
 /** One frame-local observation. It is deliberately not a selected or tracked target. */
 data class PersonDetection(

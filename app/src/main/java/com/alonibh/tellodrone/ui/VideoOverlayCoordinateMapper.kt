@@ -1,6 +1,7 @@
 package com.alonibh.tellodrone.ui
 
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
+import com.alonibh.tellodrone.domain.TargetSelectionPoint
 
 data class OverlayPixelRect(
     val left: Float,
@@ -67,6 +68,28 @@ object VideoOverlayCoordinateMapper {
             right = frame.left + right * frame.width,
             bottom = frame.top + bottom * frame.height,
         )
+    }
+
+    fun mapPixelTapToNormalized(
+        tapX: Float,
+        tapY: Float,
+        containerWidth: Float,
+        containerHeight: Float,
+        sourceWidth: Float,
+        sourceHeight: Float,
+    ): TargetSelectionPoint? {
+        if (!tapX.isFinite() || !tapY.isFinite() || !containerWidth.isFinite() || !containerHeight.isFinite()) {
+            return null
+        }
+        val frame = aspectFitFrame(containerWidth, containerHeight, sourceWidth, sourceHeight)
+        if (frame.width <= 0f || frame.height <= 0f) return null
+        if (tapX < frame.left || tapX > (frame.left + frame.width) ||
+            tapY < frame.top || tapY > (frame.top + frame.height)) {
+            return null
+        }
+        val normX = ((tapX - frame.left) / frame.width).coerceIn(0f, 1f)
+        val normY = ((tapY - frame.top) / frame.height).coerceIn(0f, 1f)
+        return TargetSelectionPoint(normX, normY)
     }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

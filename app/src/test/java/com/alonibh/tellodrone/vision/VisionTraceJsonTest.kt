@@ -140,5 +140,33 @@ class VisionTraceJsonTest {
         assertTrue(publication.contains("\"actualSentAtNanos\":1151000000"))
         assertFalse(publication.contains('\n'))
     }
+
+    @Test fun `target selection attempt trace encodes coordinates frame sequence and result`() {
+        val json = VisionTraceJson.encodeTargetSelectionAttempt(
+            TargetSelectionAttemptTrace(
+                tapTimestampNanos = 1_000_000_000L,
+                normalizedTapX = 0.42f,
+                normalizedTapY = 0.55f,
+                displayedFrameSequence = 7L,
+                sessionCurrentFrameSequence = 8L,
+                detectorFrameAgeMillis = 45L,
+                currentDetectionsCount = 2,
+                hitCandidatesCount = 1,
+                result = com.alonibh.tellodrone.domain.TargetSelectionAttemptResult.ACCEPTED,
+            ),
+        )
+
+        assertTrue(json.contains("\"eventType\":\"targetSelectionAttempt\""))
+        assertTrue(json.contains("\"tapTimestampNanos\":1000000000"))
+        assertTrue(json.contains("\"normalizedTapX\":0.42"))
+        assertTrue(json.contains("\"normalizedTapY\":0.55"))
+        assertTrue(json.contains("\"displayedFrameSequence\":7"))
+        assertTrue(json.contains("\"sessionCurrentFrameSequence\":8"))
+        assertTrue(json.contains("\"detectorFrameAgeMillis\":45"))
+        assertTrue(json.contains("\"currentDetectionsCount\":2"))
+        assertTrue(json.contains("\"hitCandidatesCount\":1"))
+        assertTrue(json.contains("\"result\":\"ACCEPTED\""))
+        assertFalse(json.contains('\n'))
+    }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

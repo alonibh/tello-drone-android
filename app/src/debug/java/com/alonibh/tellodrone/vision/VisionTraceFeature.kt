@@ -79,6 +79,10 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
             val trace: ExternalGroundingTrace,
             val epoch: CaptureEpoch,
         ) : Command
+        data class TargetSelectionAttempt(
+            val trace: TargetSelectionAttemptTrace,
+            val epoch: CaptureEpoch,
+        ) : Command
         data class ExportTrace(val destinationUri: String, val callback: (Result<VisionTraceExport>) -> Unit) : Command
         data class ExportSession(
             val destinationUri: String,
@@ -133,6 +137,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                 is Command.SdkCommand -> write(command)
                 is Command.FlightTransition -> write(command)
                 is Command.ExternalGrounding -> write(command)
+                is Command.TargetSelectionAttempt -> write(command)
                 is Command.ExportTrace -> exportTrace(command)
                 is Command.ExportSession -> exportSession(command)
                 is Command.ExportFlightDiagnostics -> exportFlightDiagnostics(command)
@@ -223,6 +228,11 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     override fun recordExternalGrounding(trace: ExternalGroundingTrace) {
         val epoch = currentEpoch
         commands.trySend(Command.ExternalGrounding(trace, epoch))
+    }
+
+    override fun recordTargetSelectionAttempt(trace: TargetSelectionAttemptTrace) {
+        val epoch = currentEpoch
+        commands.trySend(Command.TargetSelectionAttempt(trace, epoch))
     }
 
     override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) {
@@ -361,6 +371,14 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         externalGroundings += command.trace
         ensureControlWriter().apply {
             write(VisionTraceJson.encodeExternalGrounding(command.trace))
+            newLine()
+        }
+    }
+
+    private fun write(command: Command.TargetSelectionAttempt) {
+        prepareEpoch(command.epoch)
+        ensureControlWriter().apply {
+            write(VisionTraceJson.encodeTargetSelectionAttempt(command.trace))
             newLine()
         }
     }

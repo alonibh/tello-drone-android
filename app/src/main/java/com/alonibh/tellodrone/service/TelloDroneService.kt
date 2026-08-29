@@ -76,7 +76,9 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
     fun publishManualControl(vector: ManualControlVector) { session?.publishManualControl(vector) }
     fun setSpeed(percent: Int) { session?.setSpeed(percent) }
     fun setTrackingMode(mode: TrackingMode) { session?.setTrackingMode(mode) }
-    fun selectTarget(detection: PersonDetection) { session?.selectTarget(detection) }
+    fun selectTargetAt(normalizedX: Float, normalizedY: Float, displayedFrameSequence: Long? = null) {
+        session?.selectTargetAt(normalizedX, normalizedY, displayedFrameSequence)
+    }
     fun setCurrentFollowDistance() { session?.setCurrentFollowDistance() }
     fun setYawFollowArmed(armed: Boolean) { session?.setYawFollowArmed(armed) }
     fun attachVideoSurface(surface: Surface) { videoController?.attachSurface(surface) }
@@ -382,7 +384,8 @@ object TelloServiceGateway {
     fun publishManualControl(vector: ManualControlVector) = service?.publishManualControl(vector)
     fun setSpeed(percent: Int) = service?.setSpeed(percent)
     fun setTrackingMode(mode: TrackingMode) = service?.setTrackingMode(mode)
-    fun selectTarget(detection: PersonDetection) = service?.selectTarget(detection)
+    fun selectTargetAt(normalizedX: Float, normalizedY: Float, displayedFrameSequence: Long? = null) =
+        service?.selectTargetAt(normalizedX, normalizedY, displayedFrameSequence)
     fun setCurrentFollowDistance() = service?.setCurrentFollowDistance()
     fun setYawFollowArmed(armed: Boolean) = service?.setYawFollowArmed(armed)
     fun disconnect() = service?.disconnect()

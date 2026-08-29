@@ -13,9 +13,22 @@ import com.alonibh.tellodrone.domain.YawControllerPhase
 import com.alonibh.tellodrone.domain.YawControlSuppressionReason
 import com.alonibh.tellodrone.domain.YawFollowReason
 import com.alonibh.tellodrone.domain.YawFollowState
+import com.alonibh.tellodrone.domain.TargetSelectionAttemptResult
 import com.alonibh.tellodrone.tello.RcInputKind
 import com.alonibh.tellodrone.tello.RcSendSuppressionReason
 import com.alonibh.tellodrone.tello.RcVector
+
+data class TargetSelectionAttemptTrace(
+    val tapTimestampNanos: Long,
+    val normalizedTapX: Float,
+    val normalizedTapY: Float,
+    val displayedFrameSequence: Long?,
+    val sessionCurrentFrameSequence: Long?,
+    val detectorFrameAgeMillis: Long?,
+    val currentDetectionsCount: Int,
+    val hitCandidatesCount: Int,
+    val result: TargetSelectionAttemptResult,
+)
 
 data class VisionTraceFrame(
     val frameSequence: Long,
@@ -154,6 +167,7 @@ interface VisionTraceRecorder {
     fun recordSdkCommand(trace: SdkCommandTrace) = Unit
     fun recordFlightStateTransition(trace: FlightStateTransitionTrace) = Unit
     fun recordExternalGrounding(trace: ExternalGroundingTrace) = Unit
+    fun recordTargetSelectionAttempt(trace: TargetSelectionAttemptTrace) = Unit
     fun recordTelemetrySample(batteryPercent: Int?, heightMeters: Float?) = Unit
     fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit)
     fun exportFlightDiagnostics(destinationUri: String, onComplete: (Result<FlightDiagnosticsExport>) -> Unit) {
@@ -308,6 +322,21 @@ internal object VisionTraceJson {
         comma(); field("timestampMillis", trace.timestampMillis)
         comma(); field("heightMeters", trace.heightMeters)
         comma(); field("sampleCount", trace.sampleCount)
+        append('}')
+    }
+
+    fun encodeTargetSelectionAttempt(trace: TargetSelectionAttemptTrace): String = buildString(384) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", "targetSelectionAttempt")
+        comma(); field("tapTimestampNanos", trace.tapTimestampNanos)
+        comma(); field("normalizedTapX", trace.normalizedTapX)
+        comma(); field("normalizedTapY", trace.normalizedTapY)
+        comma(); field("displayedFrameSequence", trace.displayedFrameSequence)
+        comma(); field("sessionCurrentFrameSequence", trace.sessionCurrentFrameSequence)
+        comma(); field("detectorFrameAgeMillis", trace.detectorFrameAgeMillis)
+        comma(); field("currentDetectionsCount", trace.currentDetectionsCount)
+        comma(); field("hitCandidatesCount", trace.hitCandidatesCount)
+        comma(); field("result", trace.result.name)
         append('}')
     }
 
