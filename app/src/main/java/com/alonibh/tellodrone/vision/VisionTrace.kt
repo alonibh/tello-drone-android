@@ -148,6 +148,12 @@ data class FlightStateTransitionTrace(
     val triggerReason: String,
     val batteryPercent: Int?,
     val heightMeters: Float?,
+    val verticalVelocityCentimetersPerSecond: Int? = null,
+    val stabilizationSampleCount: Int? = null,
+    val stabilizationDurationMillis: Long? = null,
+    val minHeightMeters: Float? = null,
+    val maxHeightMeters: Float? = null,
+    val heightRangeMeters: Float? = null,
 )
 
 data class ExternalGroundingTrace(
@@ -321,7 +327,7 @@ internal object VisionTraceJson {
         append('}')
     }
 
-    fun encodeFlightStateTransition(trace: FlightStateTransitionTrace): String = buildString(256) {
+    fun encodeFlightStateTransition(trace: FlightStateTransitionTrace): String = buildString(384) {
         append('{'); field("schemaVersion", 1)
         comma(); field("eventType", "flightTransition")
         comma(); field("timestampMillis", trace.timestampMillis)
@@ -330,6 +336,12 @@ internal object VisionTraceJson {
         comma(); field("triggerReason", trace.triggerReason)
         comma(); field("batteryPercent", trace.batteryPercent)
         comma(); field("heightMeters", trace.heightMeters)
+        comma(); field("verticalVelocityCentimetersPerSecond", trace.verticalVelocityCentimetersPerSecond)
+        comma(); field("stabilizationSampleCount", trace.stabilizationSampleCount)
+        comma(); field("stabilizationDurationMillis", trace.stabilizationDurationMillis)
+        comma(); field("minHeightMeters", trace.minHeightMeters)
+        comma(); field("maxHeightMeters", trace.maxHeightMeters)
+        comma(); field("heightRangeMeters", trace.heightRangeMeters)
         append('}')
     }
 

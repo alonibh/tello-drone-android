@@ -180,5 +180,35 @@ class VisionTraceJsonTest {
         assertTrue(json.contains("\"result\":\"ACCEPTED\""))
         assertFalse(json.contains('\n'))
     }
+
+    @Test fun `flight state transition encodes takeoff stabilization diagnostics`() {
+        val json = VisionTraceJson.encodeFlightStateTransition(
+            FlightStateTransitionTrace(
+                timestampMillis = 1500L,
+                fromState = "TakingOff",
+                toState = "Flying",
+                triggerReason = "Takeoff stabilized by verified airborne telemetry",
+                batteryPercent = 85,
+                heightMeters = 0.50f,
+                verticalVelocityCentimetersPerSecond = 2,
+                stabilizationSampleCount = 4,
+                stabilizationDurationMillis = 300L,
+                minHeightMeters = 0.48f,
+                maxHeightMeters = 0.50f,
+                heightRangeMeters = 0.02f,
+            ),
+        )
+
+        assertTrue(json.contains("\"eventType\":\"flightTransition\""))
+        assertTrue(json.contains("\"fromState\":\"TakingOff\""))
+        assertTrue(json.contains("\"toState\":\"Flying\""))
+        assertTrue(json.contains("\"verticalVelocityCentimetersPerSecond\":2"))
+        assertTrue(json.contains("\"stabilizationSampleCount\":4"))
+        assertTrue(json.contains("\"stabilizationDurationMillis\":300"))
+        assertTrue(json.contains("\"minHeightMeters\":0.48"))
+        assertTrue(json.contains("\"maxHeightMeters\":0.5"))
+        assertTrue(json.contains("\"heightRangeMeters\":0.02"))
+        assertFalse(json.contains('\n'))
+    }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

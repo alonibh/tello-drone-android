@@ -1169,6 +1169,160 @@ class TelloFlightSessionTest {
         assertEquals(RcVector.Zero, fixture.session.state.value.manualVector.let { RcVector() })
     }
 
+    @Test fun `takeoff stabilization Test A - missing vgz keeps state TakingOff and RC disabled`() = runTest {
+        val fixture = connectedFixture()
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        for (i in 1..10) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = 0.50f,
+                velocityZCentimetersPerSecond = null,
+            )
+            runCurrent()
+            assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        }
+
+        advanceTimeBy(100L)
+        runCurrent()
+        assertTrue(fixture.transport.rc.isEmpty())
+    }
+
+    @Test fun `takeoff stabilization Test B - high vertical velocity keeps state TakingOff`() = runTest {
+        val fixture = connectedFixture()
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        for (i in 1..10) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = 0.50f,
+                velocityZCentimetersPerSecond = 50,
+            )
+            runCurrent()
+            assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        }
+    }
+
+    @Test fun `takeoff stabilization Test C - unstable height across window keeps state TakingOff`() = runTest {
+        val fixture = connectedFixture()
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        val ascendingHeights = listOf(0.25f, 0.38f, 0.48f, 0.55f)
+        for (h in ascendingHeights) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = h,
+                velocityZCentimetersPerSecond = 0,
+            )
+            runCurrent()
+            assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        }
+    }
+
+    @Test fun `takeoff stabilization Test D - stable hover transitions to Flying and first RC is zero`() = runTest {
+        val trace = FakeVisionTraceRecorder()
+        val fixture = fixture(visionTrace = trace)
+        fixture.transport.emitTelemetry(fixture.clock.value)
+        assertTrue(fixture.session.connect())
+        runCurrent()
+
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        val stableHeights = listOf(0.48f, 0.50f, 0.49f, 0.50f)
+        for (h in stableHeights) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = h,
+                velocityZCentimetersPerSecond = 0,
+            )
+            runCurrent()
+        }
+
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+        advanceTimeBy(100L)
+        runCurrent()
+        assertTrue(fixture.transport.rc.isNotEmpty())
+        assertEquals(RcVector.Zero, fixture.transport.rc.first())
+        val firstPub = trace.rcPublications.first()
+        assertEquals(RcVector.Zero, firstPub.actualSentVector)
+        assertEquals(RcInputKind.SAFETY_ZERO, firstPub.inputKind)
+    }
+
+    @Test fun `takeoff stabilization Test E - invalid sample resets stabilization sequence`() = runTest {
+        val fixture = connectedFixture()
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        // 2 stable samples
+        for (i in 1..2) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = 0.50f,
+                velocityZCentimetersPerSecond = 0,
+            )
+            runCurrent()
+            assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        }
+
+        // Invalid sample (missing vgz)
+        fixture.clock.value += 100L
+        fixture.transport.emitTelemetry(
+            at = fixture.clock.value,
+            heightMeters = 0.50f,
+            velocityZCentimetersPerSecond = null,
+        )
+        runCurrent()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        // 2 stable samples after reset (total is 4, but only 2 after reset -> must NOT transition)
+        for (i in 1..2) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = 0.50f,
+                velocityZCentimetersPerSecond = 0,
+            )
+            runCurrent()
+            assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+        }
+
+        // 2 more stable samples (completing 4 after reset) -> transitions to Flying
+        for (i in 1..2) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(
+                at = fixture.clock.value,
+                heightMeters = 0.50f,
+                velocityZCentimetersPerSecond = 0,
+            )
+            runCurrent()
+        }
+        assertEquals(FlightState.Flying, fixture.session.state.value.flight)
+    }
+
+    @Test fun `takeoff stabilization Test F - no RC sent while waiting in TakingOff`() = runTest {
+        val fixture = connectedFixture()
+        fixture.session.takeOff()
+        assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)
+
+        // Simulate manual input and multiple clock ticks while still TakingOff
+        fixture.session.publishManualControl(ManualControlVector(forward = 1f, yaw = 1f))
+        for (i in 1..5) {
+            advanceTimeBy(50L)
+            runCurrent()
+        }
+
+        assertTrue(fixture.transport.rc.isEmpty())
+    }
+
     private suspend fun TestScope.takeOffAndVerify(fixture: Fixture) {
         fixture.session.takeOff()
         assertEquals(FlightState.TakingOff, fixture.session.state.value.flight)

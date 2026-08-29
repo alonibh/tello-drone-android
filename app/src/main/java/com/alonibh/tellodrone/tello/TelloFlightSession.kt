@@ -115,6 +115,7 @@ class TelloFlightSession(
     private var yawFollowGeneration: Long? = null
     private var takeoffStabilizationSamples = 0
     private var firstTakeoffStabilizationAtMillis: Long? = null
+    private val takeoffStabilizationHeights = mutableListOf<Float>()
 
     private val rcLoop = RcControlLoop(
         scope = scope,
@@ -157,6 +158,7 @@ class TelloFlightSession(
         landingAcknowledged = false
         takeoffStabilizationSamples = 0
         firstTakeoffStabilizationAtMillis = null
+        takeoffStabilizationHeights.clear()
         videoStreamAcknowledged = false
         mutableState.update {
             it.copy(
@@ -233,6 +235,7 @@ class TelloFlightSession(
         landingAcknowledged = false
         takeoffStabilizationSamples = 0
         firstTakeoffStabilizationAtMillis = null
+        takeoffStabilizationHeights.clear()
         rcLoop.setEnabled(false)
         requireManualNeutral()
         mutableState.update {
@@ -739,31 +742,59 @@ class TelloFlightSession(
                 val isGroundedSample = sample.isVerifiedGrounded()
 
                 val isAirborneSample = sample.isVerifiedAirborne()
-                val isVerticallyStable = sample.velocityZCentimetersPerSecond == null ||
-                    kotlin.math.abs(sample.velocityZCentimetersPerSecond) <= TAKEOFF_MAX_VERTICAL_SPEED_CPS
+                val isVerticallyStable = sample.velocityZCentimetersPerSecond?.let {
+                    kotlin.math.abs(it) <= TAKEOFF_MAX_VERTICAL_SPEED_CPS
+                } == true
+
+                var stabilizationMinHeight: Float? = null
+                var stabilizationMaxHeight: Float? = null
+                var stabilizationHeightRange: Float? = null
+                var stabilizationDuration: Long? = null
+                var stabilizationSampleCountSnapshot: Int? = null
 
                 if (currentBefore.connection == DroneConnectionState.Connected &&
                     currentBefore.flight == FlightState.TakingOff && takeoffAcknowledged
                 ) {
-                    if (isAirborneSample && isVerticallyStable) {
+                    val height = sample.heightMeters
+                    if (isAirborneSample && isVerticallyStable && height != null) {
                         if (takeoffStabilizationSamples == 0) {
                             firstTakeoffStabilizationAtMillis = sample.receivedAtMonotonicMillis
+                            takeoffStabilizationHeights.clear()
                         }
                         takeoffStabilizationSamples++
+                        takeoffStabilizationHeights.add(height)
+
+                        val minH = takeoffStabilizationHeights.min()
+                        val maxH = takeoffStabilizationHeights.max()
+                        val range = maxH - minH
                         val firstAt = firstTakeoffStabilizationAtMillis ?: sample.receivedAtMonotonicMillis
                         val duration = sample.receivedAtMonotonicMillis - firstAt
-                        if (takeoffStabilizationSamples >= TAKEOFF_STABILIZATION_MIN_SAMPLES &&
-                            duration >= TAKEOFF_STABILIZATION_MIN_DURATION_MILLIS
-                        ) {
-                            becameFlying = true
+
+                        if (range <= TAKEOFF_MAX_HEIGHT_VARIATION_METERS) {
+                            if (takeoffStabilizationSamples >= TAKEOFF_STABILIZATION_MIN_SAMPLES &&
+                                duration >= TAKEOFF_STABILIZATION_MIN_DURATION_MILLIS
+                            ) {
+                                becameFlying = true
+                                stabilizationMinHeight = minH
+                                stabilizationMaxHeight = maxH
+                                stabilizationHeightRange = range
+                                stabilizationDuration = duration
+                                stabilizationSampleCountSnapshot = takeoffStabilizationSamples
+                            }
+                        } else {
+                            takeoffStabilizationSamples = 0
+                            firstTakeoffStabilizationAtMillis = null
+                            takeoffStabilizationHeights.clear()
                         }
                     } else {
                         takeoffStabilizationSamples = 0
                         firstTakeoffStabilizationAtMillis = null
+                        takeoffStabilizationHeights.clear()
                     }
                 } else {
                     takeoffStabilizationSamples = 0
                     firstTakeoffStabilizationAtMillis = null
+                    takeoffStabilizationHeights.clear()
                 }
 
                 if (currentBefore.connection == DroneConnectionState.Connected && currentBefore.flight == FlightState.Flying) {
@@ -837,6 +868,7 @@ class TelloFlightSession(
                     takeoffAcknowledged = false
                     takeoffStabilizationSamples = 0
                     firstTakeoffStabilizationAtMillis = null
+                    takeoffStabilizationHeights.clear()
                     rcLoop.enableForNewFlight()
                     startKeepalive()
                     visionTrace.recordFlightStateTransition(
@@ -847,6 +879,12 @@ class TelloFlightSession(
                             triggerReason = "Takeoff stabilized by verified airborne telemetry",
                             batteryPercent = sample.batteryPercent,
                             heightMeters = sample.heightMeters,
+                            verticalVelocityCentimetersPerSecond = sample.velocityZCentimetersPerSecond,
+                            stabilizationSampleCount = stabilizationSampleCountSnapshot,
+                            stabilizationDurationMillis = stabilizationDuration,
+                            minHeightMeters = stabilizationMinHeight,
+                            maxHeightMeters = stabilizationMaxHeight,
+                            heightRangeMeters = stabilizationHeightRange,
                         ),
                     )
                 }
@@ -1630,6 +1668,12 @@ class TelloFlightSession(
         const val TAKEOFF_STABILIZATION_MIN_SAMPLES = 4
         const val TAKEOFF_STABILIZATION_MIN_DURATION_MILLIS = 300L
         const val TAKEOFF_MAX_VERTICAL_SPEED_CPS = 20
+        /**
+         * Bounded height stability window threshold across the multi-sample stabilization sequence.
+         * Tello ultrasonic/barometer height reporting has a natural ~0.05-0.10m noise floor during hover,
+         * so 0.15m reliably suppresses active climb/descent while avoiding false lockouts on sensor jitter.
+         */
+        const val TAKEOFF_MAX_HEIGHT_VARIATION_METERS = 0.15f
         const val MAX_TRACKING_TRANSITIONS = 100
     }
 }
