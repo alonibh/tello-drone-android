@@ -84,6 +84,8 @@ data class TelemetrySnapshot(
     val velocityZCentimetersPerSecond: Int? = null,
     val flightTimeSeconds: Int? = null,
     val temperatureCelsius: Float? = null,
+    val yawDegrees: Int? = null,
+    val yawRateDegreesPerSecond: Float? = null,
     val receivedAt: Instant? = null,
     val isFresh: Boolean = false,
 )

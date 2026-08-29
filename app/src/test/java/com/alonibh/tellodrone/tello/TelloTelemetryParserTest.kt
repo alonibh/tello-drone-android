@@ -18,7 +18,54 @@ class TelloTelemetryParserTest {
         assertEquals(0.5f, sample.speedMetersPerSecond)
         assertEquals(62f, sample.temperatureCelsius)
         assertEquals(19, sample.flightTimeSeconds)
+        assertEquals(2, sample.yawDegrees)
         assertEquals(500, sample.receivedAtMonotonicMillis)
+    }
+
+    @Test fun `calculates shortest angular difference handling degree wraparound`() {
+        assertEquals(2f, shortestAngularDifferenceDegrees(179f, -179f), 0.001f)
+        assertEquals(-2f, shortestAngularDifferenceDegrees(-179f, 179f), 0.001f)
+        assertEquals(10f, shortestAngularDifferenceDegrees(0f, 10f), 0.001f)
+        assertEquals(-10f, shortestAngularDifferenceDegrees(10f, 0f), 0.001f)
+        assertEquals(-20f, shortestAngularDifferenceDegrees(-170f, 170f), 0.001f)
+        assertEquals(20f, shortestAngularDifferenceDegrees(170f, -170f), 0.001f)
+    }
+
+    @Test fun `derives yaw rate from consecutive samples and rejects stale gaps`() {
+        val rate1 = calculateYawRateDegreesPerSecond(
+            previousYawDegrees = 178,
+            currentYawDegrees = 179,
+            previousTimestampMillis = 1000L,
+            currentTimestampMillis = 1100L,
+        )
+        assertEquals(10f, rate1!!, 0.01f)
+
+        // Wraparound from 179 to -179 across 100ms
+        val rateWrap = calculateYawRateDegreesPerSecond(
+            previousYawDegrees = 179,
+            currentYawDegrees = -179,
+            previousTimestampMillis = 1100L,
+            currentTimestampMillis = 1200L,
+        )
+        assertEquals(20f, rateWrap!!, 0.01f)
+
+        // Stale gap > 1000ms returns null
+        val rateStale = calculateYawRateDegreesPerSecond(
+            previousYawDegrees = 10,
+            currentYawDegrees = 20,
+            previousTimestampMillis = 1000L,
+            currentTimestampMillis = 2100L,
+        )
+        assertNull(rateStale)
+
+        // Non-positive gap returns null
+        val rateInvalidTime = calculateYawRateDegreesPerSecond(
+            previousYawDegrees = 10,
+            currentYawDegrees = 20,
+            previousTimestampMillis = 1000L,
+            currentTimestampMillis = 1000L,
+        )
+        assertNull(rateInvalidTime)
     }
 
     @Test fun `does not fabricate absent or malformed telemetry`() {

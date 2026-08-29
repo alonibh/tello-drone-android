@@ -12,6 +12,7 @@ data class TelloTelemetry(
     val velocityYCentimetersPerSecond: Int?,
     val velocityZCentimetersPerSecond: Int?,
     val speedMetersPerSecond: Float?,
+    val yawDegrees: Int? = null,
     val receivedAt: Instant,
     val receivedAtMonotonicMillis: Long,
     val fields: Map<String, String>,
@@ -45,6 +46,7 @@ object TelloTelemetryParser {
             lowTemperature != null -> lowTemperature
             else -> highTemperature
         }
+        val yaw = fields["yaw"]?.toIntOrNull()
 
         return TelloTelemetry(
             batteryPercent = fields["bat"]?.toIntOrNull()?.takeIf { it in 0..100 },
@@ -55,6 +57,7 @@ object TelloTelemetryParser {
             velocityYCentimetersPerSecond = velocityY,
             velocityZCentimetersPerSecond = velocityZ,
             speedMetersPerSecond = speed,
+            yawDegrees = yaw,
             receivedAt = receivedAt,
             receivedAtMonotonicMillis = receivedAtMonotonicMillis,
             fields = fields,
@@ -66,8 +69,36 @@ object TelloTelemetryParser {
     private fun String.toNonNegativeIntOrNull(): Int? = toIntOrNull()?.takeIf { it >= 0 }
 
     private val KNOWN_STATE_FIELDS = setOf(
-        "bat", "h", "time", "templ", "temph", "vgx", "vgy", "vgz",
+        "bat", "h", "time", "templ", "temph", "vgx", "vgy", "vgz", "pitch", "roll", "yaw", "tof", "baro",
     )
+}
+
+/** Computes the shortest angular difference in degrees from [fromDegrees] to [toDegrees] in [-180, 180]. */
+fun shortestAngularDifferenceDegrees(fromDegrees: Float, toDegrees: Float): Float {
+    var diff = (toDegrees - fromDegrees) % 360f
+    if (diff > 180f) diff -= 360f
+    else if (diff < -180f) diff += 360f
+    return diff
+}
+
+/**
+ * Derives physical aircraft yaw rate in deg/s from consecutive sample angles and monotonic timestamps.
+ * Returns null if the sample gap is zero, negative, or exceeds 1.0 second.
+ */
+fun calculateYawRateDegreesPerSecond(
+    previousYawDegrees: Int,
+    currentYawDegrees: Int,
+    previousTimestampMillis: Long,
+    currentTimestampMillis: Long,
+): Float? {
+    val elapsedMillis = currentTimestampMillis - previousTimestampMillis
+    if (elapsedMillis <= 0L || elapsedMillis > 1000L) return null
+    val deltaDegrees = shortestAngularDifferenceDegrees(
+        previousYawDegrees.toFloat(),
+        currentYawDegrees.toFloat(),
+    )
+    val elapsedSeconds = elapsedMillis / 1000f
+    return deltaDegrees / elapsedSeconds
 }
 
 /** Total 3D translational speed from Tello SDK vgx/vgy/vgz values, which are reported in cm/s. */

@@ -87,6 +87,9 @@ class TelloFlightSession(
     private var groundedSampleCount = 0
     private var firstGroundedSampleAtMillis: Long? = null
     @Volatile private var lastTelemetryAtMillis: Long? = null
+    private var lastTelemetryYawDegrees: Int? = null
+    private var lastTelemetryYawTimestampMillis: Long? = null
+    private var currentYawRateDegreesPerSecond: Float? = null
     @Volatile private var closed = false
     private val fatalReportLock = Any()
     private var fatalReported = false
@@ -530,6 +533,9 @@ class TelloFlightSession(
         // a false terminal loss based on an obsolete timestamp.
         if (lastTelemetryAtMillis != last) return
         if (age >= TELEMETRY_STALE_MILLIS && mutableState.value.telemetry.isFresh) {
+            currentYawRateDegreesPerSecond = null
+            lastTelemetryYawDegrees = null
+            lastTelemetryYawTimestampMillis = null
             requireManualNeutral()
             latchYawFollow(YawFollowReason.TELEMETRY_STALE)
             rcLoop.setHealthy(false)
@@ -537,7 +543,7 @@ class TelloFlightSession(
             mutableState.update { state ->
                 if (state.telemetry.isFresh) {
                     state.copy(
-                        telemetry = state.telemetry.copy(isFresh = false),
+                        telemetry = state.telemetry.copy(isFresh = false, yawRateDegreesPerSecond = null),
                         manualVector = ManualControlVector(),
                         hoverActive = false,
                         lastMessage = "Telemetry stale; non-zero RC output inhibited",
@@ -617,6 +623,24 @@ class TelloFlightSession(
                     groundedSampleCount = 0
                     firstGroundedSampleAtMillis = null
                 }
+
+                val sampleTimestampMillis = sample.receivedAtMonotonicMillis
+                val currentYaw = sample.yawDegrees
+                val previousYaw = lastTelemetryYawDegrees
+                val previousTimestampMillis = lastTelemetryYawTimestampMillis
+                val yawRate = if (currentYaw != null && previousYaw != null && previousTimestampMillis != null) {
+                    calculateYawRateDegreesPerSecond(
+                        previousYawDegrees = previousYaw,
+                        currentYawDegrees = currentYaw,
+                        previousTimestampMillis = previousTimestampMillis,
+                        currentTimestampMillis = sampleTimestampMillis,
+                    )
+                } else null
+                if (currentYaw != null) {
+                    lastTelemetryYawDegrees = currentYaw
+                    lastTelemetryYawTimestampMillis = sampleTimestampMillis
+                }
+                currentYawRateDegreesPerSecond = yawRate
 
                 mutableState.update { current ->
                     if (closed || current.connection !in setOf(DroneConnectionState.Connecting, DroneConnectionState.Connected)) {
@@ -1107,6 +1131,9 @@ class TelloFlightSession(
                 targetCenterVelocityPerSecond = control?.targetCenterVelocityPerSecond,
                 predictionHorizonMillis = control?.predictionHorizonMillis,
                 controlYawError = control?.controlYawError,
+                controllerPhase = control?.phase,
+                telloYawDegrees = control?.telloYawDegrees ?: current.telemetry.yawDegrees,
+                telloYawRateDegreesPerSecond = control?.telloYawRateDegreesPerSecond ?: current.telemetry.yawRateDegreesPerSecond,
                 associationCompletedTimestampNanos = frame.associationCompletedTimestampNanos,
                 yawDecisionTimestampNanos = commandTimestampNanos,
             ),
@@ -1152,9 +1179,12 @@ class TelloFlightSession(
                 estimatedTargetCenterX = control?.estimatedTargetCenterX,
                 targetCenterVelocityPerSecond = control?.targetCenterVelocityPerSecond,
                 predictionHorizonMillis = control?.predictionHorizonMillis,
-                  controlYawError = control?.controlYawError,
-                  yawDecisionTimestampNanos = control?.commandTimestampNanos,
-              ),
+                controlYawError = control?.controlYawError,
+                controllerPhase = control?.phase,
+                telloYawDegrees = control?.telloYawDegrees ?: current.telemetry.yawDegrees,
+                telloYawRateDegreesPerSecond = control?.telloYawRateDegreesPerSecond ?: current.telemetry.yawRateDegreesPerSecond,
+                yawDecisionTimestampNanos = control?.commandTimestampNanos,
+            ),
         )
     }
 
@@ -1176,6 +1206,8 @@ class TelloFlightSession(
         manualInputNeutral = manualVector.isZero(),
         hoverActive = hoverActive,
         commandTimestampNanos = sourceNowNanos(),
+        telemetryYawDegrees = telemetry.yawDegrees,
+        telemetryYawRateDegreesPerSecond = telemetry.yawRateDegreesPerSecond,
     )
 
     private fun YawFollowReason.displayName() = name.replace('_', ' ')
@@ -1235,7 +1267,7 @@ class TelloFlightSession(
                     networkSelection = NetworkSelectionState.Lost,
                     flight = if (wasEmergency) FlightState.Emergency else FlightState.Unknown,
                     telemetry = state.telemetry.copy(isFresh = false),
-                    video = VideoState(VideoAvailability.Error, errorReason = message),
+                    video = VideoState(availability = VideoAvailability.Error, errorReason = message),
                     authority = ControlAuthority.Manual,
                     tracking = TrackingMode.Off,
                     personDetections = emptyList(),
@@ -1404,6 +1436,8 @@ class TelloFlightSession(
         velocityZCentimetersPerSecond = velocityZCentimetersPerSecond,
         flightTimeSeconds = flightTimeSeconds,
         temperatureCelsius = temperatureCelsius,
+        yawDegrees = yawDegrees,
+        yawRateDegreesPerSecond = if (isFresh) currentYawRateDegreesPerSecond else null,
         receivedAt = receivedAt,
         isFresh = isFresh,
     )

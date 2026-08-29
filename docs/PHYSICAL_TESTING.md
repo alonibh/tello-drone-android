@@ -1,37 +1,39 @@
 # Physical validation
 
-## Current yaw-follow latency and stability validation — pending
+## Current yaw-follow latency, stability, and settling validation — pending
 
-This code revision requires a fresh guarded-flight run on the target tablet before latency targets
-or the reported late-recording false-loss cause can be considered physically verified. Export the
-debug vision/flight trace from the same run; do not estimate timings from screen-recording frames.
+This code revision implements the three-phase yaw controller (`HOLD`, `CORRECTING`, `SETTLING`) with
+real Tello telemetry yaw-rate feedback to prevent overshoot and hunting around center crossing.
+A fresh guarded-flight validation on the target device is required using the following protocol:
 
-1. Grounded, connect and start person detection. Confirm analysis reports approximately 15 FPS,
-   detector input remains newest-frame/drop-old, maximum pending depth is at most one, and dropped
-   counts may rise under detector load without memory growth or preview degradation.
-2. Select one person in a clear single-person scene, take off low with guards, arm yaw follow, and
-   remain centered. Introduce natural bounding-box jitter without deliberate movement; physical yaw
-   must remain zero.
-3. Move decisively left and right. Confirm correction begins on the first fresh trustworthy result,
-   remains bounded to 28 RC, and lateral/forward/vertical autonomous axes remain zero.
-4. Stop near center after a large correction. The first fresh raw measurement inside the release
-   region must send yaw zero immediately. Repeat a center crossing and confirm zero braking precedes
-   any opposite command.
-5. Briefly obstruct detection or overload perception. A prior nonzero command must zero after at
-   most 170 ms without a newer accepted match; RC TTL remains independently active.
-6. Repeat the former continuous-visible walking/yaw scenario. If association becomes missing or
-   lost, inspect each candidate's confidence, geometry, area, appearance, ambiguity, source interval,
-   and rejection reasons. Do not reselect automatically during diagnosis.
-7. Export the trace and record p50/p95 for render-to-PixelCopy, render-to-detector start/complete,
-   detector stages, detector-to-association, source-to-yaw-decision, yaw-decision-to-actual-send,
-   source-to-actual-send, physical perception age, analysis/detector FPS, drops, and pending depth.
-8. Reconfirm manual 30/65/100, STOP/HOVER, landing cleanup, 900 ms Emergency hold, passive Connected
-   status, overlay alignment, 4:3 aspect-fit video, and symmetric joysticks.
+### Fixed-Floor-Mark Test Protocol
 
-No device/AVD was available during the implementation verification, and the referenced screen
-recording was not present in the attachment payload. Consequently, before/after target-tablet FPS
-and latency percentiles and the exact 176-180 second rejection cause remain unmeasured pending this
-procedure.
+1. **Grounded baseline & telemetry verification**:
+   - Place drone on floor with prop guards. Connect and confirm telemetry `yawDegrees` updates in real time.
+   - Start person detection and verify ~15 FPS analysis feed with single-lease drop-old buffer.
+2. **Stationary centered test (HOLD phase)**:
+   - Mark a fixed position on the floor for the subject and position the drone facing the subject.
+   - Take off low with prop guards, arm yaw follow.
+   - Subject stands completely stationary at center for 15 seconds.
+   - Confirm drone remains in `HOLD` phase, outputs continuous `yaw = 0`, and exhibits zero hunting or twitching.
+3. **Decisive single-step offset & center settling (CORRECTING -> SETTLING -> HOLD)**:
+   - Subject steps 1 meter to the right and stops immediately.
+   - Drone enters `CORRECTING`, slews smoothly up to at most 28 RC to center the target.
+   - As target reaches center (|error| <= 0.035) or crosses center, drone enters `SETTLING` with `yaw = 0`.
+   - Verify drone does NOT immediately reverse or hunt across center; it commands `yaw = 0` while physical
+     yaw rate decays below 8.0 deg/s for 2 consecutive samples, then transitions cleanly to `HOLD`.
+4. **Opposite step test**:
+   - Repeat the single-step maneuver to the left. Confirm symmetric behavior and clean settling without overshoot.
+5. **Slow continuous walk across field of view**:
+   - Subject slowly walks across the field of view from left to right.
+   - Drone tracks smoothly, handles center transitions through `SETTLING`, and follows without oscillation.
+6. **Telemetry fallback verification**:
+   - Verify that if telemetry yaw rate is unavailable or stale, fallback settling enforces minimum 200 ms
+     duration and at least 2 fresh detector measurements before permitting opposite direction correction.
+7. **Trace export & metric inspection**:
+   - Export flight summary and vision trace.
+   - Verify `maximum_yaw_rate_dps`, `center_crossings_count`, `direction_reversals_count`, and
+     `reversals_while_yaw_rate_unsettled_count` (which should be 0 in clean flight).
 
 ## Phase 3A video validation — complete
 

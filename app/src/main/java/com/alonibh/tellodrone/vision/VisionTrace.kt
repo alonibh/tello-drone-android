@@ -9,6 +9,7 @@ import com.alonibh.tellodrone.domain.TargetAssociationDiagnostics
 import com.alonibh.tellodrone.domain.TargetAssociationMetrics
 import com.alonibh.tellodrone.domain.TargetAssociationState
 import com.alonibh.tellodrone.domain.TrackedTarget
+import com.alonibh.tellodrone.domain.YawControllerPhase
 import com.alonibh.tellodrone.domain.YawControlSuppressionReason
 import com.alonibh.tellodrone.domain.YawFollowReason
 import com.alonibh.tellodrone.domain.YawFollowState
@@ -68,6 +69,9 @@ data class YawControlMeasurementTrace(
     val targetCenterVelocityPerSecond: Float? = null,
     val predictionHorizonMillis: Long? = null,
     val controlYawError: Float? = null,
+    val controllerPhase: YawControllerPhase? = null,
+    val telloYawDegrees: Int? = null,
+    val telloYawRateDegreesPerSecond: Float? = null,
     val associationCompletedTimestampNanos: Long? = null,
     val yawDecisionTimestampNanos: Long = commandTimestampNanos,
 )
@@ -99,6 +103,9 @@ data class RcPublicationTrace(
     val targetCenterVelocityPerSecond: Float? = null,
     val predictionHorizonMillis: Long? = null,
     val controlYawError: Float? = null,
+    val controllerPhase: YawControllerPhase? = null,
+    val telloYawDegrees: Int? = null,
+    val telloYawRateDegreesPerSecond: Float? = null,
     val yawDecisionTimestampNanos: Long? = null,
 )
 
@@ -226,6 +233,9 @@ internal object VisionTraceJson {
         comma(); field("previousYawRc", trace.previousYawRc)
         comma(); field("requestedYawRc", trace.requestedYawRc)
         comma(); field("safetyFilteredYawRc", trace.safetyFilteredYawRc)
+        comma(); field("controllerPhase", trace.controllerPhase?.name)
+        comma(); field("telloYawDegrees", trace.telloYawDegrees)
+        comma(); field("telloYawRateDegreesPerSecond", trace.telloYawRateDegreesPerSecond)
         comma(); field("suppressionReason", trace.suppressionReason.name)
         comma(); field("telemetryHeightMeters", trace.telemetryHeightMeters)
         comma(); field("yawFollowState", trace.yawFollowState.name)
@@ -255,6 +265,9 @@ internal object VisionTraceJson {
         comma(); field("previousYawRc", trace.previousYawRc)
         comma(); field("requestedYawRc", trace.requestedYawRc)
         comma(); field("safetyFilteredYawRc", trace.safetyFilteredYawRc)
+        comma(); field("controllerPhase", trace.controllerPhase?.name)
+        comma(); field("telloYawDegrees", trace.telloYawDegrees)
+        comma(); field("telloYawRateDegreesPerSecond", trace.telloYawRateDegreesPerSecond)
         comma(); field("yawSuppressionReason", trace.yawSuppressionReason?.name)
         comma(); name("requestedVector"); vector(trace.requestedVector)
         comma(); name("actualSentVector"); vector(trace.actualSentVector)

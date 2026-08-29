@@ -15,19 +15,34 @@ YOLO11n 320x320 FP32 LiteRT on four CPU threads. Per-stage timing covers preproc
 decode/NMS, and appearance extraction. Appearance extraction is unchanged until target-tablet
 profiling and the frozen identity corpus justify an optimization.
 
-`ProductionYawController` uses raw fresh center geometry for a 0.035 release threshold, so a newly
-centered target brakes immediately. A 0.065 engage threshold prevents centered detector jitter from
-starting rotation. Adaptive yaw filtering favors the latest measurement at large error; a bounded
-source-timestamp estimator caps center velocity at 0.80 normalized units/second, prediction horizon
-at 120 ms, and predicted offset at 0.08. Missing, ambiguous, lost, stale, out-of-order, jump-rejected,
-manual-override, STOP/HOVER, landing, emergency, or unhealthy input resets or brakes estimation.
+`ProductionYawController` operates in three explicit phases (`HOLD`, `CORRECTING`, `SETTLING`):
+- `HOLD`: Target is within the 0.065 engage threshold; controller outputs `yaw = 0` and ignores detector jitter.
+- `CORRECTING`: Target is outside engage threshold; controller outputs proportional slew commands up to 28 RC
+  (acceleration bounded to 8 RC/frame, deceleration bounded to 20 RC/frame).
+- `SETTLING`: Triggered when target reaches center (|error| <= 0.035) or crosses center, or when active correction
+  drops to zero. The controller strictly outputs `yaw = 0` while the physical drone decelerates, preventing
+  reverse-rotation hunting caused by residual aircraft inertia.
 
-Autonomous yaw has its own 28 RC cap and scheduled gains of 78/92/108. Same-direction acceleration
-is limited to 8 RC per accepted measurement, braking may reduce by 20, a fresh centered measurement
-goes directly to zero, and reversal brakes to zero before a later measurement may command the
-opposite direction. A nonzero decision expires after 170 ms without a newer accepted match even
-though the separate global perception limit remains 225 ms. RC TTL and serialized safety-zero
-publication remain independent stronger fail-safes.
+Settling condition verification:
+- **Primary condition**: Physical aircraft yaw rate is derived in real time from Tello state packet `yaw:<degrees>`
+  telemetry using shortest angular difference (handling `179° -> -179°` wraparound without spurious `±360°` spikes)
+  and monotonic sample timestamps. When telemetry yaw rate is available, exiting `SETTLING` requires
+  `abs(yawRateDegreesPerSecond) <= 8.0 deg/s` for at least 2 consecutive samples.
+- **Fallback condition**: If yaw telemetry is unavailable or stale, the controller enforces a minimum settling
+  duration of 200 ms and at least 2 fresh detector measurements.
+- Center crossing applies braking (`estimator.brake`) rather than wiping estimator history, preserving continuity.
+
+Adaptive yaw filtering favors the latest measurement at large error; a bounded source-timestamp estimator caps
+center velocity at 0.80 normalized units/second, prediction horizon at 120 ms, and predicted offset at 0.08.
+Missing, ambiguous, lost, stale, out-of-order, jump-rejected, manual-override, STOP/HOVER, landing, emergency,
+or unhealthy input latches `REQUIRES_REARM`, resets the controller to `HOLD` with zero RC output, and resets
+the target estimator.
+
+Autonomous yaw has its own 28 RC cap and scheduled gains of 78/92/108. Same-direction acceleration is limited
+to 8 RC per accepted measurement, braking may reduce by 20, a fresh centered measurement goes directly to zero,
+and reversal enters `SETTLING` before a later measurement may command the opposite direction. A nonzero decision
+expires after 170 ms without a newer accepted match even though the separate global perception limit remains
+225 ms. RC TTL and serialized safety-zero publication remain independent stronger fail-safes.
 
 Association retains the frozen confidence, IoU, area, appearance, ambiguity, and terminal-loss
 rules. For exactly one detection with strong appearance evidence, a source-time-aware center bound

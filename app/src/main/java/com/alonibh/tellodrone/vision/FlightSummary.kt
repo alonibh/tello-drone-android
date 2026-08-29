@@ -32,6 +32,8 @@ internal data class FlightSummary(
     val timeOutsideError15Ms: Long, val timeOutsideError20Ms: Long,
     val maxContinuousOutsideError15Ms: Long, val maxContinuousOutsideError20Ms: Long,
     val heightMin: Double?, val heightMax: Double?, val heightMean: Double?, val heightRange: Double?, val heightStdDev: Double?, val verticalVelocityP95: Double?,
+    val maximumYawRate: Double?, val timeFromYawZeroRequestUntilSettledMs: Long?,
+    val centerCrossingsCount: Int, val directionReversalsCount: Int, val reversalsWhileYawRateUnsettledCount: Int,
     val notableEvents: List<FlightSummaryEvent>,
 )
 
@@ -79,7 +81,7 @@ internal object FlightSummaryBuilder {
         }
         val stale = count("stale perception") { it.string("suppressionReason") == "STALE_PERCEPTION" || it.string("sendSuppressionReason") == "PERCEPTION_AGE_EXPIRED" }
         val jump = count("jump rejection") { it.suppression() == "TARGET_JUMP_REJECTED" }
-        val crossing = count("center-crossing brake") { it.suppression() == "CENTER_CROSSING_BRAKE" }
+        val crossing = count("center-crossing brake") { it.suppression() == "CENTER_CROSSING_BRAKE" || it.string("controllerPhase") == "SETTLING" }
         val rearm = count("Lost/re-arm") { it.string("yawFollowState") == "REQUIRES_REARM" }
         val manual = count("manual override") { it.string("yawFollowReason") == "MANUAL_OVERRIDE" }
         val hover = count("STOP/HOVER") { it.string("yawFollowReason") == "HOVER_INTERVENTION" }
@@ -146,6 +148,28 @@ internal object FlightSummaryBuilder {
             }
         }
 
+        val yawRates = controls.mapNotNull { it.double("telloYawRateDegreesPerSecond")?.let(::abs) }
+        val maxYawRate = yawRates.maxOrNull()
+        val nonZeroYawPubs = sentAutonomous.mapNotNull { it.int("actualSentVector", "yaw")?.takeIf { y -> y != 0 } }
+        val directionReversalsCount = nonZeroYawPubs.zipWithNext().count { (a, b) -> (a > 0 && b < 0) || (a < 0 && b > 0) }
+
+        val nonZeroYawEvents = controls.filter {
+            val y = it.int("requestedYawRc") ?: it.int("actualSentVector", "yaw") ?: 0
+            y != 0
+        }
+        val reversalsWhileYawRateUnsettledCount = nonZeroYawEvents.zipWithNext().count { (a, b) ->
+            val yawA = a.int("requestedYawRc") ?: a.int("actualSentVector", "yaw") ?: 0
+            val yawB = b.int("requestedYawRc") ?: b.int("actualSentVector", "yaw") ?: 0
+            val reversed = (yawA > 0 && yawB < 0) || (yawA < 0 && yawB > 0)
+            val yawRate = abs(b.double("telloYawRateDegreesPerSecond") ?: a.double("telloYawRateDegreesPerSecond") ?: 0.0)
+            reversed && yawRate > 8.0
+        }
+
+        val settlingEpisodes = episodes(controls) { it.string("controllerPhase") == "SETTLING" || it.suppression() == "CENTER_CROSSING_BRAKE" }
+        val settlingDurationsMs = settlingEpisodes.mapNotNull { it.long("commandTimestampNanos") }
+            .zipWithNext().map { (a, b) -> (b - a).coerceAtLeast(0L) / MS_NANOS }
+        val timeFromYawZeroRequestUntilSettledMs = settlingDurationsMs.takeIf { it.isNotEmpty() }?.maxOrNull()
+
         return FlightSummary(
             durationMs = allTimes.maxOrNull()?.minus(allTimes.minOrNull() ?: 0L)?.div(MS_NANOS)?.coerceAtLeast(0L) ?: 0L,
             armedMs = yawStates.filter { it.value in setOf("ARMED_WAITING", "ACTIVE") }.sumOf { it.durationMs }, activeMs = yawStates.filter { it.value == "ACTIVE" }.sumOf { it.durationMs },
@@ -187,6 +211,11 @@ internal object FlightSummaryBuilder {
             maxContinuousOutsideError15Ms = maxCont15Ms,
             maxContinuousOutsideError20Ms = maxCont20Ms,
             heightMin = heights.minOrNull(), heightMax = heights.maxOrNull(), heightMean = heights.takeIf { it.isNotEmpty() }?.average(), heightRange = heights.takeIf { it.isNotEmpty() }?.let { it.max() - it.min() }, heightStdDev = standardDeviation(heights), verticalVelocityP95 = null,
+            maximumYawRate = maxYawRate,
+            timeFromYawZeroRequestUntilSettledMs = timeFromYawZeroRequestUntilSettledMs,
+            centerCrossingsCount = crossing,
+            directionReversalsCount = directionReversalsCount,
+            reversalsWhileYawRateUnsettledCount = reversalsWhileYawRateUnsettledCount,
             notableEvents = events.distinct().sortedBy { it.timestampNanos }.take(12),
         )
     }
@@ -223,6 +252,11 @@ internal object FlightSummaryBuilder {
         "max_continuous_outside_error_15_ms" to s.maxContinuousOutsideError15Ms,
         "max_continuous_outside_error_20_ms" to s.maxContinuousOutsideError20Ms,
         "height_min_m" to s.heightMin, "height_max_m" to s.heightMax, "height_mean_m" to s.heightMean, "height_range_m" to s.heightRange, "height_standard_deviation_m" to s.heightStdDev, "vertical_velocity_p95_mps" to s.verticalVelocityP95,
+        "maximum_yaw_rate_dps" to s.maximumYawRate,
+        "time_from_yaw_zero_request_until_settled_ms" to s.timeFromYawZeroRequestUntilSettledMs,
+        "center_crossings_count" to s.centerCrossingsCount,
+        "direction_reversals_count" to s.directionReversalsCount,
+        "reversals_while_yaw_rate_unsettled_count" to s.reversalsWhileYawRateUnsettledCount,
     ).joinToString(prefix = "{\n", postfix = ",\n  \"notable_events\": [${s.notableEvents.joinToString { "{\"kind\":\"${it.kind}\",\"timestamp_nanos\":${it.timestampNanos},\"frame_sequence\":${it.frameSequence ?: "null"}}" }}]\n}", separator = ",\n") { "  \"${it.first}\": ${jsonValue(it.second)}" }
 
     fun text(s: FlightSummary): String = buildString {
@@ -237,6 +271,7 @@ internal object FlightSummaryBuilder {
         appendLine("Autonomous yaw activity: ${metric(s.fractionOfActiveNonZeroYaw?.times(100.0), "% non-zero")} (expiry suppressions: ${s.perceptionAgeExpiredCount}, longest gap: ${s.longestPerceptionExpiryZeroIntervalMs}ms)")
         appendLine("Inter-measurement p50/p95: ${metric(s.interMeasurementP50Ms, " ms")} / ${metric(s.interMeasurementP95Ms, " ms")}")
         appendLine("Time outside |error|>0.15 / >0.20: ${s.timeOutsideError15Ms}ms (max continuous ${s.maxContinuousOutsideError15Ms}ms) / ${s.timeOutsideError20Ms}ms (max continuous ${s.maxContinuousOutsideError20Ms}ms)")
+        appendLine("Oscillation & Settling: max yaw rate ${metric(s.maximumYawRate, " deg/s")}, reversals ${s.directionReversalsCount}, unsettled reversals ${s.reversalsWhileYawRateUnsettledCount}")
         appendLine("Height min/max/range: ${metric(s.heightMin, " m")} / ${metric(s.heightMax, " m")} / ${metric(s.heightRange, " m")}"); appendLine(); appendLine("NON-YAW AUTONOMOUS AXIS VIOLATIONS: ${s.nonYawAutonomousAxisViolations}")
         if (s.notableEvents.isNotEmpty()) { appendLine(); appendLine("Notable events:"); s.notableEvents.forEach { appendLine("- ${it.kind}: t=${it.timestampNanos} frame=${it.frameSequence ?: "—"}") } }
     }

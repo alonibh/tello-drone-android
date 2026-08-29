@@ -21,6 +21,7 @@ class FlightSummaryTest {
         assertEquals(1000, summary.longestMissingMs)
         assertEquals(1, summary.jumpSuppressions)
         assertEquals(1, summary.crossingBrakes)
+        assertEquals(1, summary.centerCrossingsCount)
         assertEquals(1, summary.nonYawAutonomousAxisViolations)
         assertEquals(1.0, summary.heightMin!!, .001)
         assertEquals(4.0, summary.heightMax!!, .001)

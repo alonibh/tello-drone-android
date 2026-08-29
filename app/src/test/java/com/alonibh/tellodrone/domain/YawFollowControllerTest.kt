@@ -1,5 +1,6 @@
 package com.alonibh.tellodrone.domain
 
+import com.alonibh.tellodrone.tello.calculateYawRateDegreesPerSecond
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -146,13 +147,18 @@ class YawFollowControllerTest {
         val expired = controller.command(errors(.12f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 172L * NANOS_PER_MILLISECOND)
         assertEquals(0, expired.safetyFilteredYawRc)
 
-        // Crossing to opposite side within anti-jump gate (.12 to -.05 is delta .17 <= .18) brakes to zero
+        // Crossing to opposite side within anti-jump gate (.12 to -.05 is delta .17 <= .18) enters SETTLING with zero output
         val crossing = controller.command(errors(-.05f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis))
         assertEquals(0, crossing.safetyFilteredYawRc)
         assertEquals(YawControlSuppressionReason.CENTER_CROSSING_BRAKE, crossing.suppressionReason)
+        assertEquals(YawControllerPhase.SETTLING, crossing.phase)
 
-        // Subsequent fresh frame begins reverse rotation
-        val reversed = controller.command(errors(-.09f, 3L, intervalMillis = intervalMillis), commandTime(3L, intervalMillis))
+        // Settling measurement 1 (dt = 175ms < 200ms fallback)
+        val settling = controller.command(errors(-.07f, 3L, intervalMillis = intervalMillis), commandTime(3L, intervalMillis))
+        assertEquals(0, settling.safetyFilteredYawRc)
+
+        // Subsequent fresh frame at dt = 350ms >= 200ms and count >= 2 begins reverse rotation
+        val reversed = controller.command(errors(-.09f, 4L, intervalMillis = intervalMillis), commandTime(4L, intervalMillis))
         assertTrue(reversed.safetyFilteredYawRc < 0)
         assertTrue(abs(reversed.safetyFilteredYawRc) <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
     }
@@ -206,11 +212,163 @@ class YawFollowControllerTest {
         controller.command(errors(.12f, 1L), commandTime(1L))
         controller.command(errors(.12f, 2L), commandTime(2L))
         val crossing = controller.command(errors(-.05f, 3L), commandTime(3L))
-        val resumed = controller.command(errors(-.09f, 4L), commandTime(4L))
         assertEquals(0, crossing.safetyFilteredYawRc)
         assertEquals(YawControlSuppressionReason.CENTER_CROSSING_BRAKE, crossing.suppressionReason)
+        assertEquals(YawControllerPhase.SETTLING, crossing.phase)
+
+        val settling1 = controller.command(errors(-.07f, 4L), commandTime(4L))
+        assertEquals(0, settling1.safetyFilteredYawRc)
+
+        val resumed = controller.command(errors(-.09f, 5L), commandTime(5L))
         assertTrue(resumed.safetyFilteredYawRc < 0)
         assertTrue(abs(resumed.safetyFilteredYawRc) <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
+    }
+
+    @Test fun `test 1 physical inertia simulation crossing with high yaw rate stays in settling with zero yaw`() {
+        val controller = ProductionYawController()
+        // Active rotation command to the right
+        val cmd1 = controller.command(errors(.30f, 1L), commandTime(1L), telemetryYawRateDegreesPerSecond = 15f)
+        assertEquals(8, cmd1.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.CORRECTING, cmd1.phase)
+
+        val cmd2 = controller.command(errors(.25f, 2L), commandTime(2L), telemetryYawRateDegreesPerSecond = 18f)
+        assertEquals(16, cmd2.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.CORRECTING, cmd2.phase)
+
+        // Center reached / crossing with high yaw rate (delta .25 -> -.04 is delta .29 > .18, so step via .10 then -.04)
+        val cmd3 = controller.command(errors(.10f, 3L), commandTime(3L), telemetryYawRateDegreesPerSecond = 18f)
+        assertTrue(cmd3.safetyFilteredYawRc > 0)
+        assertEquals(YawControllerPhase.CORRECTING, cmd3.phase)
+
+        val cmd4 = controller.command(errors(-.04f, 4L), commandTime(4L), telemetryYawRateDegreesPerSecond = 16f)
+        assertEquals(0, cmd4.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, cmd4.phase)
+        assertEquals(YawControlSuppressionReason.CENTER_CROSSING_BRAKE, cmd4.suppressionReason)
+
+        // Subsequent frames while aircraft is still spinning fast (> 8 deg/s) must NEVER output reverse yaw
+        val cmd5 = controller.command(errors(-.06f, 5L), commandTime(5L), telemetryYawRateDegreesPerSecond = 14f)
+        assertEquals(0, cmd5.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, cmd5.phase)
+
+        val cmd6 = controller.command(errors(-.08f, 6L), commandTime(6L), telemetryYawRateDegreesPerSecond = 10f)
+        assertEquals(0, cmd6.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, cmd6.phase)
+    }
+
+    @Test fun `test 2 reversal only begins after physical yaw rate settles for 2 consecutive samples`() {
+        val controller = ProductionYawController()
+        controller.command(errors(.25f, 1L), commandTime(1L), telemetryYawRateDegreesPerSecond = 12f)
+        controller.command(errors(.18f, 2L), commandTime(2L), telemetryYawRateDegreesPerSecond = 15f)
+        controller.command(errors(.08f, 3L), commandTime(3L), telemetryYawRateDegreesPerSecond = 15f)
+
+        // Cross center -> SETTLING (.08 -> -.05 is delta .13 <= .18)
+        val crossing = controller.command(errors(-.05f, 4L), commandTime(4L), telemetryYawRateDegreesPerSecond = 12f)
+        assertEquals(0, crossing.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, crossing.phase)
+
+        // First sample with low rate (4 deg/s <= 8 deg/s) - only 1 sample, not yet settled
+        val sample1 = controller.command(errors(-.07f, 5L), commandTime(5L), telemetryYawRateDegreesPerSecond = 4f)
+        assertEquals(0, sample1.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, sample1.phase)
+
+        // Second consecutive sample with low rate (2 deg/s <= 8 deg/s) -> now settled, begins smooth reversal
+        val sample2 = controller.command(errors(-.08f, 6L), commandTime(6L), telemetryYawRateDegreesPerSecond = 2f)
+        assertTrue(sample2.safetyFilteredYawRc < 0)
+        assertTrue(abs(sample2.safetyFilteredYawRc) <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
+        assertEquals(YawControllerPhase.CORRECTING, sample2.phase)
+    }
+
+    @Test fun `test 3 stationary centered person with detector jitter remains in hold at zero yaw`() {
+        val controller = ProductionYawController()
+        // CenterX: 0.49, 0.51, 0.485, 0.515, 0.50 (errors: -0.01, +0.01, -0.015, +0.015, 0.0)
+        val jitterErrors = listOf(-0.01f, 0.01f, -0.015f, 0.015f, 0.0f)
+        jitterErrors.forEachIndexed { index, err ->
+            val frame = index + 1L
+            val outcome = controller.command(
+                errors(err, frame),
+                commandTime(frame),
+                telemetryYawRateDegreesPerSecond = 0.5f,
+            )
+            assertEquals(0, outcome.safetyFilteredYawRc)
+            assertEquals(0, outcome.requestedYawRc)
+            assertEquals(YawControllerPhase.HOLD, outcome.phase)
+        }
+    }
+
+    @Test fun `test 4 person moving across frame when drone is stationary settles and follows`() {
+        val controller = ProductionYawController()
+        // Person is on left (-0.08) with stationary drone
+        val cmd1 = controller.command(errors(-.08f, 1L), commandTime(1L), telemetryYawRateDegreesPerSecond = 0f)
+        assertTrue(cmd1.safetyFilteredYawRc < 0)
+        assertTrue(abs(cmd1.safetyFilteredYawRc) <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
+        assertEquals(YawControllerPhase.CORRECTING, cmd1.phase)
+
+        // Person moves to right (+0.06) (delta -.08 -> .06 is .14 <= .18) -> enters SETTLING
+        val crossing = controller.command(errors(.06f, 2L), commandTime(2L), telemetryYawRateDegreesPerSecond = 0f)
+        assertEquals(0, crossing.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, crossing.phase)
+
+        // Settling sample 1 with yaw rate = 0 (count = 1 < 2)
+        val settling1 = controller.command(errors(.07f, 3L), commandTime(3L), telemetryYawRateDegreesPerSecond = 0f)
+        assertEquals(0, settling1.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, settling1.phase)
+
+        // Settling sample 2 with yaw rate = 0 (count = 2 >= 2) -> transitions to CORRECTING and follows
+        val followed = controller.command(errors(.08f, 4L), commandTime(4L), telemetryYawRateDegreesPerSecond = 0f)
+        assertTrue(followed.safetyFilteredYawRc > 0)
+        assertTrue(followed.safetyFilteredYawRc <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
+        assertEquals(YawControllerPhase.CORRECTING, followed.phase)
+    }
+
+    @Test fun `test 5 yaw wraparound 178 to 179 to minus 179 to minus 178 produces continuous rate`() {
+        val rate1 = calculateYawRateDegreesPerSecond(178, 179, 1000L, 1100L)
+        val rate2 = calculateYawRateDegreesPerSecond(179, -179, 1100L, 1200L)
+        val rate3 = calculateYawRateDegreesPerSecond(-179, -178, 1200L, 1300L)
+        assertEquals(10f, rate1!!, 0.01f)
+        assertEquals(20f, rate2!!, 0.01f)
+        assertEquals(10f, rate3!!, 0.01f)
+        assertTrue(rate2 > 0f)
+        assertTrue(rate2 < 50f)
+    }
+
+    @Test fun `test 6 missing yaw telemetry fallback requires 200ms and 2 measurements`() {
+        val controller = ProductionYawController()
+        controller.command(errors(.20f, 1L), commandTime(1L))
+        controller.command(errors(.12f, 2L), commandTime(2L))
+
+        // Center crossing with telemetry yaw rate = null (.12 -> -.04 is delta .16 <= .18)
+        val crossing = controller.command(errors(-.04f, 3L), commandTime(3L))
+        assertEquals(0, crossing.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, crossing.phase)
+
+        // Frame 4 at 100ms later (only 1 measurement, 100ms < 200ms)
+        val settling = controller.command(errors(-.06f, 4L), commandTime(4L))
+        assertEquals(0, settling.safetyFilteredYawRc)
+        assertEquals(YawControllerPhase.SETTLING, settling.phase)
+
+        // Frame 5 at 200ms later (2 measurements, 200ms >= 200ms)
+        val resumed = controller.command(errors(-.08f, 5L), commandTime(5L))
+        assertTrue(resumed.safetyFilteredYawRc < 0)
+        assertTrue(abs(resumed.safetyFilteredYawRc) <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
+        assertEquals(YawControllerPhase.CORRECTING, resumed.phase)
+    }
+
+    @Test fun `test 7 safety invariants disarm or latch requires rearm and reset controller`() {
+        val unsafe = listOf(
+            healthy(manualNeutral = false), healthy(hoverActive = true), healthy(flight = FlightState.Landing),
+            healthy(flight = FlightState.Emergency), healthy(telemetryFresh = false),
+            healthy(video = VideoAvailability.Error), healthy(detector = PersonDetectionState.Error),
+            healthy(connection = DroneConnectionState.Error),
+            healthy(association = TargetAssociationState.Lost),
+            healthy(association = TargetAssociationState.Ambiguous),
+        )
+        unsafe.forEach { input ->
+            val gate = YawFollowGate()
+            gate.arm(healthy())
+            val decision = gate.evaluate(input)
+            assertEquals(YawFollowState.REQUIRES_REARM, decision.state)
+            assertEquals(0, decision.yawRc)
+        }
     }
 
     @Test fun `temporary missing stops immediately and requires two plausible frames to resume`() {

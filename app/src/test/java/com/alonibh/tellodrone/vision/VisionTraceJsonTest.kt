@@ -89,6 +89,9 @@ class VisionTraceJsonTest {
                 telemetryHeightMeters = 1.2f,
                 yawFollowState = YawFollowState.ACTIVE,
                 yawFollowReason = YawFollowReason.ACTIVE,
+                controllerPhase = com.alonibh.tellodrone.domain.YawControllerPhase.CORRECTING,
+                telloYawDegrees = 45,
+                telloYawRateDegreesPerSecond = 12.5f,
             ),
         )
         val publication = VisionTraceJson.encodeRcPublication(
@@ -112,6 +115,9 @@ class VisionTraceJsonTest {
                 telemetryHeightMeters = 1.2f,
                 yawFollowState = YawFollowState.ACTIVE,
                 yawFollowReason = YawFollowReason.ACTIVE,
+                controllerPhase = com.alonibh.tellodrone.domain.YawControllerPhase.CORRECTING,
+                telloYawDegrees = 45,
+                telloYawRateDegreesPerSecond = 12.5f,
                 yawDecisionTimestampNanos = 1_134_000_000L,
                 desiredPublishedAtNanos = 1_135_000_000L,
                 sendStartedAtNanos = 1_150_000_000L,
@@ -122,8 +128,14 @@ class VisionTraceJsonTest {
         assertTrue(measurement.contains("\"perceptionAgeMillis\":134"))
         assertTrue(measurement.contains("\"rawYawError\":0.2"))
         assertTrue(measurement.contains("\"safetyFilteredYawRc\":6"))
+        assertTrue(measurement.contains("\"controllerPhase\":\"CORRECTING\""))
+        assertTrue(measurement.contains("\"telloYawDegrees\":45"))
+        assertTrue(measurement.contains("\"telloYawRateDegreesPerSecond\":12.5"))
         assertTrue(publication.contains("\"actualSentVector\":{\"lateral\":0,\"forward\":0,\"vertical\":0,\"yaw\":6}"))
         assertTrue(publication.contains("\"inputKind\":\"AUTONOMOUS_YAW\""))
+        assertTrue(publication.contains("\"controllerPhase\":\"CORRECTING\""))
+        assertTrue(publication.contains("\"telloYawDegrees\":45"))
+        assertTrue(publication.contains("\"telloYawRateDegreesPerSecond\":12.5"))
         assertTrue(publication.contains("\"yawDecisionTimestampNanos\":1134000000"))
         assertTrue(publication.contains("\"actualSentAtNanos\":1151000000"))
         assertFalse(publication.contains('\n'))
