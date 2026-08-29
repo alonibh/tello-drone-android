@@ -18,7 +18,7 @@ debug vision/flight trace from the same run; do not estimate timings from screen
    region must send yaw zero immediately. Repeat a center crossing and confirm zero braking precedes
    any opposite command.
 5. Briefly obstruct detection or overload perception. A prior nonzero command must zero after at
-   most 110 ms without a newer accepted match; RC TTL remains independently active.
+   most 170 ms without a newer accepted match; RC TTL remains independently active.
 6. Repeat the former continuous-visible walking/yaw scenario. If association becomes missing or
    lost, inspect each candidate's confidence, geometry, area, appearance, ambiguity, source interval,
    and rejection reasons. Do not reselect automatically during diagnosis.

@@ -163,11 +163,20 @@ class ProductionYawController(
                     ?.let { (commandTimestampNanos - it).coerceAtLeast(0L) / NANOS_PER_MILLISECOND }
                     ?: maximumNonzeroCommandHoldMillis
                 if (lastYawRc != 0 && heldForMillis >= maximumNonzeroCommandHoldMillis) {
-                    return suppressMeasurement(
+                    val estimate = lastEstimate ?: estimator.brake(
+                        measurement.targetCenterX,
+                        measurement.sourceTimestampNanos,
+                    )
+                    val requested = requestedYaw(estimate.estimatedCenterX - CENTER_X)
+                    return outcome(
                         measurement,
                         commandTimestampNanos,
-                        YawControlSuppressionReason.NONZERO_COMMAND_HOLD_EXPIRED,
-                        requireStable = false,
+                        estimate = estimate,
+                        previousYawRc = lastYawRc,
+                        requestedYawRc = requested,
+                        safetyFilteredYawRc = 0,
+                        suppressionReason = YawControlSuppressionReason.NONZERO_COMMAND_HOLD_EXPIRED,
+                        commandHeldForMillis = heldForMillis,
                     )
                 }
                 val estimate = lastEstimate ?: estimator.brake(
@@ -474,7 +483,7 @@ class ProductionYawController(
         const val MAXIMUM_BRAKING_STEP = 20
         /** Global accepted-perception freshness remains independent from nonzero command hold. */
         const val MAXIMUM_PERCEPTION_AGE_MILLIS = 225L
-        const val MAXIMUM_NONZERO_COMMAND_HOLD_MILLIS = 110L
+        const val MAXIMUM_NONZERO_COMMAND_HOLD_MILLIS = 170L
         const val MAXIMUM_TARGET_CENTER_JUMP = 0.18f
         const val MAXIMUM_RAW_ERROR_JUMP = 0.18f
         const val STABLE_RESUME_MEASUREMENTS = 2

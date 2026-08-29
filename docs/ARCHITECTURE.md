@@ -25,7 +25,7 @@ manual-override, STOP/HOVER, landing, emergency, or unhealthy input resets or br
 Autonomous yaw has its own 28 RC cap and scheduled gains of 78/92/108. Same-direction acceleration
 is limited to 8 RC per accepted measurement, braking may reduce by 20, a fresh centered measurement
 goes directly to zero, and reversal brakes to zero before a later measurement may command the
-opposite direction. A nonzero decision expires after 110 ms without a newer accepted match even
+opposite direction. A nonzero decision expires after 170 ms without a newer accepted match even
 though the separate global perception limit remains 225 ms. RC TTL and serialized safety-zero
 publication remain independent stronger fail-safes.
 

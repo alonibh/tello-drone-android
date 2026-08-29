@@ -65,8 +65,8 @@ class YawFollowControllerTest {
     @Test fun `same nonzero measurement expires after short hold rather than global stale age`() {
         val controller = ProductionYawController()
         val first = controller.command(errors(.20f, 1L), commandTime(1L))
-        val before = controller.command(errors(.20f, 1L), commandTime(1L) + 109L * NANOS_PER_MILLISECOND)
-        val expired = controller.command(errors(.20f, 1L), commandTime(1L) + 110L * NANOS_PER_MILLISECOND)
+        val before = controller.command(errors(.20f, 1L), commandTime(1L) + (ProductionYawController.MAXIMUM_NONZERO_COMMAND_HOLD_MILLIS - 1L) * NANOS_PER_MILLISECOND)
+        val expired = controller.command(errors(.20f, 1L), commandTime(1L) + ProductionYawController.MAXIMUM_NONZERO_COMMAND_HOLD_MILLIS * NANOS_PER_MILLISECOND)
         assertTrue(first.safetyFilteredYawRc != 0)
         assertEquals(first.safetyFilteredYawRc, before.safetyFilteredYawRc)
         assertEquals(0, expired.safetyFilteredYawRc)
@@ -78,6 +78,103 @@ class YawFollowControllerTest {
         val outcome = ProductionYawController().command(errors(.20f, 1L), commandTime(1L))
         assertEquals(ProductionYawController.MAXIMUM_NONZERO_COMMAND_HOLD_MILLIS, outcome.validForMillis)
         assertTrue(outcome.validityLimitedByCommandHold)
+    }
+
+    @Test fun `detector cadence slower than command hold maintains progression 8 to 16 to 24 to 28`() {
+        val controller = ProductionYawController()
+        val intervalMillis = 180L // Slower than 170ms command hold
+        val first = controller.command(errors(.40f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis))
+        assertEquals(8, first.safetyFilteredYawRc)
+
+        // Between frames, command hold expires physically
+        val expired1 = controller.command(errors(.40f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 175L * NANOS_PER_MILLISECOND)
+        assertEquals(0, expired1.safetyFilteredYawRc)
+        assertEquals(YawControlSuppressionReason.NONZERO_COMMAND_HOLD_EXPIRED, expired1.suppressionReason)
+
+        // Next fresh frame at 180ms advances to 16
+        val second = controller.command(errors(.40f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis))
+        assertEquals(16, second.safetyFilteredYawRc)
+
+        // Expired again before frame 3
+        val expired2 = controller.command(errors(.40f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis) + 175L * NANOS_PER_MILLISECOND)
+        assertEquals(0, expired2.safetyFilteredYawRc)
+
+        // Next fresh frame at 360ms advances to 24
+        val third = controller.command(errors(.40f, 3L, intervalMillis = intervalMillis), commandTime(3L, intervalMillis))
+        assertEquals(24, third.safetyFilteredYawRc)
+
+        // Next fresh frame at 540ms advances to 28 (cap)
+        val fourth = controller.command(errors(.40f, 4L, intervalMillis = intervalMillis), commandTime(4L, intervalMillis))
+        assertEquals(28, fourth.safetyFilteredYawRc)
+    }
+
+    @Test fun `next fresh same-direction frame resumes controller progression after hold expiry`() {
+        val controller = ProductionYawController()
+        val intervalMillis = 175L
+        val first = controller.command(errors(.30f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis))
+        assertEquals(8, first.safetyFilteredYawRc)
+
+        val expired = controller.command(errors(.30f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 172L * NANOS_PER_MILLISECOND)
+        assertEquals(0, expired.safetyFilteredYawRc)
+        assertEquals(YawControlSuppressionReason.NONZERO_COMMAND_HOLD_EXPIRED, expired.suppressionReason)
+
+        val second = controller.command(errors(.30f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis))
+        assertEquals(16, second.safetyFilteredYawRc)
+    }
+
+    @Test fun `centered frame overrides preserved state immediately after hold expiry`() {
+        val controller = ProductionYawController()
+        val intervalMillis = 175L
+        val first = controller.command(errors(.15f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis))
+        assertEquals(8, first.safetyFilteredYawRc)
+
+        val expired = controller.command(errors(.15f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 172L * NANOS_PER_MILLISECOND)
+        assertEquals(0, expired.safetyFilteredYawRc)
+
+        val centered = controller.command(errors(.02f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis))
+        assertEquals(0, centered.safetyFilteredYawRc)
+        assertEquals(0, centered.requestedYawRc)
+        assertEquals(YawControlSuppressionReason.NONE, centered.suppressionReason)
+    }
+
+    @Test fun `direction crossing after hold expiry brakes to zero before reversing`() {
+        val controller = ProductionYawController()
+        val intervalMillis = 175L
+        val first = controller.command(errors(.12f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis))
+        assertEquals(8, first.safetyFilteredYawRc)
+
+        val expired = controller.command(errors(.12f, 1L, intervalMillis = intervalMillis), commandTime(1L, intervalMillis) + 172L * NANOS_PER_MILLISECOND)
+        assertEquals(0, expired.safetyFilteredYawRc)
+
+        // Crossing to opposite side within anti-jump gate (.12 to -.05 is delta .17 <= .18) brakes to zero
+        val crossing = controller.command(errors(-.05f, 2L, intervalMillis = intervalMillis), commandTime(2L, intervalMillis))
+        assertEquals(0, crossing.safetyFilteredYawRc)
+        assertEquals(YawControlSuppressionReason.CENTER_CROSSING_BRAKE, crossing.suppressionReason)
+
+        // Subsequent fresh frame begins reverse rotation
+        val reversed = controller.command(errors(-.09f, 3L, intervalMillis = intervalMillis), commandTime(3L, intervalMillis))
+        assertTrue(reversed.safetyFilteredYawRc < 0)
+        assertTrue(abs(reversed.safetyFilteredYawRc) <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
+    }
+
+    @Test fun `safety interventions and loss still reset controller progression`() {
+        val gate = YawFollowGate()
+        val armed = gate.arm(healthy(frame = 1L))
+        assertEquals(8, armed.yawRc)
+
+        // Advance progression to 16
+        val second = gate.evaluate(healthy(frame = 2L))
+        assertEquals(16, second.yawRc)
+
+        // Manual override intervention latches REQUIRES_REARM and resets controller
+        val overridden = gate.evaluate(healthy(frame = 3L, manualNeutral = false))
+        assertEquals(YawFollowState.REQUIRES_REARM, overridden.state)
+        assertEquals(0, overridden.yawRc)
+
+        // Re-arm after safety intervention restarts from 8, not 16 or 24
+        val rearmed = gate.arm(healthy(frame = 4L))
+        assertEquals(YawFollowState.ACTIVE, rearmed.state)
+        assertEquals(8, rearmed.yawRc)
     }
 
     @Test fun `perception older than global budget produces zero`() {
@@ -174,18 +271,25 @@ class YawFollowControllerTest {
         errors(.20f, frame, fresh), manualNeutral, hoverActive, commandTime(frame),
     )
 
-    private fun errors(yaw: Float, frame: Long, fresh: Boolean = true) = TrackingErrors(
+    private fun errors(
+        yaw: Float,
+        frame: Long,
+        fresh: Boolean = true,
+        intervalMillis: Long = 100L,
+    ) = TrackingErrors(
         rawYawError = yaw,
         yawError = yaw,
         targetPresent = true,
         targetFresh = fresh,
         targetCenterX = .5f + yaw,
         measurementFrameSequence = frame,
-        measurementSourceTimestampNanos = sourceTime(frame),
+        measurementSourceTimestampNanos = sourceTime(frame, intervalMillis),
     )
 
-    private fun sourceTime(frame: Long) = 1_000_000_000L + (frame - 1L) * 100L * NANOS_PER_MILLISECOND
-    private fun commandTime(frame: Long) = sourceTime(frame) + 20L * NANOS_PER_MILLISECOND
+    private fun sourceTime(frame: Long, intervalMillis: Long = 100L) =
+        1_000_000_000L + (frame - 1L) * intervalMillis * NANOS_PER_MILLISECOND
+    private fun commandTime(frame: Long, intervalMillis: Long = 100L) =
+        sourceTime(frame, intervalMillis) + 20L * NANOS_PER_MILLISECOND
 
     companion object { private const val NANOS_PER_MILLISECOND = 1_000_000L }
 }
