@@ -15,7 +15,9 @@ internal object AutonomousRcSendAuthority {
     fun validate(
         state: DroneSessionState,
         liveVideoAvailability: VideoAvailability = state.video.availability,
+        isAnomalyLatched: Boolean = false,
     ): RcSendSuppressionReason? = when {
+        isAnomalyLatched -> RcSendSuppressionReason.YAW_RESPONSE_ANOMALY
         state.connection != DroneConnectionState.Connected -> RcSendSuppressionReason.CONNECTION_INACTIVE
         state.flight != FlightState.Flying -> RcSendSuppressionReason.FLIGHT_STATE_INACTIVE
         !state.telemetry.isFresh -> RcSendSuppressionReason.TELEMETRY_STALE

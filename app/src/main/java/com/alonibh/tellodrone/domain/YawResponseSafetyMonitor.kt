@@ -41,9 +41,12 @@ data class YawResponseEvaluation(
     val filteredYawRate: Float? = null,
     val dominantRecentRc: Int = 0,
     val recentCommandedYawRc: Int = 0,
+    val latestActualYawRc: Int = 0,
+    val latestNonzeroYawRc: Int? = null,
     val anomalyDurationMillis: Long? = null,
     val rearmReady: Boolean = false,
     val consecutiveSettledSamples: Int = 0,
+    val ageOfMostRecentNonzeroRcMillis: Long? = null,
     val zeroCommandDurationMillis: Long? = null,
     val currentCommandSignEpisodeAgeMillis: Long? = null,
 )
@@ -81,6 +84,7 @@ class YawResponseSafetyMonitor(
     // Explicit command timing tracking
     private var latestActualYawRc: Int = 0
     private var latestNonzeroYawRc: Int? = null
+    private var latestNonzeroYawRcTimestampMillis: Long? = null
     private var timeZeroCommandStateBeganMillis: Long? = null
     private var currentCommandSign: Int = 0
     private var currentCommandSignEpisodeStartMillis: Long? = null
@@ -100,6 +104,7 @@ class YawResponseSafetyMonitor(
 
         if (yawRc != 0) {
             latestNonzeroYawRc = yawRc
+            latestNonzeroYawRcTimestampMillis = sentAtMillis
             timeZeroCommandStateBeganMillis = null
         } else {
             if (timeZeroCommandStateBeganMillis == null) {
@@ -131,6 +136,7 @@ class YawResponseSafetyMonitor(
         val rawRate = sample.rawYawRateDegreesPerSecond
         val filteredRate = sample.filteredYawRateDegreesPerSecond ?: rawRate
         val dominantRc = latestNonzeroYawRc ?: latestActualYawRc
+        val nonzeroRcAge = latestNonzeroYawRcTimestampMillis?.let { (sample.receivedAtMillis - it).coerceAtLeast(0L) }
         val zeroDuration = timeZeroCommandStateBeganMillis?.let { (sample.receivedAtMillis - it).coerceAtLeast(0L) }
         val signEpisodeAge = currentCommandSignEpisodeStartMillis?.let { (sample.receivedAtMillis - it).coerceAtLeast(0L) }
 
@@ -165,9 +171,12 @@ class YawResponseSafetyMonitor(
                 filteredYawRate = filteredRate,
                 dominantRecentRc = dominantRc,
                 recentCommandedYawRc = latestActualYawRc,
+                latestActualYawRc = latestActualYawRc,
+                latestNonzeroYawRc = latestNonzeroYawRc,
                 anomalyDurationMillis = duration,
                 rearmReady = rearmReadyState,
                 consecutiveSettledSamples = consecutiveSettledSamplesWhileLatched,
+                ageOfMostRecentNonzeroRcMillis = nonzeroRcAge,
                 zeroCommandDurationMillis = zeroDuration,
                 currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
@@ -184,6 +193,9 @@ class YawResponseSafetyMonitor(
                 filteredYawRate = filteredRate,
                 dominantRecentRc = dominantRc,
                 recentCommandedYawRc = latestActualYawRc,
+                latestActualYawRc = latestActualYawRc,
+                latestNonzeroYawRc = latestNonzeroYawRc,
+                ageOfMostRecentNonzeroRcMillis = nonzeroRcAge,
                 zeroCommandDurationMillis = zeroDuration,
                 currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
@@ -198,6 +210,9 @@ class YawResponseSafetyMonitor(
                 filteredYawRate = filteredRate,
                 dominantRecentRc = dominantRc,
                 recentCommandedYawRc = latestActualYawRc,
+                latestActualYawRc = latestActualYawRc,
+                latestNonzeroYawRc = latestNonzeroYawRc,
+                ageOfMostRecentNonzeroRcMillis = nonzeroRcAge,
                 zeroCommandDurationMillis = zeroDuration,
                 currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
@@ -211,6 +226,9 @@ class YawResponseSafetyMonitor(
                 filteredYawRate = filteredRate,
                 dominantRecentRc = dominantRc,
                 recentCommandedYawRc = latestActualYawRc,
+                latestActualYawRc = latestActualYawRc,
+                latestNonzeroYawRc = latestNonzeroYawRc,
+                ageOfMostRecentNonzeroRcMillis = nonzeroRcAge,
                 zeroCommandDurationMillis = zeroDuration,
                 currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
@@ -240,7 +258,10 @@ class YawResponseSafetyMonitor(
                 filteredYawRate = filteredRate,
                 dominantRecentRc = dominantRc,
                 recentCommandedYawRc = latestActualYawRc,
+                latestActualYawRc = latestActualYawRc,
+                latestNonzeroYawRc = latestNonzeroYawRc,
                 anomalyDurationMillis = duration,
+                ageOfMostRecentNonzeroRcMillis = nonzeroRcAge,
                 zeroCommandDurationMillis = zeroDuration,
                 currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
@@ -285,7 +306,10 @@ class YawResponseSafetyMonitor(
                     filteredYawRate = filteredRate,
                     dominantRecentRc = dominantRc,
                     recentCommandedYawRc = latestActualYawRc,
+                    latestActualYawRc = latestActualYawRc,
+                    latestNonzeroYawRc = latestNonzeroYawRc,
                     anomalyDurationMillis = duration,
+                    ageOfMostRecentNonzeroRcMillis = nonzeroRcAge,
                     zeroCommandDurationMillis = zeroDuration,
                     currentCommandSignEpisodeAgeMillis = signEpisodeAge,
                 )
@@ -300,7 +324,10 @@ class YawResponseSafetyMonitor(
                     filteredYawRate = filteredRate,
                     dominantRecentRc = dominantRc,
                     recentCommandedYawRc = latestActualYawRc,
+                    latestActualYawRc = latestActualYawRc,
+                    latestNonzeroYawRc = latestNonzeroYawRc,
                     anomalyDurationMillis = duration,
+                    ageOfMostRecentNonzeroRcMillis = nonzeroRcAge,
                     zeroCommandDurationMillis = zeroDuration,
                     currentCommandSignEpisodeAgeMillis = signEpisodeAge,
                 )
@@ -320,6 +347,9 @@ class YawResponseSafetyMonitor(
                 filteredYawRate = filteredRate,
                 dominantRecentRc = dominantRc,
                 recentCommandedYawRc = latestActualYawRc,
+                latestActualYawRc = latestActualYawRc,
+                latestNonzeroYawRc = latestNonzeroYawRc,
+                ageOfMostRecentNonzeroRcMillis = nonzeroRcAge,
                 zeroCommandDurationMillis = zeroDuration,
                 currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )

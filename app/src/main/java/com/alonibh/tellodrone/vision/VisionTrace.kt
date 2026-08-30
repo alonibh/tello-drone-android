@@ -220,6 +220,7 @@ data class TelemetrySampleTrace(
     val velocityZCentimetersPerSecond: Int?,
     val batteryPercent: Int?,
     val acceptedForSettling: Boolean? = null,
+    val meetsSettledRateCriterion: Boolean? = null,
     val usedForAnomalyMonitor: Boolean? = null,
 )
 
@@ -231,6 +232,12 @@ data class YawResponseAnomalyEventTrace(
     val currentYawDegrees: Int?,
     val recentActualYawRcSummary: String?,
     val ageOfMostRecentNonzeroRcMillis: Long?,
+    val zeroCommandDurationMillis: Long? = null,
+    val latestActualYawRc: Int? = null,
+    val currentCommandSignEpisodeAgeMillis: Long? = null,
+    val consecutiveMismatchSamples: Int? = null,
+    val consecutiveSettledSamples: Int? = null,
+    val rearmReady: Boolean? = null,
     val recentRcSign: Int?,
     val controllerPhase: YawControllerPhase?,
     val targetCenter: Float?,
@@ -238,6 +245,15 @@ data class YawResponseAnomalyEventTrace(
     val controlError: Float?,
     val frameSequence: Long?,
     val reason: String?,
+)
+
+data class RcTransportSendTrace(
+    val transportSequence: Long,
+    val payload: String,
+    val startedAtNanos: Long,
+    val completedAtNanos: Long,
+    val durationNanos: Long,
+    val success: Boolean,
 )
 
 data class FlightDiagnosticsExport(
@@ -259,6 +275,7 @@ interface VisionTraceRecorder {
     fun record(frame: VisionTraceFrame)
     fun recordControlMeasurement(trace: YawControlMeasurementTrace) = Unit
     fun recordRcPublication(trace: RcPublicationTrace) = Unit
+    fun recordRcTransportSend(trace: RcTransportSendTrace) = Unit
     fun recordSdkCommand(trace: SdkCommandTrace) = Unit
     fun recordFlightStateTransition(trace: FlightStateTransitionTrace) = Unit
     fun recordExternalGrounding(trace: ExternalGroundingTrace) = Unit
@@ -518,6 +535,9 @@ internal object VisionTraceJson {
         if (trace.acceptedForSettling != null) {
             comma(); field("acceptedForSettling", trace.acceptedForSettling)
         }
+        if (trace.meetsSettledRateCriterion != null) {
+            comma(); field("meetsSettledRateCriterion", trace.meetsSettledRateCriterion)
+        }
         if (trace.usedForAnomalyMonitor != null) {
             comma(); field("usedForAnomalyMonitor", trace.usedForAnomalyMonitor)
         }
@@ -533,6 +553,24 @@ internal object VisionTraceJson {
         comma(); field("currentYawDegrees", trace.currentYawDegrees)
         comma(); field("recentActualYawRcSummary", trace.recentActualYawRcSummary)
         comma(); field("ageOfMostRecentNonzeroRcMillis", trace.ageOfMostRecentNonzeroRcMillis)
+        if (trace.zeroCommandDurationMillis != null) {
+            comma(); field("zeroCommandDurationMillis", trace.zeroCommandDurationMillis)
+        }
+        if (trace.latestActualYawRc != null) {
+            comma(); field("latestActualYawRc", trace.latestActualYawRc)
+        }
+        if (trace.currentCommandSignEpisodeAgeMillis != null) {
+            comma(); field("currentCommandSignEpisodeAgeMillis", trace.currentCommandSignEpisodeAgeMillis)
+        }
+        if (trace.consecutiveMismatchSamples != null) {
+            comma(); field("consecutiveMismatchSamples", trace.consecutiveMismatchSamples)
+        }
+        if (trace.consecutiveSettledSamples != null) {
+            comma(); field("consecutiveSettledSamples", trace.consecutiveSettledSamples)
+        }
+        if (trace.rearmReady != null) {
+            comma(); field("rearmReady", trace.rearmReady)
+        }
         comma(); field("recentRcSign", trace.recentRcSign)
         comma(); field("controllerPhase", trace.controllerPhase?.name)
         comma(); field("targetCenter", trace.targetCenter)
@@ -540,6 +578,18 @@ internal object VisionTraceJson {
         comma(); field("controlError", trace.controlError)
         comma(); field("frameSequence", trace.frameSequence)
         comma(); field("reason", trace.reason)
+        append('}')
+    }
+
+    fun encodeRcTransportSend(trace: RcTransportSendTrace): String = buildString(256) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", "rcTransportSend")
+        comma(); field("transportSequence", trace.transportSequence)
+        comma(); field("payload", trace.payload)
+        comma(); field("startedAtNanos", trace.startedAtNanos)
+        comma(); field("completedAtNanos", trace.completedAtNanos)
+        comma(); field("durationNanos", trace.durationNanos)
+        comma(); field("success", trace.success)
         append('}')
     }
 

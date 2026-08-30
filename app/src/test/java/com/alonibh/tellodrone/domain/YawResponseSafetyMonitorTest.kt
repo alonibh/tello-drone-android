@@ -312,4 +312,35 @@ class YawResponseSafetyMonitorTest {
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS))
         assertEquals(0, errorCount.get())
     }
+
+    @Test
+    fun `diagnostic values accurately separate ageOfMostRecentNonzeroRcMillis and zeroCommandDurationMillis`() {
+        val monitor = YawResponseSafetyMonitor()
+
+        // 1. Sent nonzero yaw command at 1000ms
+        monitor.recordSentRc(sentAtMillis = 1000L, yawRc = 20)
+
+        // 2. Sent zero yaw command at 1100ms
+        monitor.recordSentRc(sentAtMillis = 1100L, yawRc = 0)
+
+        // 3. Evaluate at 1300ms while still flying/active
+        val eval = monitor.evaluate(
+            sample = TelemetryYawSample(
+                yawDegrees = 10,
+                rawYawRateDegreesPerSecond = 5f,
+                filteredYawRateDegreesPerSecond = 5f,
+                receivedAtMillis = 1300L,
+            ),
+            flightState = FlightState.Flying,
+            yawFollowState = YawFollowState.ACTIVE,
+        )
+
+        // ageOfMostRecentNonzeroRcMillis should be 1300 - 1000 = 300ms
+        assertEquals(300L, eval.ageOfMostRecentNonzeroRcMillis)
+        // zeroCommandDurationMillis should be 1300 - 1100 = 200ms
+        assertEquals(200L, eval.zeroCommandDurationMillis)
+        // latestActualYawRc is 0, latestNonzeroYawRc is 20
+        assertEquals(0, eval.latestActualYawRc)
+        assertEquals(20, eval.latestNonzeroYawRc)
+    }
 }

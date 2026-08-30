@@ -104,6 +104,7 @@ internal class DebugVisionTraceRecorder internal constructor(
         data class VideoDiagnostic(val trace: VideoDiagnosticTrace) : Command
         data class TelemetryDetailedSample(val trace: TelemetrySampleTrace) : Command
         data class YawResponseAnomaly(val trace: YawResponseAnomalyEventTrace) : Command
+        data class RcTransportSend(val trace: RcTransportSendTrace) : Command
         data class ExportTrace(val destinationUri: String, val callback: (Result<VisionTraceExport>) -> Unit) : Command
         data class ExportSession(
             val destinationUri: String,
@@ -128,6 +129,8 @@ internal class DebugVisionTraceRecorder internal constructor(
     private val pending = linkedMapOf<FrameKey, PendingFrame>()
     private var nextGeneration = 1L
     @Volatile private var currentEpoch = CaptureEpoch(0L, VisionCaptureStartReason.DetectionStarted)
+    private val sessionLimiter = VisionCaptureLimiter(maxFrames = 1200, maxDurationNanos = 600_000_000_000L)
+    private val safetyWindows = mutableListOf<LongRange>()
     private var capturePaused = false
 
     private val frames = mutableListOf<VisionSessionFrameEntry>()
@@ -154,6 +157,7 @@ internal class DebugVisionTraceRecorder internal constructor(
                         is Command.Pair -> write(command)
                         is Command.ControlMeasurement -> write(command)
                         is Command.RcPublication -> write(command)
+                        is Command.RcTransportSend -> write(command)
                         is Command.SdkCommand -> write(command)
                         is Command.FlightTransition -> write(command)
                         is Command.ExternalGrounding -> write(command)
@@ -178,10 +182,20 @@ internal class DebugVisionTraceRecorder internal constructor(
         }
     }
 
+    private fun isNearSafetyEventLocked(timestampNanos: Long): Boolean =
+        safetyWindows.any { timestampNanos in it }
+
+    private fun addSafetyWindow(timestampNanos: Long) = synchronized(pendingLock) {
+        val window = (timestampNanos - 2_000_000_000L)..(timestampNanos + 2_000_000_000L)
+        safetyWindows += window
+    }
+
     override fun startNewSession() {
         synchronized(pendingLock) {
             pending.values.forEach { it.bitmap.recycle() }
             pending.clear()
+            sessionLimiter.reset()
+            safetyWindows.clear()
             currentEpoch = CaptureEpoch(nextGeneration++, VisionCaptureStartReason.DetectionStarted)
             capturePaused = false
         }
@@ -193,12 +207,20 @@ internal class DebugVisionTraceRecorder internal constructor(
         synchronized(pendingLock) {
             if (capturePaused) return
             val epoch = currentEpoch
+            val isSafety = isNearSafetyEventLocked(sourceTimestampNanos)
+            val sessionRes = sessionLimiter.reserve(sourceTimestampNanos)
+            if (sessionRes != VisionCaptureReservation.Accepted && !isSafety) {
+                epoch.excludedAfterLimit.incrementAndGet()
+                return
+            }
             when (epoch.limiter.reserve(sourceTimestampNanos)) {
                 VisionCaptureReservation.Accepted -> Unit
                 VisionCaptureReservation.FrameLimitReached,
                 VisionCaptureReservation.DurationLimitReached -> {
-                    epoch.excludedAfterLimit.incrementAndGet()
-                    return
+                    if (!isSafety) {
+                        epoch.excludedAfterLimit.incrementAndGet()
+                        return
+                    }
                 }
                 VisionCaptureReservation.InvalidTimestamp -> {
                     epoch.drops.recordDrop()
@@ -228,14 +250,16 @@ internal class DebugVisionTraceRecorder internal constructor(
 
     override fun onTargetSelected(target: TrackedTarget) {
         synchronized(pendingLock) {
-            pending.values.forEach { it.bitmap.recycle() }
-            pending.clear()
+            addSafetyWindow(System.nanoTime())
             currentEpoch = CaptureEpoch(nextGeneration++, VisionCaptureStartReason.TargetSelected)
             capturePaused = false
         }
     }
 
     override fun record(frame: VisionTraceFrame) {
+        if (frame.associationState in setOf(com.alonibh.tellodrone.domain.TargetAssociationState.Lost, com.alonibh.tellodrone.domain.TargetAssociationState.Ambiguous)) {
+            addSafetyWindow(frame.sourceTimestampNanos)
+        }
         val key = FrameKey(frame.frameSequence, frame.sourceTimestampNanos)
         val pendingFrame = synchronized(pendingLock) { pending.remove(key) } ?: return
         val dropped = pendingFrame.epoch.drops.consumeSinceLastPair()
@@ -259,6 +283,10 @@ internal class DebugVisionTraceRecorder internal constructor(
         commands.trySend(Command.RcPublication(trace))
     }
 
+    override fun recordRcTransportSend(trace: RcTransportSendTrace) {
+        commands.trySend(Command.RcTransportSend(trace))
+    }
+
     override fun recordSdkCommand(trace: SdkCommandTrace) {
         commands.trySend(Command.SdkCommand(trace))
     }
@@ -272,14 +300,17 @@ internal class DebugVisionTraceRecorder internal constructor(
     }
 
     override fun recordTargetSelectionAttempt(trace: TargetSelectionAttemptTrace) {
+        addSafetyWindow(trace.tapTimestampNanos)
         commands.trySend(Command.TargetSelectionAttempt(trace))
     }
 
     override fun recordCorruptFrame(trace: CorruptFrameTrace) {
+        addSafetyWindow(trace.sourceTimestampNanos)
         commands.trySend(Command.CorruptFrame(trace))
     }
 
     override fun recordVideoDiagnostic(trace: VideoDiagnosticTrace) {
+        addSafetyWindow(trace.timestampNanos)
         commands.trySend(Command.VideoDiagnostic(trace))
     }
 
@@ -288,6 +319,7 @@ internal class DebugVisionTraceRecorder internal constructor(
     }
 
     override fun recordYawResponseAnomalyEvent(trace: YawResponseAnomalyEventTrace) {
+        addSafetyWindow(trace.timestampNanos)
         commands.trySend(Command.YawResponseAnomaly(trace))
     }
 
@@ -315,11 +347,6 @@ internal class DebugVisionTraceRecorder internal constructor(
     }
 
     private fun write(command: Command.Pair) {
-        if (command.epoch.generation < currentEpoch.generation) {
-            command.bitmap.recycle()
-            command.epoch.drops.recordDrop()
-            return
-        }
         prepareEpoch(command.epoch)
         val directory = storage.directory
         val index = frames.size
@@ -388,6 +415,10 @@ internal class DebugVisionTraceRecorder internal constructor(
             lastAirborneRcTimeMillis = timeMillis
         }
         storage.appendControl(VisionTraceJson.encodeRcPublication(command.trace))
+    }
+
+    private fun write(command: Command.RcTransportSend) {
+        storage.appendControl(VisionTraceJson.encodeRcTransportSend(command.trace))
     }
 
     private fun write(command: Command.SdkCommand) {
@@ -510,11 +541,13 @@ internal class DebugVisionTraceRecorder internal constructor(
                                     endSourceTimestampNanos = ep.endSourceTimestampNanos,
                                 )
                             }
+                            val totalDrops = epochList.sumOf { it.droppedFrameCount }
+                            val totalExcluded = epochList.sumOf { it.excludedAfterLimitFrameCount }
                             val manifest = VisionSessionManifest(
                                 capturedFrameCount = frames.size,
-                                droppedFrameCount = activeEpoch?.drops?.total() ?: 0L,
-                                excludedAfterLimitFrameCount = activeEpoch?.excludedAfterLimit?.get() ?: 0L,
-                                captureStartReason = activeEpoch?.startReason ?: VisionCaptureStartReason.TargetSelected,
+                                droppedFrameCount = totalDrops,
+                                excludedAfterLimitFrameCount = totalExcluded,
+                                captureStartReason = epochList.firstOrNull()?.captureStartReason ?: activeEpoch?.startReason ?: VisionCaptureStartReason.TargetSelected,
                                 frames = frames.toList(),
                                 epochs = epochList,
                             )
@@ -597,7 +630,7 @@ internal class DebugVisionTraceRecorder internal constructor(
 
             VisionTraceExport(
                 frameCount = frames.size.toLong(),
-                droppedFrameCount = activeEpoch?.drops?.total() ?: 0L,
+                droppedFrameCount = recordedEpochs.sumOf { it.drops.total() },
                 byteCount = archiveLength,
                 controlEventCount = controlLines.size.toLong(),
             )
@@ -613,26 +646,42 @@ internal class DebugVisionTraceRecorder internal constructor(
             val directory = storage.directory
             val sourceTrace = storage.traceFile
             if (frames.isEmpty()) throw IllegalStateException("No captured vision frames are available")
-            if (activeEpoch !== command.epoch) throw IllegalStateException("No frames captured for the current session")
-            val epochList = listOf(
+            val epochList = recordedEpochs.map { ep ->
                 VisionEpochMetadata(
-                    epochId = command.epoch.epochId,
-                    generation = command.epoch.generation,
-                    captureStartReason = command.epoch.startReason,
-                    capturedFrameCount = command.epoch.capturedCount,
-                    droppedFrameCount = command.epoch.drops.total(),
-                    excludedAfterLimitFrameCount = command.epoch.excludedAfterLimit.get(),
-                    startFrameSequence = command.epoch.startFrameSequence,
-                    startSourceTimestampNanos = command.epoch.startSourceTimestampNanos,
-                    endFrameSequence = command.epoch.endFrameSequence,
-                    endSourceTimestampNanos = command.epoch.endSourceTimestampNanos,
-                ),
-            )
+                    epochId = ep.epochId,
+                    generation = ep.generation,
+                    captureStartReason = ep.startReason,
+                    capturedFrameCount = ep.capturedCount,
+                    droppedFrameCount = ep.drops.total(),
+                    excludedAfterLimitFrameCount = ep.excludedAfterLimit.get(),
+                    startFrameSequence = ep.startFrameSequence,
+                    startSourceTimestampNanos = ep.startSourceTimestampNanos,
+                    endFrameSequence = ep.endFrameSequence,
+                    endSourceTimestampNanos = ep.endSourceTimestampNanos,
+                )
+            }.ifEmpty {
+                listOf(
+                    VisionEpochMetadata(
+                        epochId = command.epoch.epochId,
+                        generation = command.epoch.generation,
+                        captureStartReason = command.epoch.startReason,
+                        capturedFrameCount = command.epoch.capturedCount,
+                        droppedFrameCount = command.epoch.drops.total(),
+                        excludedAfterLimitFrameCount = command.epoch.excludedAfterLimit.get(),
+                        startFrameSequence = command.epoch.startFrameSequence,
+                        startSourceTimestampNanos = command.epoch.startSourceTimestampNanos,
+                        endFrameSequence = command.epoch.endFrameSequence,
+                        endSourceTimestampNanos = command.epoch.endSourceTimestampNanos,
+                    ),
+                )
+            }
+            val totalDrops = epochList.sumOf { it.droppedFrameCount }
+            val totalExcluded = epochList.sumOf { it.excludedAfterLimitFrameCount }
             val manifest = VisionSessionManifest(
                 capturedFrameCount = frames.size,
-                droppedFrameCount = command.epoch.drops.total(),
-                excludedAfterLimitFrameCount = command.epoch.excludedAfterLimit.get(),
-                captureStartReason = command.epoch.startReason,
+                droppedFrameCount = totalDrops,
+                excludedAfterLimitFrameCount = totalExcluded,
+                captureStartReason = epochList.firstOrNull()?.captureStartReason ?: command.epoch.startReason,
                 frames = frames.toList(),
                 epochs = epochList,
             )
@@ -699,8 +748,8 @@ internal class DebugVisionTraceRecorder internal constructor(
             val duration = frames.last().sourceTimestampNanos - frames.first().sourceTimestampNanos
             VisionSessionExport(
                 frames.size,
-                command.epoch.drops.total(),
-                command.epoch.excludedAfterLimit.get(),
+                totalDrops,
+                totalExcluded,
                 duration.coerceAtLeast(0L),
             )
         }

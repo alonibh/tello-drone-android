@@ -236,9 +236,48 @@ internal object FlightSummaryBuilder {
         val allSentYawPublications = publications.filter { it.string("inputKind") in setOf("AUTONOMOUS_YAW", "SAFETY_ZERO") }
         val normalYawSteps = mutableListOf<Int>()
         var currentRun = mutableListOf<Int>()
-        for (pub in sentAutonomous) {
-            val yaw = pub.int("actualSentVector", "yaw") ?: continue
-            currentRun.add(yaw)
+        var lastEpoch: Long? = null
+        var lastGen: Long? = null
+        var lastTimestampNanos: Long? = null
+
+        for (pub in publications) {
+            val inputKind = pub.string("inputKind")
+            val yawFollowState = pub.string("yawFollowState")
+            val suppression = pub.string("sendSuppressionReason")
+            val epoch = pub.long("flightControlEpoch")
+            val gen = pub.long("yawFollowGeneration")
+            val timestamp = pub.long("actualSentAtNanos") ?: pub.long("commandTimestampNanos") ?: 0L
+
+            val isContinuousActive = inputKind == "AUTONOMOUS_YAW" &&
+                yawFollowState == "ACTIVE" &&
+                (suppression == "NONE" || suppression == null) &&
+                (lastEpoch == null || epoch == lastEpoch) &&
+                (lastGen == null || gen == lastGen) &&
+                (lastTimestampNanos == null || (timestamp - lastTimestampNanos).coerceAtLeast(0L) <= 1_500_000_000L)
+
+            val yaw = pub.int("actualSentVector", "yaw")
+
+            if (isContinuousActive && yaw != null) {
+                currentRun.add(yaw)
+                lastEpoch = epoch
+                lastGen = gen
+                lastTimestampNanos = timestamp
+            } else {
+                if (currentRun.size >= 2) {
+                    normalYawSteps.addAll(currentRun.zipWithNext { a, b -> abs(b - a) })
+                }
+                currentRun.clear()
+                if (inputKind == "AUTONOMOUS_YAW" && yawFollowState == "ACTIVE" && (suppression == "NONE" || suppression == null) && yaw != null) {
+                    currentRun.add(yaw)
+                    lastEpoch = epoch
+                    lastGen = gen
+                    lastTimestampNanos = timestamp
+                } else {
+                    lastEpoch = null
+                    lastGen = null
+                    lastTimestampNanos = null
+                }
+            }
         }
         if (currentRun.size >= 2) {
             normalYawSteps.addAll(currentRun.zipWithNext { a, b -> abs(b - a) })

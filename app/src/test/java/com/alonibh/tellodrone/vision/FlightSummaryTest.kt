@@ -260,6 +260,22 @@ class FlightSummaryTest {
         assertTrue(json.contains("\"yaw_response_mismatch_suspect_count\": 1"))
     }
 
+    @Test fun `normal yaw steps do not bridge across safety zeros or epoch boundaries`() {
+        val controls = listOf(
+            // Run 1 in epoch 1: yaw 10 -> 14 (step = 4)
+            """{"eventType":"rcPublication","commandTimestampNanos":1000000000,"inputKind":"AUTONOMOUS_YAW","sendSuppressionReason":"NONE","yawFollowState":"ACTIVE","flightControlEpoch":1,"yawFollowGeneration":1,"actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":10}}""",
+            """{"eventType":"rcPublication","commandTimestampNanos":1020000000,"inputKind":"AUTONOMOUS_YAW","sendSuppressionReason":"NONE","yawFollowState":"ACTIVE","flightControlEpoch":1,"yawFollowGeneration":1,"actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":14}}""",
+            // Safety zero (REQUIRES_REARM, yaw 0)
+            """{"eventType":"rcPublication","commandTimestampNanos":1040000000,"inputKind":"AUTONOMOUS_YAW","sendSuppressionReason":"YAW_RESPONSE_ANOMALY","yawFollowState":"REQUIRES_REARM","flightControlEpoch":1,"yawFollowGeneration":1,"actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":0}}""",
+            // Run 2 in epoch 2 / gen 2: yaw 20 -> 22 (step = 2). Should NOT measure 0 -> 20 as a normal yaw step!
+            """{"eventType":"rcPublication","commandTimestampNanos":2000000000,"inputKind":"AUTONOMOUS_YAW","sendSuppressionReason":"NONE","yawFollowState":"ACTIVE","flightControlEpoch":2,"yawFollowGeneration":2,"actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":20}}""",
+            """{"eventType":"rcPublication","commandTimestampNanos":2020000000,"inputKind":"AUTONOMOUS_YAW","sendSuppressionReason":"NONE","yawFollowState":"ACTIVE","flightControlEpoch":2,"yawFollowGeneration":2,"actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":22}}""",
+        )
+
+        val summary = FlightSummaryBuilder.build(emptyList(), controls)
+        assertEquals(4, summary.normalMaxYawStep)
+    }
+
     private fun trace(time: Long, state: String, inference: Int? = null) = "{\"sourceTimestampNanos\":$time,\"associationState\":\"$state\",\"detector\":{\"inferenceMillis\":${inference ?: "null"}}}"
     private fun control(time: Long, state: String = "ACTIVE", suppression: String = "NONE", reason: String = "ACTIVE", yaw: Int = 0, height: Double = 1.0, lateral: Int = 0, send: String = "NONE", frameSequence: Long = 1, error: Double? = null) = "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"frameSequence\":$frameSequence,\"perceptionAgeMillis\":100,\"yawFollowState\":\"$state\",\"yawFollowReason\":\"$reason\",\"suppressionReason\":\"$suppression\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$send\",\"telemetryHeightMeters\":$height,\"rawYawError\":${error ?: "null"},\"actualSentVector\":{\"lateral\":$lateral,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
     private fun measurement(frame: Long, source: Long, decision: Long) =

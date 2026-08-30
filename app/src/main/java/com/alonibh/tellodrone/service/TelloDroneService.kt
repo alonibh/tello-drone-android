@@ -120,7 +120,24 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
         if (!connectionGate.claimNetwork()) return
         scope.launch {
             try {
-                val transport = NetworkTelloTransport(network, scope, SystemMonotonicClock)
+                val traceRecorder = VisionTraceFeature.recorder(applicationContext)
+                val transport = NetworkTelloTransport(
+                    network = network,
+                    scope = scope,
+                    clock = SystemMonotonicClock,
+                    onRcTransportSend = { seq, payload, startedAtNanos, completedAtNanos, success ->
+                        traceRecorder.recordRcTransportSend(
+                            com.alonibh.tellodrone.vision.RcTransportSendTrace(
+                                transportSequence = seq,
+                                payload = payload,
+                                startedAtNanos = startedAtNanos,
+                                completedAtNanos = completedAtNanos,
+                                durationNanos = (completedAtNanos - startedAtNanos).coerceAtLeast(0L),
+                                success = success,
+                            ),
+                        )
+                    },
+                )
                 val video = AndroidTelloVideoController(network, applicationContext)
                 videoController = video
                 TelloServiceGateway.videoPipelineAvailable(this@TelloDroneService)
@@ -135,7 +152,7 @@ class TelloDroneService : Service(), TelloWifiNetworkManager.Listener {
                         flight = FlightState.Unknown,
                         hoverActive = false,
                     ),
-                    visionTrace = VisionTraceFeature.recorder(applicationContext),
+                    visionTrace = traceRecorder,
                     onFatalConnectionLoss = { scope.launch { finishService() } },
                 )
                 if (!connectionGate.activate { session = newSession }) {

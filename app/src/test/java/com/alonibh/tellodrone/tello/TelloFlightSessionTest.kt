@@ -1004,9 +1004,10 @@ class TelloFlightSessionTest {
     private suspend fun TestScope.yawReadyFixture(
         box: NormalizedBoundingBox = NormalizedBoundingBox(.55f, .20f, .85f, .80f),
         visionTrace: VisionTraceRecorder = com.alonibh.tellodrone.vision.NoOpVisionTraceRecorder,
+        beforeYawFollowStateCommit: ((MutableStateFlow<com.alonibh.tellodrone.domain.DroneSessionState>) -> Unit)? = null,
     ): Pair<Fixture, FakeVideoController> {
         val video = FakeVideoController()
-        val fixture = fixture(video, visionTrace)
+        val fixture = fixture(video, visionTrace, beforeYawFollowStateCommit)
         fixture.transport.emitTelemetry(fixture.clock.value)
         assertTrue(fixture.session.connect())
         runCurrent()
@@ -1390,6 +1391,46 @@ class TelloFlightSessionTest {
         assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
     }
 
+    @Test fun `send time authority race suppresses autonomous vector when monitor latches before state commit`() = runTest {
+        val trace = FakeVisionTraceRecorder()
+        var verifiedSuppressionDuringInterleaving = false
+        val (fixture, _) = yawReadyFixture(
+            visionTrace = trace,
+            beforeYawFollowStateCommit = { stateFlow ->
+                // When session state is still ACTIVE during anomaly transition, authorityValidator
+                // guarantees autonomous vector is suppressed immediately at the send boundary.
+                if (stateFlow.value.yawFollowDecision.state == YawFollowState.ACTIVE && trace.yawResponseAnomalyEvents.isNotEmpty()) {
+                    val suppression = AutonomousRcSendAuthority.validate(
+                        state = stateFlow.value,
+                        liveVideoAvailability = stateFlow.value.video.availability,
+                        isAnomalyLatched = true,
+                    )
+                    assertEquals(com.alonibh.tellodrone.tello.RcSendSuppressionReason.YAW_RESPONSE_ANOMALY, suppression)
+                    verifiedSuppressionDuringInterleaving = true
+                }
+            },
+        )
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+
+        // Baseline telemetry sample
+        fixture.clock.value += 100L
+        fixture.transport.emitTelemetry(at = fixture.clock.value, heightMeters = 1.0f, yawDegrees = 10)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        // Catastrophic telemetry sample triggers monitor latch
+        fixture.clock.value += 100L
+        fixture.transport.emitTelemetry(at = fixture.clock.value, heightMeters = 1.0f, yawDegrees = 50)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        assertTrue(verifiedSuppressionDuringInterleaving)
+        assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
+    }
+
     private suspend fun TestScope.landAndVerify(fixture: Fixture) {
         fixture.session.land()
         assertEquals(FlightState.Landing, fixture.session.state.value.flight)
@@ -1532,6 +1573,9 @@ class TelloFlightSessionTest {
         val frames = mutableListOf<VisionTraceFrame>()
         val controlMeasurements = mutableListOf<YawControlMeasurementTrace>()
         val rcPublications = mutableListOf<RcPublicationTrace>()
+        val rcTransportSends = mutableListOf<com.alonibh.tellodrone.vision.RcTransportSendTrace>()
+        val telemetryDetailedSamples = mutableListOf<com.alonibh.tellodrone.vision.TelemetrySampleTrace>()
+        val yawResponseAnomalyEvents = mutableListOf<com.alonibh.tellodrone.vision.YawResponseAnomalyEventTrace>()
         val selectedTargets = mutableListOf<com.alonibh.tellodrone.domain.TrackedTarget>()
         val targetSelectionAttempts = mutableListOf<TargetSelectionAttemptTrace>()
         var newSessionCount = 0
@@ -1542,6 +1586,15 @@ class TelloFlightSessionTest {
         override fun record(frame: VisionTraceFrame) { frames += frame }
         override fun recordControlMeasurement(trace: YawControlMeasurementTrace) { controlMeasurements += trace }
         override fun recordRcPublication(trace: RcPublicationTrace) { rcPublications += trace }
+        override fun recordRcTransportSend(trace: com.alonibh.tellodrone.vision.RcTransportSendTrace) {
+            rcTransportSends += trace
+        }
+        override fun recordTelemetryDetailedSample(trace: com.alonibh.tellodrone.vision.TelemetrySampleTrace) {
+            telemetryDetailedSamples += trace
+        }
+        override fun recordYawResponseAnomalyEvent(trace: com.alonibh.tellodrone.vision.YawResponseAnomalyEventTrace) {
+            yawResponseAnomalyEvents += trace
+        }
         override fun recordTargetSelectionAttempt(trace: TargetSelectionAttemptTrace) {
             targetSelectionAttempts += trace
         }
