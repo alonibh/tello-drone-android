@@ -57,6 +57,7 @@ class NetworkTelloTransport(
     scope: CoroutineScope,
     private val clock: MonotonicClock,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    onRcTransportSend: ((sequence: Long, payload: String, startedAtNanos: Long, completedAtNanos: Long, success: Boolean) -> Unit)? = null,
 ) : TelloTransport {
     private val commandEndpoint = NetworkDatagramEndpoint(
         network = network,
@@ -69,7 +70,7 @@ class NetworkTelloTransport(
         localPort = STATE_PORT,
         dispatcher = dispatcher,
     )
-    private val commands = SerializedTelloCommandTransport(commandEndpoint, clock)
+    private val commands = SerializedTelloCommandTransport(commandEndpoint, clock, onRcTransportSend = onRcTransportSend)
     private val mutableTelemetry = MutableSharedFlow<TelloTelemetry>(replay = 1, extraBufferCapacity = 8)
     override val telemetry: Flow<TelloTelemetry> = mutableTelemetry.asSharedFlow()
     private val telemetryJob: Job = scope.launch(dispatcher) {

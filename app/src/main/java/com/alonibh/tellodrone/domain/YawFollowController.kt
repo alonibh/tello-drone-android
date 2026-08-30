@@ -283,11 +283,17 @@ class ProductionYawController(
             )
         }
 
+        val maxObservedRate = when {
+            rawYawRateDegreesPerSecond != null && telemetryYawRateDegreesPerSecond != null ->
+                if (abs(rawYawRateDegreesPerSecond) > abs(telemetryYawRateDegreesPerSecond)) rawYawRateDegreesPerSecond else telemetryYawRateDegreesPerSecond
+            rawYawRateDegreesPerSecond != null -> rawYawRateDegreesPerSecond
+            else -> telemetryYawRateDegreesPerSecond
+        }
         var estimate = estimator.update(
             centerX = measurement.targetCenterX,
             sourceTimestampNanos = measurement.sourceTimestampNanos,
             perceptionAgeNanos = ageNanos,
-            physicalYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond ?: rawYawRateDegreesPerSecond,
+            physicalYawRateDegreesPerSecond = maxObservedRate,
             isSettling = (phase == YawControllerPhase.SETTLING),
             isRecovery = recovering,
         )

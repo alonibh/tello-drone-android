@@ -1338,6 +1338,58 @@ class TelloFlightSessionTest {
         assertEquals(FlightState.Flying, fixture.session.state.value.flight)
     }
 
+    @Test fun `yaw response anomaly latches safety zero and rejects rearm until settled`() = runTest {
+        val trace = FakeVisionTraceRecorder()
+        val (fixture, _) = yawReadyFixture(visionTrace = trace)
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+
+        // Telemetry baseline
+        fixture.clock.value += 100L
+        fixture.transport.emitTelemetry(at = fixture.clock.value, heightMeters = 1.0f, yawDegrees = 10)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        // Catastrophic yaw excursion: jump from 10 to 50 degrees in 100ms (400 deg/s)
+        fixture.clock.value += 100L
+        fixture.transport.emitTelemetry(at = fixture.clock.value, heightMeters = 1.0f, yawDegrees = 50)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        // Anomaly latches immediately
+        assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals(ControlAuthority.Manual, fixture.session.state.value.authority)
+
+        // User attempts rearm while still rotating (50 to 70 deg in 100ms = 200 deg/s)
+        fixture.clock.value += 100L
+        fixture.transport.emitTelemetry(at = fixture.clock.value, heightMeters = 1.0f, yawDegrees = 70)
+        advanceTimeBy(50L)
+        runCurrent()
+
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+        // Rearm rejected!
+        assertEquals(YawFollowState.REQUIRES_REARM, fixture.session.state.value.yawFollowDecision.state)
+        assertEquals("Yaw follow cannot re-arm until aircraft rotation has settled", fixture.session.state.value.lastMessage)
+
+        // Aircraft settles: constant yaw across consecutive samples
+        for (i in 1..4) {
+            fixture.clock.value += 100L
+            fixture.transport.emitTelemetry(at = fixture.clock.value, heightMeters = 1.0f, yawDegrees = 70)
+            advanceTimeBy(50L)
+            runCurrent()
+        }
+
+        // Now rearm succeeds!
+        fixture.session.setYawFollowArmed(true)
+        advanceTimeBy(50L)
+        runCurrent()
+        assertEquals(YawFollowState.ACTIVE, fixture.session.state.value.yawFollowDecision.state)
+    }
+
     private suspend fun TestScope.landAndVerify(fixture: Fixture) {
         fixture.session.land()
         assertEquals(FlightState.Landing, fixture.session.state.value.flight)
@@ -1399,6 +1451,7 @@ class TelloFlightSessionTest {
             heightMeters: Float? = 0f,
             batteryPercent: Int? = 80,
             velocityZCentimetersPerSecond: Int? = 0,
+            yawDegrees: Int? = null,
         ) {
             samples.emit(
                 TelloTelemetry(
@@ -1410,6 +1463,7 @@ class TelloFlightSessionTest {
                     velocityYCentimetersPerSecond = 0,
                     velocityZCentimetersPerSecond = velocityZCentimetersPerSecond,
                     speedMetersPerSecond = 0f,
+                    yawDegrees = yawDegrees,
                     receivedAt = Instant.parse("2026-08-10T00:00:00Z"),
                     receivedAtMonotonicMillis = at,
                     fields = emptyMap(),

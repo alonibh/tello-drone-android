@@ -86,6 +86,19 @@ data class VisionSessionFrameEntry(
     val height: Int,
 )
 
+data class VisionEpochMetadata(
+    val epochId: String,
+    val generation: Long,
+    val captureStartReason: VisionCaptureStartReason,
+    val capturedFrameCount: Int,
+    val droppedFrameCount: Long,
+    val excludedAfterLimitFrameCount: Long = 0,
+    val startFrameSequence: Long? = null,
+    val startSourceTimestampNanos: Long? = null,
+    val endFrameSequence: Long? = null,
+    val endSourceTimestampNanos: Long? = null,
+)
+
 data class VisionSessionManifest(
     val schemaVersion: Int = VISION_SESSION_SCHEMA_VERSION,
     val frameEncoding: String = "jpeg",
@@ -97,6 +110,7 @@ data class VisionSessionManifest(
     val excludedAfterLimitFrameCount: Long = 0,
     val captureStartReason: VisionCaptureStartReason = VisionCaptureStartReason.DetectionStarted,
     val frames: List<VisionSessionFrameEntry>,
+    val epochs: List<VisionEpochMetadata> = emptyList(),
 )
 
 data class VisionSessionExport(
@@ -153,7 +167,27 @@ object VisionSessionManifestJson {
             append(",\"height\":").append(frame.height)
             append('}')
         }
-        append("]}")
+        append(']')
+        if (manifest.epochs.isNotEmpty()) {
+            append(",\"epochs\":[")
+            manifest.epochs.forEachIndexed { index, epoch ->
+                if (index > 0) append(',')
+                append('{')
+                append("\"epochId\":\"").append(epoch.epochId).append('"')
+                append(",\"generation\":").append(epoch.generation)
+                append(",\"captureStartReason\":\"").append(epoch.captureStartReason.name).append('"')
+                append(",\"capturedFrameCount\":").append(epoch.capturedFrameCount)
+                append(",\"droppedFrameCount\":").append(epoch.droppedFrameCount)
+                append(",\"excludedAfterLimitFrameCount\":").append(epoch.excludedAfterLimitFrameCount)
+                if (epoch.startFrameSequence != null) append(",\"startFrameSequence\":").append(epoch.startFrameSequence)
+                if (epoch.startSourceTimestampNanos != null) append(",\"startSourceTimestampNanos\":").append(epoch.startSourceTimestampNanos)
+                if (epoch.endFrameSequence != null) append(",\"endFrameSequence\":").append(epoch.endFrameSequence)
+                if (epoch.endSourceTimestampNanos != null) append(",\"endSourceTimestampNanos\":").append(epoch.endSourceTimestampNanos)
+                append('}')
+            }
+            append(']')
+        }
+        append('}')
     }
 
     fun decode(json: String): VisionSessionManifest {
@@ -169,6 +203,24 @@ object VisionSessionManifestJson {
                 height = frame.int("height"),
             )
         }
+        val epochs = (root["epochs"] as? List<*>)?.map { value ->
+            @Suppress("UNCHECKED_CAST")
+            val epoch = (value as? Map<String, Any?>) ?: throw MalformedVisionSessionException("epoch must be an object")
+            VisionEpochMetadata(
+                epochId = epoch.string("epochId"),
+                generation = epoch.long("generation"),
+                captureStartReason = epoch.optionalString("captureStartReason")?.let { raw ->
+                    runCatching { VisionCaptureStartReason.valueOf(raw) }.getOrNull()
+                } ?: VisionCaptureStartReason.DetectionStarted,
+                capturedFrameCount = epoch.int("capturedFrameCount"),
+                droppedFrameCount = epoch.long("droppedFrameCount"),
+                excludedAfterLimitFrameCount = epoch.optionalLong("excludedAfterLimitFrameCount") ?: 0L,
+                startFrameSequence = epoch.optionalLong("startFrameSequence"),
+                startSourceTimestampNanos = epoch.optionalLong("startSourceTimestampNanos"),
+                endFrameSequence = epoch.optionalLong("endFrameSequence"),
+                endSourceTimestampNanos = epoch.optionalLong("endSourceTimestampNanos"),
+            )
+        } ?: emptyList()
         val schemaVersion = root.int("schemaVersion")
         return VisionSessionManifest(
             schemaVersion = schemaVersion,
@@ -184,6 +236,7 @@ object VisionSessionManifestJson {
                     .getOrElse { throw MalformedVisionSessionException("Invalid captureStartReason") }
             } ?: VisionCaptureStartReason.Legacy,
             frames = frames,
+            epochs = epochs,
         )
     }
 }

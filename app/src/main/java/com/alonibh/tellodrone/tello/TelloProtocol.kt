@@ -104,11 +104,20 @@ fun calculateYawRateDegreesPerSecond(
 /**
  * Lightweight median filter for raw telemetry yaw-rate samples.
  * Preserves high/catastrophic physical angular velocity while smoothing single-sample integer degree quantization jitter.
+ * Automatically resets its median window when telemetry continuity is broken by time gaps or stale delays.
  */
 class TelemetryYawRateFilter(private val windowSize: Int = 3) {
     private val samples = ArrayDeque<Float>()
+    private var lastSampleTimestampMillis: Long? = null
 
-    fun filter(rawRate: Float): Float {
+    fun filter(rawRate: Float, sampleTimestampMillis: Long? = null): Float {
+        if (sampleTimestampMillis != null) {
+            val lastTs = lastSampleTimestampMillis
+            if (lastTs != null && (sampleTimestampMillis - lastTs > MAX_CONTINUOUS_TELEMETRY_GAP_MILLIS || sampleTimestampMillis <= lastTs)) {
+                reset()
+            }
+            lastSampleTimestampMillis = sampleTimestampMillis
+        }
         samples.addLast(rawRate)
         if (samples.size > windowSize) {
             samples.removeFirst()
@@ -119,6 +128,11 @@ class TelemetryYawRateFilter(private val windowSize: Int = 3) {
 
     fun reset() {
         samples.clear()
+        lastSampleTimestampMillis = null
+    }
+
+    companion object {
+        const val MAX_CONTINUOUS_TELEMETRY_GAP_MILLIS = 1000L
     }
 }
 

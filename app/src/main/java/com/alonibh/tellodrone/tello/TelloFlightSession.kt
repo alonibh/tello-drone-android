@@ -438,6 +438,31 @@ class TelloFlightSession(
                 return@synchronized
             }
             if (armed) {
+                if (yawResponseSafetyMonitor.isLatched()) {
+                    if (!yawResponseSafetyMonitor.tryAcknowledgeAndResetForRearm()) {
+                        invalid("Yaw follow cannot re-arm until aircraft rotation has settled")
+                        mutableState.update { it.copy(lastMessage = "Yaw follow cannot re-arm until aircraft rotation has settled") }
+                        return@synchronized
+                    }
+                    visionTrace.recordYawResponseAnomalyEvent(
+                        YawResponseAnomalyEventTrace(
+                            timestampNanos = sourceNowNanos(),
+                            eventType = "yaw_response_anomaly_acknowledged",
+                            rawYawRate = currentRawYawRateDegreesPerSecond,
+                            filteredYawRate = currentYawRateDegreesPerSecond,
+                            currentYawDegrees = mutableState.value.telemetry.yawDegrees,
+                            recentActualYawRcSummary = null,
+                            ageOfMostRecentNonzeroRcMillis = null,
+                            recentRcSign = null,
+                            controllerPhase = mutableState.value.yawFollowDecision.control?.phase,
+                            targetCenter = mutableState.value.trackingErrors?.targetCenterX,
+                            rawError = mutableState.value.trackingErrors?.rawYawError,
+                            controlError = mutableState.value.trackingErrors?.yawError,
+                            frameSequence = mutableState.value.video.processedDetectorFrameSequence,
+                            reason = "Explicit rearm after aircraft settled",
+                        ),
+                    )
+                }
                 // ARM is the explicit acknowledgement for a previous STOP / HOVER intervention.
                 // It clears only that sticky UI/session flag; every other yaw safety prerequisite
                 // is still evaluated below and may latch or wait as usual.
@@ -834,7 +859,10 @@ class TelloFlightSession(
                         currentTimestampMillis = sampleTimestampMillis,
                     )
                 } else null
-                val filteredYawRate = rawYawRate?.let { yawRateFilter.filter(it) }
+                val filteredYawRate = rawYawRate?.let { yawRateFilter.filter(it, sampleTimestampMillis) }
+                if (rawYawRate == null) {
+                    yawRateFilter.reset()
+                }
                 if (currentYaw != null) {
                     lastTelemetryYawDegrees = currentYaw
                     lastTelemetryYawTimestampMillis = sampleTimestampMillis
@@ -846,6 +874,10 @@ class TelloFlightSession(
                 val deltaYawDegrees = if (currentYaw != null && previousYaw != null) {
                     shortestAngularDifferenceDegrees(previousYaw.toFloat(), currentYaw.toFloat()).toInt()
                 } else null
+
+                val isSettledSample = rawYawRate != null && kotlin.math.abs(rawYawRate) <= YawResponseSafetyMonitor.SETTLED_RATE_THRESHOLD_DPS &&
+                    (filteredYawRate != null && kotlin.math.abs(filteredYawRate) <= YawResponseSafetyMonitor.SETTLED_RATE_THRESHOLD_DPS)
+                val usedForAnomaly = currentBefore.flight == FlightState.Flying && currentBefore.yawFollowDecision.state == YawFollowState.ACTIVE
 
                 visionTrace.recordTelemetryDetailedSample(
                     TelemetrySampleTrace(
@@ -863,6 +895,8 @@ class TelloFlightSession(
                         velocityYCentimetersPerSecond = sample.velocityYCentimetersPerSecond,
                         velocityZCentimetersPerSecond = sample.velocityZCentimetersPerSecond,
                         batteryPercent = sample.batteryPercent,
+                        acceptedForSettling = isSettledSample,
+                        usedForAnomalyMonitor = usedForAnomaly,
                     ),
                 )
 
@@ -870,7 +904,11 @@ class TelloFlightSession(
                 val currentFollowState = currentBefore.yawFollowDecision.state
                 val anomalyEval = yawResponseSafetyMonitor.evaluate(
                     sample = TelemetryYawSample(
+                        sequence = telemetrySequence,
                         yawDegrees = sample.yawDegrees ?: 0,
+                        previousYawDegrees = previousYaw,
+                        shortestDeltaDegrees = deltaYawDegrees,
+                        deltaMillis = deltaMillis,
                         rawYawRateDegreesPerSecond = rawYawRate,
                         filteredYawRateDegreesPerSecond = filteredYawRate,
                         receivedAtMillis = sampleTimestampMillis,
@@ -879,7 +917,7 @@ class TelloFlightSession(
                     yawFollowState = currentFollowState,
                 )
 
-                if (anomalyEval.status == YawResponseSafetyStatus.ANOMALY_LATCHED) {
+                if (anomalyEval.isJustLatched) {
                     visionTrace.recordYawResponseAnomalyEvent(
                         YawResponseAnomalyEventTrace(
                             timestampNanos = sourceNowNanos(),
@@ -888,7 +926,7 @@ class TelloFlightSession(
                             filteredYawRate = filteredYawRate,
                             currentYawDegrees = sample.yawDegrees,
                             recentActualYawRcSummary = "dominantRc=${anomalyEval.dominantRecentRc}",
-                            ageOfMostRecentNonzeroRcMillis = null,
+                            ageOfMostRecentNonzeroRcMillis = anomalyEval.zeroCommandDurationMillis,
                             recentRcSign = if (anomalyEval.dominantRecentRc > 0) 1 else if (anomalyEval.dominantRecentRc < 0) -1 else 0,
                             controllerPhase = currentBefore.yawFollowDecision.control?.phase,
                             targetCenter = currentBefore.trackingErrors?.targetCenterX,
@@ -908,7 +946,7 @@ class TelloFlightSession(
                             filteredYawRate = filteredYawRate,
                             currentYawDegrees = sample.yawDegrees,
                             recentActualYawRcSummary = "dominantRc=${anomalyEval.dominantRecentRc}",
-                            ageOfMostRecentNonzeroRcMillis = null,
+                            ageOfMostRecentNonzeroRcMillis = anomalyEval.zeroCommandDurationMillis,
                             recentRcSign = if (anomalyEval.dominantRecentRc > 0) 1 else if (anomalyEval.dominantRecentRc < 0) -1 else 0,
                             controllerPhase = currentBefore.yawFollowDecision.control?.phase,
                             targetCenter = currentBefore.trackingErrors?.targetCenterX,
@@ -1446,10 +1484,12 @@ class TelloFlightSession(
                 estimatedTargetCenterX = control?.estimatedTargetCenterX,
                 targetCenterVelocityPerSecond = control?.targetCenterVelocityPerSecond,
                 predictionHorizonMillis = control?.predictionHorizonMillis,
+                predictionMode = control?.predictionMode,
                 controlYawError = control?.controlYawError,
                 controllerPhase = control?.phase,
                 telloYawDegrees = control?.telloYawDegrees ?: current.telemetry.yawDegrees,
                 telloYawRateDegreesPerSecond = control?.telloYawRateDegreesPerSecond ?: current.telemetry.yawRateDegreesPerSecond,
+                rawYawRateDegreesPerSecond = control?.rawYawRateDegreesPerSecond ?: currentRawYawRateDegreesPerSecond ?: current.telemetry.rawYawRateDegreesPerSecond,
                 associationCompletedTimestampNanos = frame.associationCompletedTimestampNanos,
                 yawDecisionTimestampNanos = commandTimestampNanos,
             ),
@@ -1504,10 +1544,12 @@ class TelloFlightSession(
                 estimatedTargetCenterX = control?.estimatedTargetCenterX,
                 targetCenterVelocityPerSecond = control?.targetCenterVelocityPerSecond,
                 predictionHorizonMillis = control?.predictionHorizonMillis,
+                predictionMode = control?.predictionMode,
                 controlYawError = control?.controlYawError,
                 controllerPhase = control?.phase,
                 telloYawDegrees = control?.telloYawDegrees ?: current.telemetry.yawDegrees,
                 telloYawRateDegreesPerSecond = control?.telloYawRateDegreesPerSecond ?: current.telemetry.yawRateDegreesPerSecond,
+                rawYawRateDegreesPerSecond = control?.rawYawRateDegreesPerSecond ?: currentRawYawRateDegreesPerSecond ?: current.telemetry.rawYawRateDegreesPerSecond,
                 yawDecisionTimestampNanos = control?.commandTimestampNanos,
                 flightState = current.flight,
                 trackingMode = current.tracking,
@@ -1539,6 +1581,8 @@ class TelloFlightSession(
         commandTimestampNanos = sourceNowNanos(),
         telemetryYawDegrees = telemetry.yawDegrees,
         telemetryYawRateDegreesPerSecond = telemetry.yawRateDegreesPerSecond,
+        rawYawRateDegreesPerSecond = currentRawYawRateDegreesPerSecond ?: telemetry.rawYawRateDegreesPerSecond,
+        responseAnomalyDetected = yawResponseSafetyMonitor.isLatched(),
     )
 
     private fun YawFollowReason.displayName() = name.replace('_', ' ')

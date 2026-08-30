@@ -77,7 +77,14 @@ internal class DebugVisionTraceRecorder internal constructor(
         val limiter: VisionCaptureLimiter = VisionCaptureLimiter(),
         val drops: VisionCaptureDropCounter = VisionCaptureDropCounter(),
         val excludedAfterLimit: AtomicLong = AtomicLong(),
-    )
+    ) {
+        val epochId: String = "epoch-$generation"
+        var capturedCount: Int = 0
+        var startFrameSequence: Long? = null
+        var startSourceTimestampNanos: Long? = null
+        var endFrameSequence: Long? = null
+        var endSourceTimestampNanos: Long? = null
+    }
     private data class PendingFrame(val bitmap: Bitmap, val epoch: CaptureEpoch)
     private sealed interface Command {
         data object StartNewSession : Command
@@ -124,6 +131,7 @@ internal class DebugVisionTraceRecorder internal constructor(
     private var capturePaused = false
 
     private val frames = mutableListOf<VisionSessionFrameEntry>()
+    private val recordedEpochs = mutableListOf<CaptureEpoch>()
     private var activeEpoch: CaptureEpoch? = null
 
     // Flight diagnostics tracking
@@ -333,6 +341,19 @@ internal class DebugVisionTraceRecorder internal constructor(
             command.epoch.drops.recordDrop()
             return
         }
+        val epoch = command.epoch
+        if (epoch.startFrameSequence == null) {
+            epoch.startFrameSequence = command.trace.frameSequence
+            epoch.startSourceTimestampNanos = command.trace.sourceTimestampNanos
+        }
+        epoch.endFrameSequence = command.trace.frameSequence
+        epoch.endSourceTimestampNanos = command.trace.sourceTimestampNanos
+        epoch.capturedCount++
+
+        val traceToEncode = if (command.trace.visionEpochId == null) {
+            command.trace.copy(visionEpochId = epoch.generation)
+        } else command.trace
+
         val entry = VisionSessionFrameEntry(
             captureIndex = index,
             frameSequence = command.trace.frameSequence,
@@ -342,7 +363,7 @@ internal class DebugVisionTraceRecorder internal constructor(
             height = height,
         )
         frames += entry
-        storage.appendTrace(VisionTraceJson.encode(command.trace, command.droppedBeforeFrame, relativePath))
+        storage.appendTrace(VisionTraceJson.encode(traceToEncode, command.droppedBeforeFrame, relativePath))
     }
 
     private fun write(command: Command.ControlMeasurement) {
@@ -475,12 +496,27 @@ internal class DebugVisionTraceRecorder internal constructor(
                 FileOutputStream(temp).buffered().use { fileOut ->
                     ZipOutputStream(fileOut).use { zip ->
                         if (frames.isNotEmpty()) {
+                            val epochList = recordedEpochs.map { ep ->
+                                VisionEpochMetadata(
+                                    epochId = ep.epochId,
+                                    generation = ep.generation,
+                                    captureStartReason = ep.startReason,
+                                    capturedFrameCount = ep.capturedCount,
+                                    droppedFrameCount = ep.drops.total(),
+                                    excludedAfterLimitFrameCount = ep.excludedAfterLimit.get(),
+                                    startFrameSequence = ep.startFrameSequence,
+                                    startSourceTimestampNanos = ep.startSourceTimestampNanos,
+                                    endFrameSequence = ep.endFrameSequence,
+                                    endSourceTimestampNanos = ep.endSourceTimestampNanos,
+                                )
+                            }
                             val manifest = VisionSessionManifest(
                                 capturedFrameCount = frames.size,
                                 droppedFrameCount = activeEpoch?.drops?.total() ?: 0L,
                                 excludedAfterLimitFrameCount = activeEpoch?.excludedAfterLimit?.get() ?: 0L,
                                 captureStartReason = activeEpoch?.startReason ?: VisionCaptureStartReason.TargetSelected,
                                 frames = frames.toList(),
+                                epochs = epochList,
                             )
                             zip.putNextEntry(ZipEntry("manifest.json"))
                             zip.write(VisionSessionManifestJson.encode(manifest).toByteArray(Charsets.UTF_8))
@@ -578,12 +614,27 @@ internal class DebugVisionTraceRecorder internal constructor(
             val sourceTrace = storage.traceFile
             if (frames.isEmpty()) throw IllegalStateException("No captured vision frames are available")
             if (activeEpoch !== command.epoch) throw IllegalStateException("No frames captured for the current session")
+            val epochList = listOf(
+                VisionEpochMetadata(
+                    epochId = command.epoch.epochId,
+                    generation = command.epoch.generation,
+                    captureStartReason = command.epoch.startReason,
+                    capturedFrameCount = command.epoch.capturedCount,
+                    droppedFrameCount = command.epoch.drops.total(),
+                    excludedAfterLimitFrameCount = command.epoch.excludedAfterLimit.get(),
+                    startFrameSequence = command.epoch.startFrameSequence,
+                    startSourceTimestampNanos = command.epoch.startSourceTimestampNanos,
+                    endFrameSequence = command.epoch.endFrameSequence,
+                    endSourceTimestampNanos = command.epoch.endSourceTimestampNanos,
+                ),
+            )
             val manifest = VisionSessionManifest(
                 capturedFrameCount = frames.size,
                 droppedFrameCount = command.epoch.drops.total(),
                 excludedAfterLimitFrameCount = command.epoch.excludedAfterLimit.get(),
                 captureStartReason = command.epoch.startReason,
                 frames = frames.toList(),
+                epochs = epochList,
             )
             val summary = FlightSummaryBuilder.build(
                 sourceTrace.readLines(Charsets.UTF_8),
@@ -713,6 +764,9 @@ internal class DebugVisionTraceRecorder internal constructor(
     }
 
     private fun prepareEpoch(epoch: CaptureEpoch) {
+        if (!recordedEpochs.contains(epoch)) {
+            recordedEpochs.add(epoch)
+        }
         if (activeEpoch === epoch) return
         storage.startVisionEpoch()
         activeEpoch = epoch
@@ -721,6 +775,7 @@ internal class DebugVisionTraceRecorder internal constructor(
     private fun resetWorkerStorage() {
         storage.startNewSession()
         frames.clear()
+        recordedEpochs.clear()
         activeEpoch = null
         rcPublicationCount = 0
         maxAirborneOutboundGapMillis = null

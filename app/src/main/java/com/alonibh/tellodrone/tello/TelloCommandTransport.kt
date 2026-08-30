@@ -29,10 +29,12 @@ class SerializedTelloCommandTransport(
     private val endpoint: TelloDatagramEndpoint,
     private val clock: MonotonicClock = MonotonicClock { System.nanoTime() / 1_000_000L },
     private val onDiscardedResponse: ((String) -> Unit)? = null,
+    private val onRcTransportSend: ((sequence: Long, payload: String, startedAtNanos: Long, completedAtNanos: Long, success: Boolean) -> Unit)? = null,
 ) {
     private val blockingCommandMutex = Mutex()
     private val sendMutex = Mutex()
     private val discardedCount = AtomicLong(0L)
+    private val transportRcSequence = AtomicLong(0L)
 
     val discardedResponsesCount: Long get() = discardedCount.get()
 
@@ -85,7 +87,17 @@ class SerializedTelloCommandTransport(
         }
 
     suspend fun sendRc(vector: RcVector) {
-        sendMutex.withLock { endpoint.send(vector.asCommand()) }
+        val seq = transportRcSequence.incrementAndGet()
+        val payload = vector.asCommand()
+        val startNanos = System.nanoTime()
+        var success = false
+        try {
+            sendMutex.withLock { endpoint.send(payload) }
+            success = true
+        } finally {
+            val endNanos = System.nanoTime()
+            onRcTransportSend?.invoke(seq, payload, startNanos, endNanos, success)
+        }
     }
 
     suspend fun close() = endpoint.close()

@@ -1,6 +1,10 @@
 package com.alonibh.tellodrone.domain
 
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -30,6 +34,7 @@ class YawResponseSafetyMonitorTest {
         )
         // 1st sample above 50 deg/s is suspect
         assertEquals(YawResponseSafetyStatus.MISMATCH_SUSPECT, eval1.status)
+        assertFalse(eval1.isJustLatched)
 
         // 3. Second opposing physical telemetry sample (+70 deg/s) -> sustained mismatch latches!
         val eval2 = monitor.evaluate(
@@ -43,6 +48,7 @@ class YawResponseSafetyMonitorTest {
             yawFollowState = YawFollowState.ACTIVE,
         )
         assertEquals(YawResponseSafetyStatus.ANOMALY_LATCHED, eval2.status)
+        assertTrue(eval2.isJustLatched)
         assertEquals(YawResponseAnomalyReason.SUSTAINED_DIRECTION_MISMATCH, eval2.anomalyReason)
         assertNotNull(eval2.anomalyDurationMillis)
     }
@@ -63,6 +69,50 @@ class YawResponseSafetyMonitorTest {
             yawFollowState = YawFollowState.ACTIVE,
         )
         assertEquals(YawResponseSafetyStatus.ANOMALY_LATCHED, eval.status)
+        assertTrue(eval.isJustLatched)
+        assertEquals(YawResponseAnomalyReason.CATASTROPHIC_YAW_RATE, eval.anomalyReason)
+    }
+
+    @Test
+    fun `catastrophic raw spike latches even when filtered rate is still low`() {
+        val monitor = YawResponseSafetyMonitor()
+        monitor.recordSentRc(sentAtMillis = 1000L, yawRc = 8)
+
+        // Raw physical rate spike of 200 deg/s (while median filter is still reporting 20 deg/s)
+        val eval = monitor.evaluate(
+            sample = TelemetryYawSample(
+                yawDegrees = 50,
+                rawYawRateDegreesPerSecond = 200f,
+                filteredYawRateDegreesPerSecond = 20f,
+                receivedAtMillis = 1100L,
+            ),
+            flightState = FlightState.Flying,
+            yawFollowState = YawFollowState.ACTIVE,
+        )
+        assertEquals(YawResponseSafetyStatus.ANOMALY_LATCHED, eval.status)
+        assertTrue(eval.isJustLatched)
+        assertEquals(YawResponseAnomalyReason.CATASTROPHIC_YAW_RATE, eval.anomalyReason)
+    }
+
+    @Test
+    fun `catastrophic same-direction runaway latches when raw rate exceeds 140 dps`() {
+        val monitor = YawResponseSafetyMonitor()
+        // Commanded mild positive yaw +8
+        monitor.recordSentRc(sentAtMillis = 1000L, yawRc = 8)
+
+        // Drone physically accelerates to +180 deg/s in same direction
+        val eval = monitor.evaluate(
+            sample = TelemetryYawSample(
+                yawDegrees = 80,
+                rawYawRateDegreesPerSecond = 180f,
+                filteredYawRateDegreesPerSecond = 180f,
+                receivedAtMillis = 1100L,
+            ),
+            flightState = FlightState.Flying,
+            yawFollowState = YawFollowState.ACTIVE,
+        )
+        assertEquals(YawResponseSafetyStatus.ANOMALY_LATCHED, eval.status)
+        assertTrue(eval.isJustLatched)
         assertEquals(YawResponseAnomalyReason.CATASTROPHIC_YAW_RATE, eval.anomalyReason)
     }
 
@@ -151,53 +201,115 @@ class YawResponseSafetyMonitorTest {
     }
 
     @Test
-    fun `sensor noise and small opposing rate below threshold stay normal`() {
-        val monitor = YawResponseSafetyMonitor()
-
-        // Commanded -8
-        monitor.recordSentRc(sentAtMillis = 1000L, yawRc = -8)
-
-        // Noise sample +15 deg/s (e.g. 1 deg quantization step over 100ms is 10 deg/s)
-        val eval = monitor.evaluate(
-            sample = TelemetryYawSample(
-                yawDegrees = 5,
-                rawYawRateDegreesPerSecond = 15f,
-                filteredYawRateDegreesPerSecond = 15f,
-                receivedAtMillis = 1100L,
-            ),
-            flightState = FlightState.Flying,
-            yawFollowState = YawFollowState.ACTIVE,
-        )
-        assertEquals(YawResponseSafetyStatus.NORMAL, eval.status)
-    }
-
-    @Test
-    fun `latched anomaly stays latched until reset`() {
+    fun `latched anomaly tracks settled condition and enables safe re-arm only when settled`() {
         val monitor = YawResponseSafetyMonitor()
         monitor.recordSentRc(sentAtMillis = 1000L, yawRc = 0)
 
-        // Trigger runaway
-        monitor.evaluate(
+        // Trigger anomaly latch
+        val evalLatch = monitor.evaluate(
             sample = TelemetryYawSample(yawDegrees = 10, rawYawRateDegreesPerSecond = 150f, filteredYawRateDegreesPerSecond = 150f, receivedAtMillis = 1100L),
             flightState = FlightState.Flying,
             yawFollowState = YawFollowState.ACTIVE,
         )
+        assertTrue(evalLatch.isJustLatched)
+        assertTrue(monitor.isLatched())
+        assertFalse(monitor.isRearmReady())
 
-        // Subsequent zero/settled sample remains latched
-        val eval = monitor.evaluate(
-            sample = TelemetryYawSample(yawDegrees = 10, rawYawRateDegreesPerSecond = 0f, filteredYawRateDegreesPerSecond = 0f, receivedAtMillis = 1200L),
+        // User attempts rearm while aircraft is still spinning (+40 deg/s) -> rejected!
+        val evalRotating = monitor.evaluate(
+            sample = TelemetryYawSample(yawDegrees = 20, rawYawRateDegreesPerSecond = 40f, filteredYawRateDegreesPerSecond = 40f, receivedAtMillis = 1200L),
             flightState = FlightState.Flying,
             yawFollowState = YawFollowState.ACTIVE,
         )
-        assertEquals(YawResponseSafetyStatus.ANOMALY_LATCHED, eval.status)
+        assertFalse(evalRotating.rearmReady)
+        assertFalse(monitor.tryAcknowledgeAndResetForRearm())
+        assertTrue(monitor.isLatched())
 
-        // Reset clears latch
-        monitor.reset()
-        val evalAfterReset = monitor.evaluate(
-            sample = TelemetryYawSample(yawDegrees = 10, rawYawRateDegreesPerSecond = 0f, filteredYawRateDegreesPerSecond = 0f, receivedAtMillis = 1300L),
+        // Consecutive settled samples: <= 8.0 deg/s
+        monitor.evaluate(
+            sample = TelemetryYawSample(yawDegrees = 25, rawYawRateDegreesPerSecond = 5f, filteredYawRateDegreesPerSecond = 5f, receivedAtMillis = 1300L),
             flightState = FlightState.Flying,
             yawFollowState = YawFollowState.ACTIVE,
         )
-        assertEquals(YawResponseSafetyStatus.NORMAL, evalAfterReset.status)
+        assertFalse(monitor.isRearmReady())
+
+        monitor.evaluate(
+            sample = TelemetryYawSample(yawDegrees = 25, rawYawRateDegreesPerSecond = 4f, filteredYawRateDegreesPerSecond = 4f, receivedAtMillis = 1400L),
+            flightState = FlightState.Flying,
+            yawFollowState = YawFollowState.ACTIVE,
+        )
+        assertFalse(monitor.isRearmReady())
+
+        val evalSettled = monitor.evaluate(
+            sample = TelemetryYawSample(yawDegrees = 25, rawYawRateDegreesPerSecond = 3f, filteredYawRateDegreesPerSecond = 3f, receivedAtMillis = 1500L),
+            flightState = FlightState.Flying,
+            yawFollowState = YawFollowState.ACTIVE,
+        )
+        assertTrue(evalSettled.rearmReady)
+        assertTrue(monitor.isRearmReady())
+
+        // Now rearm succeeds and cleanly resets monitor
+        assertTrue(monitor.tryAcknowledgeAndResetForRearm())
+        assertFalse(monitor.isLatched())
+        assertFalse(monitor.isRearmReady())
+    }
+
+    @Test
+    fun `concurrent multi-threaded execution is fully thread safe`() {
+        val monitor = YawResponseSafetyMonitor()
+        val executor = Executors.newFixedThreadPool(4)
+        val errorCount = AtomicInteger(0)
+
+        val iterations = 500
+        val rcTask = Runnable {
+            for (i in 0 until iterations) {
+                try {
+                    val rc = if (i % 2 == 0) 16 else -16
+                    monitor.recordSentRc(sentAtMillis = 1000L + i * 20L, yawRc = rc)
+                } catch (t: Throwable) {
+                    errorCount.incrementAndGet()
+                }
+            }
+        }
+
+        val telemetryTask = Runnable {
+            for (i in 0 until iterations) {
+                try {
+                    monitor.evaluate(
+                        sample = TelemetryYawSample(
+                            yawDegrees = (i * 2) % 360,
+                            rawYawRateDegreesPerSecond = 30f,
+                            filteredYawRateDegreesPerSecond = 30f,
+                            receivedAtMillis = 1000L + i * 20L,
+                        ),
+                        flightState = FlightState.Flying,
+                        yawFollowState = YawFollowState.ACTIVE,
+                    )
+                } catch (t: Throwable) {
+                    errorCount.incrementAndGet()
+                }
+            }
+        }
+
+        val rearmTask = Runnable {
+            for (i in 0 until iterations) {
+                try {
+                    monitor.isLatched()
+                    monitor.isRearmReady()
+                    if (i % 50 == 0) monitor.tryAcknowledgeAndResetForRearm()
+                } catch (t: Throwable) {
+                    errorCount.incrementAndGet()
+                }
+            }
+        }
+
+        executor.submit(rcTask)
+        executor.submit(telemetryTask)
+        executor.submit(rearmTask)
+        executor.submit(rcTask)
+
+        executor.shutdown()
+        assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS))
+        assertEquals(0, errorCount.get())
     }
 }

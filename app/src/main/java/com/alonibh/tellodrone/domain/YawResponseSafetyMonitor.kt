@@ -33,6 +33,7 @@ enum class YawResponseAnomalyReason {
 
 data class YawResponseEvaluation(
     val status: YawResponseSafetyStatus,
+    val isJustLatched: Boolean = false,
     val reason: String? = null,
     val anomalyReason: YawResponseAnomalyReason? = null,
     val consecutiveMismatchSamples: Int = 0,
@@ -41,15 +42,19 @@ data class YawResponseEvaluation(
     val dominantRecentRc: Int = 0,
     val recentCommandedYawRc: Int = 0,
     val anomalyDurationMillis: Long? = null,
+    val rearmReady: Boolean = false,
+    val consecutiveSettledSamples: Int = 0,
+    val zeroCommandDurationMillis: Long? = null,
+    val currentCommandSignEpisodeAgeMillis: Long? = null,
 )
 
 /**
- * Pure, deterministic safety monitor evaluating physical aircraft yaw response against recent
- * commanded physical RC history.
+ * Pure, deterministic, thread-safe safety monitor evaluating physical aircraft yaw response
+ * against commanded physical RC history.
  *
- * Designed specifically to protect against catastrophic uncommanded physical yaw excursions during
- * autonomous yaw-follow without false-tripping on normal proportional rotations, telemetry
- * quantization, command-to-actuation transport latency, or braking/inertia center-crossings.
+ * Protects against uncommanded physical yaw excursions, catastrophic runaway, sustained direction
+ * mismatches, and zero-command runaway during autonomous yaw-follow without false-tripping on
+ * normal proportional rotations, telemetry quantization, transport latency, or braking/inertia.
  */
 class YawResponseSafetyMonitor(
     private val rcHistoryWindowMillis: Long = RC_HISTORY_WINDOW_MILLIS,
@@ -59,40 +64,112 @@ class YawResponseSafetyMonitor(
     private val severeMismatchRateThresholdDps: Float = SEVERE_MISMATCH_RATE_THRESHOLD_DPS,
     private val zeroRunawayRateThresholdDps: Float = ZERO_RUNAWAY_RATE_THRESHOLD_DPS,
     private val requiredConfirmationSamples: Int = REQUIRED_CONFIRMATION_SAMPLES,
+    private val settledRateThresholdDps: Float = SETTLED_RATE_THRESHOLD_DPS,
+    private val requiredSettledSamples: Int = REQUIRED_SETTLED_SAMPLES,
+    private val requiredSettledDurationMillis: Long = REQUIRED_SETTLED_DURATION_MILLIS,
 ) {
+    private val lock = Any()
+
     private val rcHistory = ArrayDeque<SentRcHistoryEntry>()
     private var consecutiveMismatchSamples = 0
-    private var isLatched = false
+    private var isLatchedState = false
     private var latchReason: String? = null
     private var latchedAnomalyReason: YawResponseAnomalyReason? = null
     private var firstMismatchTimestampMillis: Long? = null
     private var lastObservedTelemetryTimestampMillis: Long? = null
 
-    /** Records a physically sent yaw RC command with its monotonic timestamp. */
-    fun recordSentRc(sentAtMillis: Long, yawRc: Int) {
+    // Explicit command timing tracking
+    private var latestActualYawRc: Int = 0
+    private var latestNonzeroYawRc: Int? = null
+    private var timeZeroCommandStateBeganMillis: Long? = null
+    private var currentCommandSign: Int = 0
+    private var currentCommandSignEpisodeStartMillis: Long? = null
+
+    // Settling tracking while latched
+    private var consecutiveSettledSamplesWhileLatched = 0
+    private var settledStartTimeMillis: Long? = null
+    private var rearmReadyState = false
+
+    /** Records a physically sent yaw RC command with its monotonic timestamp. Thread-safe. */
+    fun recordSentRc(sentAtMillis: Long, yawRc: Int) = synchronized(lock) {
+        val newSign = yawRc.sign
+        if (newSign != currentCommandSign) {
+            currentCommandSign = newSign
+            currentCommandSignEpisodeStartMillis = sentAtMillis
+        }
+
+        if (yawRc != 0) {
+            latestNonzeroYawRc = yawRc
+            timeZeroCommandStateBeganMillis = null
+        } else {
+            if (timeZeroCommandStateBeganMillis == null) {
+                timeZeroCommandStateBeganMillis = sentAtMillis
+            }
+        }
+        latestActualYawRc = yawRc
+
         rcHistory.addLast(SentRcHistoryEntry(sentAtMillis, yawRc))
-        pruneRcHistory(sentAtMillis)
+        pruneRcHistoryLocked(sentAtMillis)
     }
 
     /**
      * Evaluates a new incoming telemetry sample against recent command history.
      * Duplicate or backwards-time telemetry samples are ignored without altering state.
+     * Returns an immutable evaluation while thread-safely updating internal state.
      */
     fun evaluate(
         sample: TelemetryYawSample,
         flightState: FlightState,
         yawFollowState: YawFollowState,
-    ): YawResponseEvaluation {
-        if (isLatched) {
+    ): YawResponseEvaluation = synchronized(lock) {
+        val isNewSample = lastObservedTelemetryTimestampMillis == null || sample.receivedAtMillis > lastObservedTelemetryTimestampMillis!!
+        if (isNewSample) {
+            lastObservedTelemetryTimestampMillis = sample.receivedAtMillis
+            pruneRcHistoryLocked(sample.receivedAtMillis)
+        }
+
+        val rawRate = sample.rawYawRateDegreesPerSecond
+        val filteredRate = sample.filteredYawRateDegreesPerSecond ?: rawRate
+        val dominantRc = latestNonzeroYawRc ?: latestActualYawRc
+        val zeroDuration = timeZeroCommandStateBeganMillis?.let { (sample.receivedAtMillis - it).coerceAtLeast(0L) }
+        val signEpisodeAge = currentCommandSignEpisodeStartMillis?.let { (sample.receivedAtMillis - it).coerceAtLeast(0L) }
+
+        if (isLatchedState) {
+            // Monitor continues observing incoming telemetry to determine if aircraft rotation has safely settled
+            if (isNewSample && rawRate != null && filteredRate != null) {
+                val isSettled = abs(rawRate) <= settledRateThresholdDps && abs(filteredRate) <= settledRateThresholdDps
+                if (isSettled) {
+                    consecutiveSettledSamplesWhileLatched++
+                    if (settledStartTimeMillis == null) {
+                        settledStartTimeMillis = sample.receivedAtMillis
+                    }
+                    val settledDuration = sample.receivedAtMillis - (settledStartTimeMillis ?: sample.receivedAtMillis)
+                    if (consecutiveSettledSamplesWhileLatched >= requiredSettledSamples && settledDuration >= requiredSettledDurationMillis) {
+                        rearmReadyState = true
+                    }
+                } else {
+                    consecutiveSettledSamplesWhileLatched = 0
+                    settledStartTimeMillis = null
+                    rearmReadyState = false
+                }
+            }
+
             val duration = firstMismatchTimestampMillis?.let { sample.receivedAtMillis - it }
             return YawResponseEvaluation(
                 status = YawResponseSafetyStatus.ANOMALY_LATCHED,
+                isJustLatched = false,
                 reason = latchReason,
                 anomalyReason = latchedAnomalyReason,
                 consecutiveMismatchSamples = consecutiveMismatchSamples,
-                rawYawRate = sample.rawYawRateDegreesPerSecond,
-                filteredYawRate = sample.filteredYawRateDegreesPerSecond,
+                rawYawRate = rawRate,
+                filteredYawRate = filteredRate,
+                dominantRecentRc = dominantRc,
+                recentCommandedYawRc = latestActualYawRc,
                 anomalyDurationMillis = duration,
+                rearmReady = rearmReadyState,
+                consecutiveSettledSamples = consecutiveSettledSamplesWhileLatched,
+                zeroCommandDurationMillis = zeroDuration,
+                currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
         }
 
@@ -102,89 +179,87 @@ class YawResponseSafetyMonitor(
             firstMismatchTimestampMillis = null
             return YawResponseEvaluation(
                 status = YawResponseSafetyStatus.NORMAL,
-                rawYawRate = sample.rawYawRateDegreesPerSecond,
-                filteredYawRate = sample.filteredYawRateDegreesPerSecond,
+                isJustLatched = false,
+                rawYawRate = rawRate,
+                filteredYawRate = filteredRate,
+                dominantRecentRc = dominantRc,
+                recentCommandedYawRc = latestActualYawRc,
+                zeroCommandDurationMillis = zeroDuration,
+                currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
         }
 
-        val lastTs = lastObservedTelemetryTimestampMillis
-        if (lastTs != null && sample.receivedAtMillis <= lastTs) {
+        if (!isNewSample) {
             return YawResponseEvaluation(
                 status = if (consecutiveMismatchSamples > 0) YawResponseSafetyStatus.MISMATCH_SUSPECT else YawResponseSafetyStatus.NORMAL,
+                isJustLatched = false,
                 consecutiveMismatchSamples = consecutiveMismatchSamples,
-                rawYawRate = sample.rawYawRateDegreesPerSecond,
-                filteredYawRate = sample.filteredYawRateDegreesPerSecond,
+                rawYawRate = rawRate,
+                filteredYawRate = filteredRate,
+                dominantRecentRc = dominantRc,
+                recentCommandedYawRc = latestActualYawRc,
+                zeroCommandDurationMillis = zeroDuration,
+                currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
         }
-        lastObservedTelemetryTimestampMillis = sample.receivedAtMillis
-        pruneRcHistory(sample.receivedAtMillis)
 
-        val rawRate = sample.rawYawRateDegreesPerSecond
-        val filteredRate = sample.filteredYawRateDegreesPerSecond ?: rawRate
         if (rawRate == null || filteredRate == null) {
             return YawResponseEvaluation(
                 status = YawResponseSafetyStatus.NORMAL,
+                isJustLatched = false,
                 rawYawRate = rawRate,
                 filteredYawRate = filteredRate,
+                dominantRecentRc = dominantRc,
+                recentCommandedYawRc = latestActualYawRc,
+                zeroCommandDurationMillis = zeroDuration,
+                currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
         }
 
-        val effectiveRate = if (abs(filteredRate) > 0f) filteredRate else rawRate
-        val absEffectiveRate = abs(effectiveRate)
-        val rateSign = effectiveRate.sign.toInt()
+        val absRawRate = abs(rawRate)
+        val absFilteredRate = abs(filteredRate)
+        val rateSign = filteredRate.sign.toInt().takeIf { it != 0 } ?: rawRate.sign.toInt()
 
-        // Analyze recent physical commands over latency-shifted window
-        val relevantCommands = rcHistory.filter {
-            it.sentAtMillis <= sample.receivedAtMillis &&
-                it.sentAtMillis >= sample.receivedAtMillis - rcHistoryWindowMillis
+        // Critical 4 & 5: Raw rate is authoritative for absolute catastrophic protection regardless of RC sign.
+        // Valid deltaMillis check: valid sample must have positive deltaMillis (e.g. >= 20ms).
+        val validSampleTiming = sample.deltaMillis == null || sample.deltaMillis in 20L..1000L
+        if (absRawRate >= catastrophicRateThresholdDps && validSampleTiming) {
+            isLatchedState = true
+            latchedAnomalyReason = YawResponseAnomalyReason.CATASTROPHIC_YAW_RATE
+            if (firstMismatchTimestampMillis == null) firstMismatchTimestampMillis = sample.receivedAtMillis
+            val duration = firstMismatchTimestampMillis?.let { sample.receivedAtMillis - it }
+            latchReason = "Catastrophic raw physical yaw rate of ${"%.1f".format(rawRate)}°/s exceeded safety ceiling ($catastrophicRateThresholdDps°/s)"
+            consecutiveMismatchSamples++
+            return YawResponseEvaluation(
+                status = YawResponseSafetyStatus.ANOMALY_LATCHED,
+                isJustLatched = true,
+                reason = latchReason,
+                anomalyReason = latchedAnomalyReason,
+                consecutiveMismatchSamples = consecutiveMismatchSamples,
+                rawYawRate = rawRate,
+                filteredYawRate = filteredRate,
+                dominantRecentRc = dominantRc,
+                recentCommandedYawRc = latestActualYawRc,
+                anomalyDurationMillis = duration,
+                zeroCommandDurationMillis = zeroDuration,
+                currentCommandSignEpisodeAgeMillis = signEpisodeAge,
+            )
         }
 
-        val nonZeroCommands = relevantCommands.filter { it.yawRc != 0 }
-        val mostRecentNonZero = nonZeroCommands.lastOrNull()
-        val mostRecentCommand = relevantCommands.lastOrNull()
-        val allRecentZero = nonZeroCommands.isEmpty() && relevantCommands.isNotEmpty()
-        val dominantRc = mostRecentNonZero?.yawRc ?: 0
-
-        // Case 1: Catastrophic opposing rate (e.g. rate >= 140 deg/s in opposite direction of recent commands or when zero)
-        // In the real flight incident: rate jumped 89 -> 70 -> 65 -> 149 -> 155 -> 260 deg/s with negative/zero RC
-        val opposingRecentCommand = mostRecentNonZero?.let { (it.yawRc.sign * rateSign) < 0 } ?: false
-        val zeroedBeyondBraking = allRecentZero && mostRecentCommand?.let {
-            (sample.receivedAtMillis - it.sentAtMillis) >= brakingGraceMillis
-        } ?: false
-
-        if (absEffectiveRate >= catastrophicRateThresholdDps) {
-            if (opposingRecentCommand || allRecentZero || relevantCommands.isEmpty()) {
-                isLatched = true
-                latchedAnomalyReason = YawResponseAnomalyReason.CATASTROPHIC_YAW_RATE
-                if (firstMismatchTimestampMillis == null) firstMismatchTimestampMillis = sample.receivedAtMillis
-                val duration = firstMismatchTimestampMillis?.let { sample.receivedAtMillis - it }
-                latchReason = "Catastrophic yaw rate of ${"%.1f".format(effectiveRate)}°/s opposing commanded physical state"
-                consecutiveMismatchSamples++
-                return YawResponseEvaluation(
-                    status = YawResponseSafetyStatus.ANOMALY_LATCHED,
-                    reason = latchReason,
-                    anomalyReason = latchedAnomalyReason,
-                    consecutiveMismatchSamples = consecutiveMismatchSamples,
-                    rawYawRate = rawRate,
-                    filteredYawRate = filteredRate,
-                    dominantRecentRc = dominantRc,
-                    recentCommandedYawRc = dominantRc,
-                    anomalyDurationMillis = duration,
-                )
-            }
-        }
-
-        // Case 2: Severe opposing yaw rate (e.g. |rate| >= 50 deg/s opposite to recent commanded non-zero RC)
-        val earliestOpposingCommand = nonZeroCommands.filter { (it.yawRc.sign * rateSign) < 0 }.minByOrNull { it.sentAtMillis }
-        val isSevereMismatch = if (absEffectiveRate >= severeMismatchRateThresholdDps && opposingRecentCommand && earliestOpposingCommand != null) {
-            val ageOfOpposing = sample.receivedAtMillis - earliestOpposingCommand.sentAtMillis
-            // Outside initial latency grace window
-            ageOfOpposing >= commandLatencyGraceMillis
+        // Critical 3: Zero-command runaway.
+        // Evaluates when latest physical command is 0, continuously commanded for >= brakingGraceMillis,
+        // and physical rate remains >= zeroRunawayRateThresholdDps.
+        val isZeroRunaway = if (latestActualYawRc == 0 && timeZeroCommandStateBeganMillis != null) {
+            val zeroBeganAge = sample.receivedAtMillis - timeZeroCommandStateBeganMillis!!
+            zeroBeganAge >= brakingGraceMillis && maxOf(absFilteredRate, absRawRate) >= zeroRunawayRateThresholdDps
         } else false
 
-        // Case 3: Zero-command runaway (|rate| >= 45 deg/s continuing or accelerating when commanded zero)
-        val isZeroRunaway = if (absEffectiveRate >= zeroRunawayRateThresholdDps && allRecentZero) {
-            zeroedBeyondBraking
+        // Critical 6: Severe opposing direction mismatch.
+        // Latency grace is measured from start of CURRENT contiguous command-sign episode.
+        val isSevereMismatch = if (currentCommandSign != 0 && (currentCommandSign * rateSign) < 0) {
+            val signEpisodeStart = currentCommandSignEpisodeStartMillis ?: sample.receivedAtMillis
+            val episodeAge = sample.receivedAtMillis - signEpisodeStart
+            episodeAge >= commandLatencyGraceMillis && absFilteredRate >= severeMismatchRateThresholdDps
         } else false
 
         if (isSevereMismatch || isZeroRunaway) {
@@ -193,39 +268,44 @@ class YawResponseSafetyMonitor(
             consecutiveMismatchSamples++
             val triggerReason = if (isSevereMismatch) YawResponseAnomalyReason.SUSTAINED_DIRECTION_MISMATCH else YawResponseAnomalyReason.ZERO_RUNAWAY
             if (consecutiveMismatchSamples >= requiredConfirmationSamples) {
-                isLatched = true
+                isLatchedState = true
                 latchedAnomalyReason = triggerReason
                 latchReason = if (isSevereMismatch) {
-                    "Sustained command-response mismatch: physical rate ${"%.1f".format(effectiveRate)}°/s opposed recent RC commands across $consecutiveMismatchSamples samples"
+                    "Sustained command-response mismatch: physical rate ${"%.1f".format(filteredRate)}°/s opposed commanded direction across $consecutiveMismatchSamples samples"
                 } else {
-                    "Uncommanded zero runaway: physical rate ${"%.1f".format(effectiveRate)}°/s sustained while zero commanded"
+                    "Uncommanded zero runaway: physical rate ${"%.1f".format(filteredRate)}°/s sustained while zero commanded"
                 }
                 return YawResponseEvaluation(
                     status = YawResponseSafetyStatus.ANOMALY_LATCHED,
+                    isJustLatched = true,
                     reason = latchReason,
                     anomalyReason = latchedAnomalyReason,
                     consecutiveMismatchSamples = consecutiveMismatchSamples,
                     rawYawRate = rawRate,
                     filteredYawRate = filteredRate,
                     dominantRecentRc = dominantRc,
-                    recentCommandedYawRc = dominantRc,
+                    recentCommandedYawRc = latestActualYawRc,
                     anomalyDurationMillis = duration,
+                    zeroCommandDurationMillis = zeroDuration,
+                    currentCommandSignEpisodeAgeMillis = signEpisodeAge,
                 )
             } else {
                 return YawResponseEvaluation(
                     status = YawResponseSafetyStatus.MISMATCH_SUSPECT,
+                    isJustLatched = false,
                     reason = "Suspect mismatch sample $consecutiveMismatchSamples of $requiredConfirmationSamples",
                     anomalyReason = triggerReason,
                     consecutiveMismatchSamples = consecutiveMismatchSamples,
                     rawYawRate = rawRate,
                     filteredYawRate = filteredRate,
                     dominantRecentRc = dominantRc,
-                    recentCommandedYawRc = dominantRc,
+                    recentCommandedYawRc = latestActualYawRc,
                     anomalyDurationMillis = duration,
+                    zeroCommandDurationMillis = zeroDuration,
+                    currentCommandSignEpisodeAgeMillis = signEpisodeAge,
                 )
             }
         } else {
-            // Decays confirmation counter when sample is normal/consistent
             if (consecutiveMismatchSamples > 0) {
                 consecutiveMismatchSamples--
             }
@@ -234,26 +314,65 @@ class YawResponseSafetyMonitor(
             }
             return YawResponseEvaluation(
                 status = if (consecutiveMismatchSamples > 0) YawResponseSafetyStatus.MISMATCH_SUSPECT else YawResponseSafetyStatus.NORMAL,
+                isJustLatched = false,
                 consecutiveMismatchSamples = consecutiveMismatchSamples,
                 rawYawRate = rawRate,
                 filteredYawRate = filteredRate,
                 dominantRecentRc = dominantRc,
-                recentCommandedYawRc = dominantRc,
+                recentCommandedYawRc = latestActualYawRc,
+                zeroCommandDurationMillis = zeroDuration,
+                currentCommandSignEpisodeAgeMillis = signEpisodeAge,
             )
         }
     }
 
-    fun reset() {
+    /** Thread-safe check for latched status. */
+    fun isLatched(): Boolean = synchronized(lock) { isLatchedState }
+
+    /** Thread-safe check if physical settling conditions have been validated for re-arm. */
+    fun isRearmReady(): Boolean = synchronized(lock) { rearmReadyState }
+
+    /**
+     * Atomically validates that the physical settling conditions are satisfied, acknowledges the anomaly,
+     * resets monitor state, and establishes a fresh RC history boundary.
+     * Returns true if re-arm was permitted and reset completed; false if physical settling was not met.
+     */
+    fun tryAcknowledgeAndResetForRearm(): Boolean = synchronized(lock) {
+        if (!isLatchedState) {
+            resetLocked()
+            return true
+        }
+        if (rearmReadyState) {
+            resetLocked()
+            return true
+        }
+        false
+    }
+
+    /** Resets all internal monitor history and latches. Thread-safe. */
+    fun reset() = synchronized(lock) {
+        resetLocked()
+    }
+
+    private fun resetLocked() {
         rcHistory.clear()
         consecutiveMismatchSamples = 0
-        isLatched = false
+        isLatchedState = false
         latchReason = null
         latchedAnomalyReason = null
         firstMismatchTimestampMillis = null
         lastObservedTelemetryTimestampMillis = null
+        latestActualYawRc = 0
+        latestNonzeroYawRc = null
+        timeZeroCommandStateBeganMillis = null
+        currentCommandSign = 0
+        currentCommandSignEpisodeStartMillis = null
+        consecutiveSettledSamplesWhileLatched = 0
+        settledStartTimeMillis = null
+        rearmReadyState = false
     }
 
-    private fun pruneRcHistory(nowMillis: Long) {
+    private fun pruneRcHistoryLocked(nowMillis: Long) {
         val cutoff = nowMillis - rcHistoryWindowMillis
         while (rcHistory.isNotEmpty() && rcHistory.first().sentAtMillis < cutoff) {
             rcHistory.removeFirst()
@@ -273,7 +392,7 @@ class YawResponseSafetyMonitor(
         const val COMMAND_LATENCY_GRACE_MILLIS = 100L
         /** Grace period for aircraft braking deceleration before flagging zero runaway (220ms). */
         const val BRAKING_GRACE_MILLIS = 220L
-        /** Absolute catastrophic physical rate threshold tripping immediate/early latch (140 deg/s). */
+        /** Absolute catastrophic physical rate threshold tripping immediate latch (140 deg/s). */
         const val CATASTROPHIC_RATE_THRESHOLD_DPS = 140.0f
         /** Severe opposing rate threshold requiring confirmation (50 deg/s). */
         const val SEVERE_MISMATCH_RATE_THRESHOLD_DPS = 50.0f
@@ -281,6 +400,12 @@ class YawResponseSafetyMonitor(
         const val ZERO_RUNAWAY_RATE_THRESHOLD_DPS = 45.0f
         /** Multi-sample confirmation count for moderate/severe mismatch. */
         const val REQUIRED_CONFIRMATION_SAMPLES = 2
+        /** Physical rate threshold defining a settled aircraft (8.0 deg/s). */
+        const val SETTLED_RATE_THRESHOLD_DPS = 8.0f
+        /** Number of consecutive new settled samples required before re-arm is permitted (3 samples). */
+        const val REQUIRED_SETTLED_SAMPLES = 3
+        /** Minimum duration that physical rate must remain settled before re-arm is permitted (150ms). */
+        const val REQUIRED_SETTLED_DURATION_MILLIS = 150L
     }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

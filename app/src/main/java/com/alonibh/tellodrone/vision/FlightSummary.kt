@@ -66,12 +66,17 @@ internal object FlightSummaryBuilder {
         val renderToDetectorComplete = elapsedMillis(traces, "renderedFrameTimestampNanos", "detectorInferenceCompletedTimestampNanos")
         val detectorToAssociation = elapsedMillis(traces, "detectorInferenceCompletedTimestampNanos", "associationCompletedTimestampNanos")
         val controlMeasurements = controls.filter { it.string("eventType") == "controlMeasurement" }
-        val uniqueControlMeasurements = controlMeasurements.distinctBy {
-            it.long("frameSequence") to it.long("sourceTimestampNanos")
+        val uniqueControlMeasurements = if (controlMeasurements.isNotEmpty()) {
+            controlMeasurements.distinctBy {
+                it.long("frameSequence") to it.long("sourceTimestampNanos")
+            }
+        } else {
+            controls.filter { it.string("eventType") != "telemetrySample" && it.string("eventType") != "yawResponseAnomalyEvent" }
         }
+        val publicationRecords = if (publications.isNotEmpty()) publications else controls
         val sourceToDecision = elapsedMillis(uniqueControlMeasurements, "sourceTimestampNanos", "yawDecisionTimestampNanos")
-        val sentAutonomous = publications.filter { it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("sendSuppressionReason") == "NONE" }
-        val firstSendPerDecision = (if (sentAutonomous.isNotEmpty()) sentAutonomous else publications.filter { it.string("inputKind") == "AUTONOMOUS_YAW" })
+        val sentAutonomous = publicationRecords.filter { it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("sendSuppressionReason") == "NONE" }
+        val firstSendPerDecision = (if (sentAutonomous.isNotEmpty()) sentAutonomous else publicationRecords.filter { it.string("inputKind") == "AUTONOMOUS_YAW" })
             .groupBy { it.long("yawDecisionTimestampNanos") ?: it.long("frameSequence") ?: it.long("commandTimestampNanos") }
             .mapNotNull { (_, group) -> group.minByOrNull { it.long("actualSentAtNanos") ?: Long.MAX_VALUE } }
         val decisionToSend = elapsedMillis(firstSendPerDecision, "yawDecisionTimestampNanos", "actualSentAtNanos")
@@ -88,21 +93,24 @@ internal object FlightSummaryBuilder {
         val sentYaw = sentAutonomous.mapNotNull { it.int("actualSentVector", "yaw") }
         val absYaw = sentYaw.map(::abs)
         val heights = controls.mapNotNull { it.double("telemetryHeightMeters") ?: it.double("heightMeters") }
+        val telemetrySamples = controls.filter { it.string("eventType") == "telemetrySample" }
         val events = mutableListOf<FlightSummaryEvent>()
-        fun count(kind: String, predicate: (Record) -> Boolean): Int {
-            val values = episodes(controls, predicate)
-            values.take(3).forEach { events += FlightSummaryEvent(kind, it.long("commandTimestampNanos") ?: 0L, it.long("frameSequence")) }
+        fun countEpisodes(records: List<Record>, kind: String, predicate: (Record) -> Boolean): Int {
+            val values = episodes(records, predicate)
+            values.take(3).forEach { events += FlightSummaryEvent(kind, it.long("commandTimestampNanos") ?: (it.long("receivedAtMonotonicMillis")?.times(MS_NANOS)) ?: 0L, it.long("frameSequence")) }
             return values.size
         }
-        val stale = count("stale perception") { it.string("suppressionReason") == "STALE_PERCEPTION" || it.string("sendSuppressionReason") == "PERCEPTION_AGE_EXPIRED" }
-        val jump = count("jump rejection") { it.suppression() == "TARGET_JUMP_REJECTED" }
-        val crossing = count("center-crossing brake") { it.suppression() == "CENTER_CROSSING_BRAKE" || it.string("controllerPhase") == "SETTLING" }
-        val rearm = count("Lost/re-arm") { it.string("yawFollowState") == "REQUIRES_REARM" }
-        val manual = count("manual override") { it.string("yawFollowReason") == "MANUAL_OVERRIDE" }
-        val hover = count("STOP/HOVER") { it.string("yawFollowReason") == "HOVER_INTERVENTION" }
-        val emergency = count("Emergency") { it.string("yawFollowReason") == "EMERGENCY" }
+        val stale = countEpisodes(uniqueControlMeasurements, "stale perception") { it.suppression() == "STALE_PERCEPTION" || it.string("sendSuppressionReason") == "PERCEPTION_AGE_EXPIRED" }
+        val jump = countEpisodes(uniqueControlMeasurements, "jump rejection") { it.suppression() == "TARGET_JUMP_REJECTED" }
+        val crossing = countEpisodes(uniqueControlMeasurements, "center-crossing brake") { it.suppression() == "CENTER_CROSSING_BRAKE" || it.string("controllerPhase") == "SETTLING" }
+        val stableRecovery = countEpisodes(uniqueControlMeasurements, "stable recovery") { it.suppression() == "STABLE_RESUME" }
+        val rearm = countEpisodes(publicationRecords, "Lost/re-arm") { it.string("yawFollowState") == "REQUIRES_REARM" }
+        val manual = countEpisodes(publicationRecords, "manual override") { it.string("yawFollowReason") == "MANUAL_OVERRIDE" }
+        val hover = countEpisodes(publicationRecords, "STOP/HOVER") { it.string("yawFollowReason") == "HOVER_INTERVENTION" }
+        val emergency = countEpisodes(publicationRecords, "Emergency") { it.string("yawFollowReason") == "EMERGENCY" }
+        val lostLatches = countEpisodes(publicationRecords, "Lost/re-arm") { it.string("yawFollowReason") == "TARGET_LOST" }
 
-        val activePublications = publications.filter {
+        val activePublications = publicationRecords.filter {
             it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("yawFollowState") != "DISARMED"
         }
         val activeNonZeroCount = activePublications.count { (it.int("actualSentVector", "yaw") ?: 0) != 0 }
@@ -199,25 +207,42 @@ internal object FlightSummaryBuilder {
         }
 
         // True settling duration per episode
-        val settlingEpisodes = episodes(controls) { it.string("controllerPhase") == "SETTLING" || it.suppression() == "CENTER_CROSSING_BRAKE" }
+        val settlingEpisodes = episodes(uniqueControlMeasurements) { it.string("controllerPhase") == "SETTLING" || it.suppression() == "CENTER_CROSSING_BRAKE" }
         val settlingDurationsMs = settlingEpisodes.mapNotNull { ep ->
             val startNanos = ep.long("commandTimestampNanos") ?: return@mapNotNull null
-            val subsequent = controls.filter {
-                val t = it.long("commandTimestampNanos") ?: (it.long("receivedAtMonotonicMillis")?.times(MS_NANOS)) ?: 0L
+            val subsequent = telemetrySamples.filter {
+                val t = it.long("receivedAtNanos") ?: (it.long("receivedAtMonotonicMillis")?.times(MS_NANOS)) ?: 0L
                 t >= startNanos
             }
-            val settledRecord = subsequent.firstOrNull {
-                val rate = it.double("telloYawRateDegreesPerSecond") ?: it.double("filteredYawRateDegreesPerSecond")
-                rate != null && abs(rate) <= 8.0
+            var consecutiveSettled = 0
+            var settledNanos: Long? = null
+            for (sample in subsequent) {
+                val rate = sample.double("filteredYawRateDegreesPerSecond") ?: sample.double("rawYawRateDegreesPerSecond")
+                if (rate != null && abs(rate) <= 8.0) {
+                    consecutiveSettled++
+                    if (consecutiveSettled >= 2) {
+                        settledNanos = sample.long("receivedAtNanos") ?: (sample.long("receivedAtMonotonicMillis")?.times(MS_NANOS))
+                        break
+                    }
+                } else {
+                    consecutiveSettled = 0
+                }
             }
-            val endNanos = settledRecord?.let { it.long("commandTimestampNanos") ?: (it.long("receivedAtMonotonicMillis")?.times(MS_NANOS)) }
-            endNanos?.let { (it - startNanos).coerceAtLeast(0L) / MS_NANOS }
+            settledNanos?.let { (it - startNanos).coerceAtLeast(0L) / MS_NANOS }
         }
         val timeFromYawZeroRequestUntilSettledMs = settlingDurationsMs.takeIf { it.isNotEmpty() }?.maxOrNull()
 
         // Distinguish normal vs safety yaw step
         val allSentYawPublications = publications.filter { it.string("inputKind") in setOf("AUTONOMOUS_YAW", "SAFETY_ZERO") }
-        val normalYawSteps = sentYaw.zipWithNext { a, b -> abs(b - a) }
+        val normalYawSteps = mutableListOf<Int>()
+        var currentRun = mutableListOf<Int>()
+        for (pub in sentAutonomous) {
+            val yaw = pub.int("actualSentVector", "yaw") ?: continue
+            currentRun.add(yaw)
+        }
+        if (currentRun.size >= 2) {
+            normalYawSteps.addAll(currentRun.zipWithNext { a, b -> abs(b - a) })
+        }
         val normalMaxYawStep = normalYawSteps.maxOrNull()
         val allYawSteps = allSentYawPublications.mapNotNull { it.int("actualSentVector", "yaw") }.zipWithNext { a, b -> abs(b - a) }
         val safetyMaxYawStep = allYawSteps.maxOrNull()
@@ -231,8 +256,12 @@ internal object FlightSummaryBuilder {
         val maxSendDuration = sendDurations.maxOrNull()
 
         // Anomaly events
-        val anomalyLatchedCount = controls.count { it.string("eventType") == "yawResponseAnomalyEvent" && it.string("subType") == "yaw_response_anomaly_latched" }
-        val anomalySuspectCount = controls.count { it.string("eventType") == "yawResponseAnomalyEvent" && it.string("subType") == "yaw_response_mismatch_suspect" }
+        val anomalyLatchedCount = controls.count {
+            it.string("eventType") == "yawResponseAnomalyEvent" && it.string("subType") == "yaw_response_anomaly_latched"
+        }
+        val anomalySuspectCount = controls.count {
+            it.string("eventType") == "yawResponseAnomalyEvent" && it.string("subType") == "yaw_response_mismatch_suspect"
+        }
 
         // Filter physical expirations over publications to avoid false fragmentation by interleaved measurements
         val physicalExpirationsCount = episodes(publications) { it.string("sendSuppressionReason") in EXPIRATION_REASONS }.size
@@ -263,9 +292,9 @@ internal object FlightSummaryBuilder {
             meanAbsYaw = absYaw.takeIf { it.isNotEmpty() }?.average(), p95AbsYaw = percentile(absYaw.map { it.toDouble() }, .95), maxAbsYaw = absYaw.maxOrNull(),
             maxYawStep = maxYawStep, normalMaxYawStep = normalMaxYawStep, safetyMaxYawStep = safetyMaxYawStep,
             slewLimited = controls.count { it.string("eventType") == "controlMeasurement" && it.string("suppressionReason") == "NONE" && it.int("requestedYawRc") != it.int("safetyFilteredYawRc") },
-            jumpSuppressions = jump, crossingBrakes = crossing, stableRecoverySuppressions = count("stable recovery") { it.suppression() == "STABLE_RESUME" },
+            jumpSuppressions = jump, crossingBrakes = crossing, stableRecoverySuppressions = stableRecovery,
             physicalExpirations = physicalExpirationsCount, manualOverrides = manual, stopHoverPreemptions = hover, emergencyEvents = emergency,
-            lostSafetyLatches = count("Lost/re-arm") { it.string("yawFollowReason") == "TARGET_LOST" },
+            lostSafetyLatches = lostLatches,
             nonYawAutonomousAxisViolations = sentAutonomous.count { it.int("actualSentVector", "lateral") != 0 || it.int("actualSentVector", "forward") != 0 || it.int("actualSentVector", "vertical") != 0 },
             fractionOfActiveNonZeroYaw = fractionOfActiveNonZeroYaw,
             commandHoldExpiredCount = commandHoldExpiredPublications.size,
