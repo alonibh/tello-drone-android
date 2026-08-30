@@ -226,6 +226,40 @@ class FlightSummaryTest {
         assertTrue(json.contains("\"source_age_expiration_count\": 1"))
     }
 
+    @Test fun `interleaved measurements do not fragment publication expiration episodes`() {
+        val controls = listOf(
+            publication(1_000_000_000, "AUTONOMOUS_COMMAND_HOLD_EXPIRED", perceptionAge = 200),
+            // Interleaved measurement record (must NOT split the expiration episode into 2)
+            measurement(frame = 1, source = 1_000_000_000, decision = 1_010_000_000),
+            publication(1_050_000_000, "AUTONOMOUS_COMMAND_HOLD_EXPIRED", perceptionAge = 250),
+            publication(1_100_000_000, "NONE", perceptionAge = 100, yaw = 8),
+        )
+
+        val summary = FlightSummaryBuilder.build(emptyList(), controls)
+        assertEquals(1, summary.physicalExpirations)
+    }
+
+    @Test fun `summarizes telemetry anomalies and transport timing`() {
+        val controls = listOf(
+            """{"eventType":"rcPublication","commandTimestampNanos":1000000000,"inputKind":"AUTONOMOUS_YAW","sendSuppressionReason":"NONE","yawFollowState":"ACTIVE","actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":8},"interSendIntervalMillis":20.5,"sendDurationNanos":1500000}""",
+            """{"eventType":"rcPublication","commandTimestampNanos":1020000000,"inputKind":"AUTONOMOUS_YAW","sendSuppressionReason":"NONE","yawFollowState":"ACTIVE","actualSentVector":{"lateral":0,"forward":0,"vertical":0,"yaw":16},"interSendIntervalMillis":19.8,"sendDurationNanos":1200000}""",
+            """{"eventType":"yawResponseAnomalyEvent","timestampMillis":1030,"subType":"yaw_response_anomaly_latched","triggerReason":"SUSTAINED_DIRECTION_MISMATCH","rawYawRateDegreesPerSecond":75.0,"filteredYawRateDegreesPerSecond":70.0}""",
+            """{"eventType":"yawResponseAnomalyEvent","timestampMillis":1025,"subType":"yaw_response_mismatch_suspect","triggerReason":"SUSPECT_MISMATCH","rawYawRateDegreesPerSecond":60.0,"filteredYawRateDegreesPerSecond":60.0}""",
+            """{"eventType":"telemetryDetailedSample","receivedAtMonotonicMillis":1030,"rawYawRateDegreesPerSecond":75.0,"filteredYawRateDegreesPerSecond":70.0}""",
+        )
+        val summary = FlightSummaryBuilder.build(emptyList(), controls)
+        assertEquals(1, summary.yawResponseAnomaliesCount)
+        assertEquals(1, summary.yawResponseMismatchSuspectCount)
+        assertEquals(75.0, summary.maxObservedRawTelemetryYawRateDps!!, 0.01)
+        assertEquals(70.0, summary.maxObservedTelemetryYawRateDps!!, 0.01)
+        assertEquals(20.15, summary.meanInterSendIntervalMs!!, 0.01)
+        assertEquals(1.5, summary.maxSendDurationMs!!, 0.01)
+
+        val json = FlightSummaryBuilder.json(summary)
+        assertTrue(json.contains("\"yaw_response_anomalies_count\": 1"))
+        assertTrue(json.contains("\"yaw_response_mismatch_suspect_count\": 1"))
+    }
+
     private fun trace(time: Long, state: String, inference: Int? = null) = "{\"sourceTimestampNanos\":$time,\"associationState\":\"$state\",\"detector\":{\"inferenceMillis\":${inference ?: "null"}}}"
     private fun control(time: Long, state: String = "ACTIVE", suppression: String = "NONE", reason: String = "ACTIVE", yaw: Int = 0, height: Double = 1.0, lateral: Int = 0, send: String = "NONE", frameSequence: Long = 1, error: Double? = null) = "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"frameSequence\":$frameSequence,\"perceptionAgeMillis\":100,\"yawFollowState\":\"$state\",\"yawFollowReason\":\"$reason\",\"suppressionReason\":\"$suppression\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$send\",\"telemetryHeightMeters\":$height,\"rawYawError\":${error ?: "null"},\"actualSentVector\":{\"lateral\":$lateral,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
     private fun measurement(frame: Long, source: Long, decision: Long) =
@@ -233,3 +267,5 @@ class FlightSummaryTest {
     private fun publication(time: Long, suppression: String, perceptionAge: Long, yaw: Int = 0) =
         "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"perceptionAgeMillis\":$perceptionAge,\"yawFollowState\":\"ACTIVE\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$suppression\",\"actualSentVector\":{\"lateral\":0,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
 }
+
+// SPDX-License-Identifier: AGPL-3.0-only

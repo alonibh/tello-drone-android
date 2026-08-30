@@ -13,6 +13,52 @@ class YawTargetEstimatorTest {
         assertTrue(estimate.estimatedCenterX > estimate.measuredCenterX)
         assertTrue(estimate.estimatedCenterX - estimate.measuredCenterX <= YawTargetEstimator.MAXIMUM_PREDICTED_OFFSET)
         assertTrue(estimate.velocityPerSecond <= YawTargetEstimator.MAXIMUM_VELOCITY_PER_SECOND)
+        assertEquals(TargetPredictionMode.NORMAL, estimate.predictionMode)
+    }
+
+    @Test fun `high drone yaw rate suppresses velocity prediction completely`() {
+        val estimator = YawTargetEstimator()
+        estimator.update(.50f, 1_000_000_000L, 0L)
+        // Drone spinning at 80 deg/s (above 70 deg/s full suppression threshold)
+        val estimate = estimator.update(
+            centerX = .65f,
+            sourceTimestampNanos = 1_100_000_000L,
+            perceptionAgeNanos = 150_000_000L,
+            physicalYawRateDegreesPerSecond = 80f,
+        )
+        assertEquals(0.65f, estimate.estimatedCenterX)
+        assertEquals(0f, estimate.appliedPredictedOffset)
+        assertEquals(TargetPredictionMode.CLAMPED_FOR_YAW_RATE, estimate.predictionMode)
+    }
+
+    @Test fun `moderate drone yaw rate attenuates velocity prediction`() {
+        val estimator = YawTargetEstimator()
+        estimator.update(.50f, 1_000_000_000L, 0L)
+
+        // Moderate drone rate: 47.5 deg/s (halfway between 25 and 70 -> attenuation factor = 0.5)
+        val estimate = estimator.update(
+            centerX = .60f,
+            sourceTimestampNanos = 1_100_000_000L,
+            perceptionAgeNanos = 150_000_000L,
+            physicalYawRateDegreesPerSecond = 47.5f,
+        )
+        assertEquals(TargetPredictionMode.CLAMPED_FOR_YAW_RATE, estimate.predictionMode)
+        assertTrue(estimate.appliedPredictedOffset > 0f)
+        assertTrue(estimate.appliedPredictedOffset < estimate.rawPredictedOffset)
+    }
+
+    @Test fun `settling phase disables velocity prediction`() {
+        val estimator = YawTargetEstimator()
+        estimator.update(.50f, 1_000_000_000L, 0L)
+        val estimate = estimator.update(
+            centerX = .60f,
+            sourceTimestampNanos = 1_100_000_000L,
+            perceptionAgeNanos = 150_000_000L,
+            isSettling = true,
+        )
+        assertEquals(0.60f, estimate.estimatedCenterX)
+        assertEquals(0f, estimate.appliedPredictedOffset)
+        assertEquals(TargetPredictionMode.DISABLED_SETTLING, estimate.predictionMode)
     }
 
     @Test fun `stationary bbox jitter decays velocity rather than accumulating prediction`() {

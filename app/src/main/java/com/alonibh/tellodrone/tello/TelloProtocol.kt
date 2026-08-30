@@ -101,6 +101,27 @@ fun calculateYawRateDegreesPerSecond(
     return deltaDegrees / elapsedSeconds
 }
 
+/**
+ * Lightweight median filter for raw telemetry yaw-rate samples.
+ * Preserves high/catastrophic physical angular velocity while smoothing single-sample integer degree quantization jitter.
+ */
+class TelemetryYawRateFilter(private val windowSize: Int = 3) {
+    private val samples = ArrayDeque<Float>()
+
+    fun filter(rawRate: Float): Float {
+        samples.addLast(rawRate)
+        if (samples.size > windowSize) {
+            samples.removeFirst()
+        }
+        val sorted = samples.sorted()
+        return sorted[sorted.size / 2]
+    }
+
+    fun reset() {
+        samples.clear()
+    }
+}
+
 /** Total 3D translational speed from Tello SDK vgx/vgy/vgz values, which are reported in cm/s. */
 internal fun totalTranslationalSpeedMetersPerSecond(
     velocityXCentimetersPerSecond: Int?,

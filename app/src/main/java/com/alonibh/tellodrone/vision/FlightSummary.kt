@@ -22,7 +22,7 @@ internal data class FlightSummary(
     val decodeAndNmsP50: Double?, val decodeAndNmsP95: Double?,
     val appearanceP50: Double?, val appearanceP95: Double?,
     val ageP50: Double?, val ageP95: Double?, val ageMax: Long?, val excessiveAgeRejections: Int,
-    val meanAbsYaw: Double?, val p95AbsYaw: Double?, val maxAbsYaw: Int?, val maxYawStep: Int?, val slewLimited: Int,
+    val meanAbsYaw: Double?, val p95AbsYaw: Double?, val maxAbsYaw: Int?, val maxYawStep: Int?, val normalMaxYawStep: Int?, val safetyMaxYawStep: Int?, val slewLimited: Int,
     val jumpSuppressions: Int, val crossingBrakes: Int, val stableRecoverySuppressions: Int, val physicalExpirations: Int,
     val manualOverrides: Int, val stopHoverPreemptions: Int, val emergencyEvents: Int, val lostSafetyLatches: Int,
     val nonYawAutonomousAxisViolations: Int,
@@ -36,6 +36,9 @@ internal data class FlightSummary(
     val heightMin: Double?, val heightMax: Double?, val heightMean: Double?, val heightRange: Double?, val heightStdDev: Double?, val verticalVelocityP95: Double?,
     val maximumYawRate: Double?, val timeFromYawZeroRequestUntilSettledMs: Long?,
     val centerCrossingsCount: Int, val directionReversalsCount: Int, val reversalsWhileYawRateUnsettledCount: Int,
+    val yawResponseAnomaliesCount: Int, val yawResponseMismatchSuspectCount: Int,
+    val maxObservedTelemetryYawRateDps: Double?, val maxObservedRawTelemetryYawRateDps: Double?,
+    val meanInterSendIntervalMs: Double?, val p95InterSendIntervalMs: Double?, val maxSendDurationMs: Double?,
     val notableEvents: List<FlightSummaryEvent>,
 )
 
@@ -43,10 +46,10 @@ internal data class FlightSummary(
 internal object FlightSummaryBuilder {
     fun build(traceLines: List<String>, controlLines: List<String>): FlightSummary {
         val traces = traceLines.mapNotNull(::record).sortedBy { it.long("sourceTimestampNanos") ?: Long.MAX_VALUE }
-        val controls = controlLines.mapNotNull(::record).sortedBy { it.long("commandTimestampNanos") ?: Long.MAX_VALUE }
-        val allTimes = traces.mapNotNull { it.long("sourceTimestampNanos") } + controls.mapNotNull { it.long("commandTimestampNanos") }
+        val controls = controlLines.mapNotNull(::record).sortedBy { it.long("commandTimestampNanos") ?: it.long("receivedAtMonotonicMillis")?.times(MS_NANOS) ?: Long.MAX_VALUE }
+        val allTimes = traces.mapNotNull { it.long("sourceTimestampNanos") } + controls.mapNotNull { it.long("commandTimestampNanos") ?: it.long("receivedAtMonotonicMillis")?.times(MS_NANOS) }
         val associations = intervals(traces, "sourceTimestampNanos", "associationState")
-        val yawStates = intervals(controls, "commandTimestampNanos", "yawFollowState")
+        val yawStates = intervals(controls.filter { it.string("yawFollowState") != null }, "commandTimestampNanos", "yawFollowState")
         val missing = associations.filter { it.value == "TemporarilyMissing" }
         val selectedMs = associations.filter { it.value in SELECTED_STATES }.sumOf { it.durationMs }
         val matchedMs = associations.filter { it.value == "Matched" }.sumOf { it.durationMs }
@@ -84,7 +87,7 @@ internal object FlightSummaryBuilder {
         }
         val sentYaw = sentAutonomous.mapNotNull { it.int("actualSentVector", "yaw") }
         val absYaw = sentYaw.map(::abs)
-        val heights = controls.mapNotNull { it.double("telemetryHeightMeters") }
+        val heights = controls.mapNotNull { it.double("telemetryHeightMeters") ?: it.double("heightMeters") }
         val events = mutableListOf<FlightSummaryEvent>()
         fun count(kind: String, predicate: (Record) -> Boolean): Int {
             val values = episodes(controls, predicate)
@@ -176,8 +179,10 @@ internal object FlightSummaryBuilder {
             }
         }
 
-        val yawRates = controls.mapNotNull { it.double("telloYawRateDegreesPerSecond")?.let(::abs) }
+        val yawRates = controls.mapNotNull { it.double("telloYawRateDegreesPerSecond")?.let(::abs) ?: it.double("filteredYawRateDegreesPerSecond")?.let(::abs) }
+        val rawYawRates = controls.mapNotNull { it.double("rawYawRateDegreesPerSecond")?.let(::abs) }
         val maxYawRate = yawRates.maxOrNull()
+        val maxRawYawRate = rawYawRates.maxOrNull()
         val nonZeroYawPubs = sentAutonomous.mapNotNull { it.int("actualSentVector", "yaw")?.takeIf { y -> y != 0 } }
         val directionReversalsCount = nonZeroYawPubs.zipWithNext().count { (a, b) -> (a > 0 && b < 0) || (a < 0 && b > 0) }
 
@@ -193,10 +198,44 @@ internal object FlightSummaryBuilder {
             reversed && yawRate > 8.0
         }
 
+        // True settling duration per episode
         val settlingEpisodes = episodes(controls) { it.string("controllerPhase") == "SETTLING" || it.suppression() == "CENTER_CROSSING_BRAKE" }
-        val settlingDurationsMs = settlingEpisodes.mapNotNull { it.long("commandTimestampNanos") }
-            .zipWithNext().map { (a, b) -> (b - a).coerceAtLeast(0L) / MS_NANOS }
+        val settlingDurationsMs = settlingEpisodes.mapNotNull { ep ->
+            val startNanos = ep.long("commandTimestampNanos") ?: return@mapNotNull null
+            val subsequent = controls.filter {
+                val t = it.long("commandTimestampNanos") ?: (it.long("receivedAtMonotonicMillis")?.times(MS_NANOS)) ?: 0L
+                t >= startNanos
+            }
+            val settledRecord = subsequent.firstOrNull {
+                val rate = it.double("telloYawRateDegreesPerSecond") ?: it.double("filteredYawRateDegreesPerSecond")
+                rate != null && abs(rate) <= 8.0
+            }
+            val endNanos = settledRecord?.let { it.long("commandTimestampNanos") ?: (it.long("receivedAtMonotonicMillis")?.times(MS_NANOS)) }
+            endNanos?.let { (it - startNanos).coerceAtLeast(0L) / MS_NANOS }
+        }
         val timeFromYawZeroRequestUntilSettledMs = settlingDurationsMs.takeIf { it.isNotEmpty() }?.maxOrNull()
+
+        // Distinguish normal vs safety yaw step
+        val allSentYawPublications = publications.filter { it.string("inputKind") in setOf("AUTONOMOUS_YAW", "SAFETY_ZERO") }
+        val normalYawSteps = sentYaw.zipWithNext { a, b -> abs(b - a) }
+        val normalMaxYawStep = normalYawSteps.maxOrNull()
+        val allYawSteps = allSentYawPublications.mapNotNull { it.int("actualSentVector", "yaw") }.zipWithNext { a, b -> abs(b - a) }
+        val safetyMaxYawStep = allYawSteps.maxOrNull()
+        val maxYawStep = normalMaxYawStep ?: safetyMaxYawStep
+
+        // Transport metrics
+        val interSendIntervals = publications.mapNotNull { it.double("interSendIntervalMillis") }
+        val sendDurations = publications.mapNotNull { it.long("sendDurationNanos")?.div(1_000_000.0) }
+        val meanInterSend = interSendIntervals.takeIf { it.isNotEmpty() }?.average()
+        val p95InterSend = percentile(interSendIntervals, 0.95)
+        val maxSendDuration = sendDurations.maxOrNull()
+
+        // Anomaly events
+        val anomalyLatchedCount = controls.count { it.string("eventType") == "yawResponseAnomalyEvent" && it.string("subType") == "yaw_response_anomaly_latched" }
+        val anomalySuspectCount = controls.count { it.string("eventType") == "yawResponseAnomalyEvent" && it.string("subType") == "yaw_response_mismatch_suspect" }
+
+        // Filter physical expirations over publications to avoid false fragmentation by interleaved measurements
+        val physicalExpirationsCount = episodes(publications) { it.string("sendSuppressionReason") in EXPIRATION_REASONS }.size
 
         return FlightSummary(
             durationMs = allTimes.maxOrNull()?.minus(allTimes.minOrNull() ?: 0L)?.div(MS_NANOS)?.coerceAtLeast(0L) ?: 0L,
@@ -221,10 +260,11 @@ internal object FlightSummaryBuilder {
             decodeAndNmsP50 = percentile(decodeAndNms, .50), decodeAndNmsP95 = percentile(decodeAndNms, .95),
             appearanceP50 = percentile(appearance, .50), appearanceP95 = percentile(appearance, .95),
             ageP50 = percentile(ages.map { it.toDouble() }, .50), ageP95 = percentile(ages.map { it.toDouble() }, .95), ageMax = ages.maxOrNull(), excessiveAgeRejections = stale,
-            meanAbsYaw = absYaw.takeIf { it.isNotEmpty() }?.average(), p95AbsYaw = percentile(absYaw.map { it.toDouble() }, .95), maxAbsYaw = absYaw.maxOrNull(), maxYawStep = sentYaw.zipWithNext { a, b -> abs(b - a) }.maxOrNull(),
+            meanAbsYaw = absYaw.takeIf { it.isNotEmpty() }?.average(), p95AbsYaw = percentile(absYaw.map { it.toDouble() }, .95), maxAbsYaw = absYaw.maxOrNull(),
+            maxYawStep = maxYawStep, normalMaxYawStep = normalMaxYawStep, safetyMaxYawStep = safetyMaxYawStep,
             slewLimited = controls.count { it.string("eventType") == "controlMeasurement" && it.string("suppressionReason") == "NONE" && it.int("requestedYawRc") != it.int("safetyFilteredYawRc") },
             jumpSuppressions = jump, crossingBrakes = crossing, stableRecoverySuppressions = count("stable recovery") { it.suppression() == "STABLE_RESUME" },
-            physicalExpirations = count("physical command expiration") { it.string("sendSuppressionReason") in EXPIRATION_REASONS }, manualOverrides = manual, stopHoverPreemptions = hover, emergencyEvents = emergency,
+            physicalExpirations = physicalExpirationsCount, manualOverrides = manual, stopHoverPreemptions = hover, emergencyEvents = emergency,
             lostSafetyLatches = count("Lost/re-arm") { it.string("yawFollowReason") == "TARGET_LOST" },
             nonYawAutonomousAxisViolations = sentAutonomous.count { it.int("actualSentVector", "lateral") != 0 || it.int("actualSentVector", "forward") != 0 || it.int("actualSentVector", "vertical") != 0 },
             fractionOfActiveNonZeroYaw = fractionOfActiveNonZeroYaw,
@@ -246,6 +286,13 @@ internal object FlightSummaryBuilder {
             centerCrossingsCount = crossing,
             directionReversalsCount = directionReversalsCount,
             reversalsWhileYawRateUnsettledCount = reversalsWhileYawRateUnsettledCount,
+            yawResponseAnomaliesCount = anomalyLatchedCount,
+            yawResponseMismatchSuspectCount = anomalySuspectCount,
+            maxObservedTelemetryYawRateDps = maxYawRate,
+            maxObservedRawTelemetryYawRateDps = maxRawYawRate,
+            meanInterSendIntervalMs = meanInterSend,
+            p95InterSendIntervalMs = p95InterSend,
+            maxSendDurationMs = maxSendDuration,
             notableEvents = events.distinct().sortedBy { it.timestampNanos }.take(12),
         )
     }
@@ -267,7 +314,7 @@ internal object FlightSummaryBuilder {
         "detector_decode_nms_p50_ms" to s.decodeAndNmsP50, "detector_decode_nms_p95_ms" to s.decodeAndNmsP95,
         "detector_appearance_p50_ms" to s.appearanceP50, "detector_appearance_p95_ms" to s.appearanceP95,
         "perception_age_p50_ms" to s.ageP50, "perception_age_p95_ms" to s.ageP95, "perception_age_max_ms" to s.ageMax, "measurements_rejected_for_excessive_age" to s.excessiveAgeRejections,
-        "mean_absolute_physical_yaw_rc" to s.meanAbsYaw, "p95_absolute_yaw_rc" to s.p95AbsYaw, "maximum_absolute_yaw_rc" to s.maxAbsYaw, "maximum_yaw_step" to s.maxYawStep, "slew_limited_commands" to s.slewLimited,
+        "mean_absolute_physical_yaw_rc" to s.meanAbsYaw, "p95_absolute_yaw_rc" to s.p95AbsYaw, "maximum_absolute_yaw_rc" to s.maxAbsYaw, "maximum_yaw_step" to s.maxYawStep, "normal_maximum_yaw_step" to s.normalMaxYawStep, "safety_maximum_yaw_step" to s.safetyMaxYawStep, "slew_limited_commands" to s.slewLimited,
         "target_error_jump_suppressions" to s.jumpSuppressions, "center_crossing_brake_events" to s.crossingBrakes, "stable_recovery_consistency_suppressions" to s.stableRecoverySuppressions, "physical_command_expirations" to s.physicalExpirations,
         "manual_override_preemptions" to s.manualOverrides, "stop_hover_preemptions" to s.stopHoverPreemptions, "emergency_events" to s.emergencyEvents, "lost_safety_latches" to s.lostSafetyLatches, "non_yaw_autonomous_axis_violations" to s.nonYawAutonomousAxisViolations,
         "fraction_of_active_non_zero_yaw" to s.fractionOfActiveNonZeroYaw,
@@ -289,6 +336,13 @@ internal object FlightSummaryBuilder {
         "center_crossings_count" to s.centerCrossingsCount,
         "direction_reversals_count" to s.directionReversalsCount,
         "reversals_while_yaw_rate_unsettled_count" to s.reversalsWhileYawRateUnsettledCount,
+        "yaw_response_anomalies_count" to s.yawResponseAnomaliesCount,
+        "yaw_response_mismatch_suspect_count" to s.yawResponseMismatchSuspectCount,
+        "max_observed_telemetry_yaw_rate_dps" to s.maxObservedTelemetryYawRateDps,
+        "max_observed_raw_telemetry_yaw_rate_dps" to s.maxObservedRawTelemetryYawRateDps,
+        "mean_inter_send_interval_ms" to s.meanInterSendIntervalMs,
+        "p95_inter_send_interval_ms" to s.p95InterSendIntervalMs,
+        "max_send_duration_ms" to s.maxSendDurationMs,
     ).joinToString(prefix = "{\n", postfix = ",\n  \"notable_events\": [${s.notableEvents.joinToString { "{\"kind\":\"${it.kind}\",\"timestamp_nanos\":${it.timestampNanos},\"frame_sequence\":${it.frameSequence ?: "null"}}" }}]\n}", separator = ",\n") { "  \"${it.first}\": ${jsonValue(it.second)}" }
 
     fun text(s: FlightSummary): String = buildString {
@@ -299,12 +353,14 @@ internal object FlightSummaryBuilder {
         appendLine("Yaw decision -> physical send p50/p95: ${metric(s.decisionToSendP50, " ms")} / ${metric(s.decisionToSendP95, " ms")}")
         appendLine("Source -> physical send p50/p95: ${metric(s.sourceToPhysicalSendP50, " ms")} / ${metric(s.sourceToPhysicalSendP95, " ms")}")
         appendLine("Analysis/detector FPS: ${metric(s.analysisFps)} / ${metric(s.detectorFps)}; dropped ${s.analysisDroppedFrames ?: "unavailable"}, max pending ${s.maximumAnalysisPendingDepth ?: "unavailable"}")
-        appendLine("Yaw RC p95/max: ${metric(s.p95AbsYaw)} / ${s.maxAbsYaw ?: "unavailable"}"); appendLine("Safety suppressions: stale ${s.excessiveAgeRejections}, jump ${s.jumpSuppressions}, crossing ${s.crossingBrakes}")
+        appendLine("Yaw RC p95/max: ${metric(s.p95AbsYaw)} / ${s.maxAbsYaw ?: "unavailable"} (normal max step: ${s.normalMaxYawStep ?: "—"}, safety max step: ${s.safetyMaxYawStep ?: "—"})")
+        appendLine("Safety suppressions: stale ${s.excessiveAgeRejections}, jump ${s.jumpSuppressions}, crossing ${s.crossingBrakes}, anomalies ${s.yawResponseAnomaliesCount}")
         appendLine("Autonomous yaw activity: ${metric(s.fractionOfActiveNonZeroYaw?.times(100.0), "% non-zero")}")
         appendLine("Command-hold / source-age expirations: ${s.commandHoldExpiredCount} / ${s.sourceAgeExpiredCount}; longest expiration zero interval: ${s.longestExpirationZeroIntervalMs}ms")
         appendLine("Inter-measurement p50/p95: ${metric(s.interMeasurementP50Ms, " ms")} / ${metric(s.interMeasurementP95Ms, " ms")}")
+        appendLine("Inter-send interval mean/p95: ${metric(s.meanInterSendIntervalMs, " ms")} / ${metric(s.p95InterSendIntervalMs, " ms")}; max send duration: ${metric(s.maxSendDurationMs, " ms")}")
         appendLine("Time outside |error|>0.15 / >0.20: ${s.timeOutsideError15Ms}ms (max continuous ${s.maxContinuousOutsideError15Ms}ms) / ${s.timeOutsideError20Ms}ms (max continuous ${s.maxContinuousOutsideError20Ms}ms)")
-        appendLine("Oscillation & Settling: max yaw rate ${metric(s.maximumYawRate, " deg/s")}, reversals ${s.directionReversalsCount}, unsettled reversals ${s.reversalsWhileYawRateUnsettledCount}")
+        appendLine("Oscillation & Settling: max yaw rate ${metric(s.maximumYawRate, " deg/s")} (raw ${metric(s.maxObservedRawTelemetryYawRateDps, " deg/s")}), reversals ${s.directionReversalsCount}, unsettled reversals ${s.reversalsWhileYawRateUnsettledCount}, settling time ${s.timeFromYawZeroRequestUntilSettledMs?.let { "${it}ms" } ?: "unavailable"}")
         appendLine("Height min/max/range: ${metric(s.heightMin, " m")} / ${metric(s.heightMax, " m")} / ${metric(s.heightRange, " m")}"); appendLine(); appendLine("NON-YAW AUTONOMOUS AXIS VIOLATIONS: ${s.nonYawAutonomousAxisViolations}")
         if (s.notableEvents.isNotEmpty()) { appendLine(); appendLine("Notable events:"); s.notableEvents.forEach { appendLine("- ${it.kind}: t=${it.timestampNanos} frame=${it.frameSequence ?: "—"}") } }
     }
@@ -333,8 +389,10 @@ private class Record(private val values: Map<String, Any?>) {
     fun long(key: String) = (values[key] as? Number)?.toLong()
     fun double(key: String) = (values[key] as? Number)?.toDouble()
     fun int(key: String) = (values[key] as? Number)?.toInt()
-    @Suppress("UNCHECKED_CAST") private fun nested(key: String) = values[key] as? Map<String, Any?>
+    @Suppress("UNCHECKED_CAST") private fun nested(parent: String) = values[parent] as? Map<String, Any?>
     fun double(parent: String, key: String) = (nested(parent)?.get(key) as? Number)?.toDouble()
     fun int(parent: String, key: String) = (nested(parent)?.get(key) as? Number)?.toInt()
     fun suppression() = string("suppressionReason") ?: string("yawSuppressionReason")
 }
+
+// SPDX-License-Identifier: AGPL-3.0-only

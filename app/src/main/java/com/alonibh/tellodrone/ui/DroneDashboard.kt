@@ -384,6 +384,21 @@ private fun TrackingOverlay(
     if (!compact) {
         TelemetryLine("Target", presentation.target.value, presentation.target.color)
         TelemetryLine("Yaw Follow", presentation.yaw.value, presentation.yaw.color)
+        if (com.alonibh.tellodrone.BuildConfig.DEBUG && state.yawFollowDecision.state != com.alonibh.tellodrone.domain.YawFollowState.DISARMED) {
+            val seq = state.video.processedDetectorFrameSequence?.let { "F$it" } ?: "F-"
+            val err = state.trackingErrors?.yawError?.let { "err %.2f".format(it) } ?: "err -"
+            val rc = state.yawFollowDecision.control?.safetyFilteredYawRc?.let { "RC $it" } ?: "RC -"
+            val yaw = state.telemetry.yawDegrees?.let { "yaw $it°" } ?: "yaw -"
+            val rate = state.telemetry.yawRateDegreesPerSecond?.let { "%.0f°/s".format(it) } ?: "-°/s"
+            val stateName = state.yawFollowDecision.state.name
+            Text(
+                "$seq | $err | $rc | $yaw | $rate | $stateName",
+                color = TelloTextMuted,
+                fontSize = 9.sp,
+                maxLines = 1,
+                modifier = Modifier.testTag("debug_follow_correlation_line"),
+            )
+        }
     }
     when (presentation.primaryAction) {
         TrackingPrimaryAction.DetectPeople -> TrackingPrimaryButton("Detect People", state.canStartDetection()) { viewModel.setTrackingMode(TrackingMode.DetectOnly) }

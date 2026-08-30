@@ -47,6 +47,12 @@ data class RcPublication(
     val flightEpoch: Long,
     val autonomyGeneration: Long?,
     val autonomousContext: AutonomousYawContext?,
+    val rcSendSequence: Long? = null,
+    val rawSdkCommand: String? = null,
+    val sendCompletedAtNanos: Long? = null,
+    val sendDurationNanos: Long? = null,
+    val previousRcSendCompletedAtNanos: Long? = null,
+    val interSendIntervalMillis: Float? = null,
 )
 
 class RcControlLoop(
@@ -199,6 +205,9 @@ class RcControlLoop(
         selectLocked(nowMillis).actualVector
     }
 
+    private var rcSendSequenceCounter = 0L
+    private var previousRcSendCompletedAtNanos: Long? = null
+
     suspend fun sendCycle() {
         val shouldSend = synchronized(lock) { enabled && !lockedOut }
         if (!shouldSend) return
@@ -208,9 +217,14 @@ class RcControlLoop(
                 // either sends its zero first or waits for this already-sent vector and finishes with zero.
                 val nowMillis = clock.nowMillis()
                 val selection = synchronized(lock) { selectLocked(nowMillis) }
+                val sendSequence = synchronized(lock) { ++rcSendSequenceCounter }
+                val prevCompleted = synchronized(lock) { previousRcSendCompletedAtNanos }
                 val sendStartedAtNanos = traceClockNanos()
                 sender(selection.actualVector)
                 val sentAtNanos = traceClockNanos()
+                val sendDuration = (sentAtNanos - sendStartedAtNanos).coerceAtLeast(0L)
+                val interSendInterval = prevCompleted?.let { (sendStartedAtNanos - it) / 1_000_000f }
+                synchronized(lock) { previousRcSendCompletedAtNanos = sentAtNanos }
                 runCatching {
                     onRcSent(
                         RcPublication(
@@ -227,6 +241,12 @@ class RcControlLoop(
                             flightEpoch = selection.desired.flightEpoch,
                             autonomyGeneration = selection.desired.autonomyGeneration,
                             autonomousContext = selection.desired.autonomousContext,
+                            rcSendSequence = sendSequence,
+                            rawSdkCommand = selection.actualVector.asCommand(),
+                            sendCompletedAtNanos = sentAtNanos,
+                            sendDurationNanos = sendDuration,
+                            previousRcSendCompletedAtNanos = prevCompleted,
+                            interSendIntervalMillis = interSendInterval,
                         ),
                     )
                 }
@@ -255,10 +275,15 @@ class RcControlLoop(
             }
             if (currentDesired == null) return@withLock
             try {
+                val sendSequence = synchronized(lock) { ++rcSendSequenceCounter }
+                val prevCompleted = synchronized(lock) { previousRcSendCompletedAtNanos }
                 val sendStartedAtNanos = traceClockNanos()
                 sender(RcVector.Zero)
                 val sentAtNanos = traceClockNanos()
                 val sentAtMillis = clock.nowMillis()
+                val sendDuration = (sentAtNanos - sendStartedAtNanos).coerceAtLeast(0L)
+                val interSendInterval = prevCompleted?.let { (sendStartedAtNanos - it) / 1_000_000f }
+                synchronized(lock) { previousRcSendCompletedAtNanos = sentAtNanos }
                 runCatching {
                     onRcSent(
                         RcPublication(
@@ -275,6 +300,12 @@ class RcControlLoop(
                             flightEpoch = currentDesired.flightEpoch,
                             autonomyGeneration = currentDesired.autonomyGeneration,
                             autonomousContext = currentDesired.autonomousContext,
+                            rcSendSequence = sendSequence,
+                            rawSdkCommand = RcVector.Zero.asCommand(),
+                            sendCompletedAtNanos = sentAtNanos,
+                            sendDurationNanos = sendDuration,
+                            previousRcSendCompletedAtNanos = prevCompleted,
+                            interSendIntervalMillis = interSendInterval,
                         ),
                     )
                 }

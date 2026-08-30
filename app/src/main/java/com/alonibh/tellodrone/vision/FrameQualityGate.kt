@@ -16,8 +16,11 @@ object FrameQualityGate {
     const val SAMPLE_STEP_X = 10
     const val SAMPLE_STEP_Y = 10
     const val NEAR_BLACK_LUMINANCE_THRESHOLD = 10f
-    const val FRACTION_BLACK_THRESHOLD = 0.96f
-    const val AVERAGE_LUMINANCE_THRESHOLD = 6.0f
+    /** Any frame with catastrophic global luminance <= 3.5f is corrupt regardless of pixel fraction. */
+    const val CATASTROPHIC_LOW_AVERAGE_LUMINANCE_THRESHOLD = 3.5f
+    /** Frames with >= 90% near-black pixels and low overall luminance <= 8.0f are corrupt. */
+    const val FRACTION_BLACK_THRESHOLD = 0.90f
+    const val AVERAGE_LUMINANCE_THRESHOLD = 8.0f
     const val MAX_CONSECUTIVE_CORRUPT_FRAMES = 3
 
     fun analyze(bitmap: Bitmap): FrameQualityMetrics {
@@ -54,9 +57,13 @@ object FrameQualityGate {
         if (totalCount == 0) return FrameQualityMetrics(true, 1.0f, 0.0f)
         val fractionBlack = blackCount.toFloat() / totalCount
         val avgLuminance = (totalLuminance / totalCount).toFloat()
-        val isCorrupt = fractionBlack >= FRACTION_BLACK_THRESHOLD && avgLuminance <= AVERAGE_LUMINANCE_THRESHOLD
+        val isCorrupt = evaluateCorruptFrame(fractionBlack, avgLuminance)
         return FrameQualityMetrics(isCorrupt, fractionBlack, avgLuminance)
     }
+
+    fun evaluateCorruptFrame(fractionBlack: Float, avgLuminance: Float): Boolean =
+        avgLuminance <= CATASTROPHIC_LOW_AVERAGE_LUMINANCE_THRESHOLD ||
+            (fractionBlack >= FRACTION_BLACK_THRESHOLD && avgLuminance <= AVERAGE_LUMINANCE_THRESHOLD)
 
     fun isCorruptBlackPixels(width: Int, height: Int, getPixel: (x: Int, y: Int) -> Int): Boolean {
         return analyzePixels(width, height, getPixel).isCorrupt

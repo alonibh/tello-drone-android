@@ -61,6 +61,7 @@ data class VisionTraceFrame(
     val analysisDroppedFrames: Long? = null,
     val analysisPendingFrameDepth: Int? = null,
     val detectorMeasuredFps: Float? = null,
+    val visionEpochId: Long? = null,
 )
 
 data class VisionTraceExport(
@@ -89,10 +90,12 @@ data class YawControlMeasurementTrace(
     val estimatedTargetCenterX: Float? = null,
     val targetCenterVelocityPerSecond: Float? = null,
     val predictionHorizonMillis: Long? = null,
+    val predictionMode: com.alonibh.tellodrone.domain.TargetPredictionMode? = null,
     val controlYawError: Float? = null,
     val controllerPhase: YawControllerPhase? = null,
     val telloYawDegrees: Int? = null,
     val telloYawRateDegreesPerSecond: Float? = null,
+    val rawYawRateDegreesPerSecond: Float? = null,
     val associationCompletedTimestampNanos: Long? = null,
     val yawDecisionTimestampNanos: Long = commandTimestampNanos,
 )
@@ -123,10 +126,12 @@ data class RcPublicationTrace(
     val estimatedTargetCenterX: Float? = null,
     val targetCenterVelocityPerSecond: Float? = null,
     val predictionHorizonMillis: Long? = null,
+    val predictionMode: com.alonibh.tellodrone.domain.TargetPredictionMode? = null,
     val controlYawError: Float? = null,
     val controllerPhase: YawControllerPhase? = null,
     val telloYawDegrees: Int? = null,
     val telloYawRateDegreesPerSecond: Float? = null,
+    val rawYawRateDegreesPerSecond: Float? = null,
     val yawDecisionTimestampNanos: Long? = null,
     val flightState: FlightState? = null,
     val trackingMode: TrackingMode? = null,
@@ -134,6 +139,12 @@ data class RcPublicationTrace(
     val manualVector: RcVector? = null,
     val flightControlEpoch: Long? = null,
     val yawFollowGeneration: Long? = null,
+    val rcSendSequence: Long? = null,
+    val rawSdkCommand: String? = null,
+    val sendCompletedAtNanos: Long? = null,
+    val sendDurationNanos: Long? = null,
+    val previousRcSendCompletedAtNanos: Long? = null,
+    val interSendIntervalMillis: Float? = null,
 )
 
 enum class SdkCommandCategory { CONNECT, TAKEOFF, LAND, EMERGENCY, KEEPALIVE, STREAM, CONTROL_MODE, OTHER }
@@ -193,6 +204,42 @@ data class VideoDiagnosticTrace(
     val recoveryDurationMillis: Long? = null,
 )
 
+data class TelemetrySampleTrace(
+    val telemetrySequence: Long,
+    val receivedAtMonotonicMillis: Long,
+    val receivedAtNanos: Long,
+    val yawDegrees: Int?,
+    val previousYawDegrees: Int?,
+    val shortestYawDeltaDegrees: Int?,
+    val deltaMillis: Long?,
+    val rawYawRateDegreesPerSecond: Float?,
+    val filteredYawRateDegreesPerSecond: Float?,
+    val heightMeters: Float?,
+    val velocityXCentimetersPerSecond: Int?,
+    val velocityYCentimetersPerSecond: Int?,
+    val velocityZCentimetersPerSecond: Int?,
+    val batteryPercent: Int?,
+    val acceptedForSettling: Boolean? = null,
+    val usedForAnomalyMonitor: Boolean? = null,
+)
+
+data class YawResponseAnomalyEventTrace(
+    val timestampNanos: Long,
+    val eventType: String,
+    val rawYawRate: Float?,
+    val filteredYawRate: Float?,
+    val currentYawDegrees: Int?,
+    val recentActualYawRcSummary: String?,
+    val ageOfMostRecentNonzeroRcMillis: Long?,
+    val recentRcSign: Int?,
+    val controllerPhase: YawControllerPhase?,
+    val targetCenter: Float?,
+    val rawError: Float?,
+    val controlError: Float?,
+    val frameSequence: Long?,
+    val reason: String?,
+)
+
 data class FlightDiagnosticsExport(
     val transitionsCount: Int,
     val commandsCount: Int,
@@ -219,6 +266,8 @@ interface VisionTraceRecorder {
     fun recordCorruptFrame(trace: CorruptFrameTrace) = Unit
     fun recordVideoDiagnostic(trace: VideoDiagnosticTrace) = Unit
     fun recordTelemetrySample(batteryPercent: Int?, heightMeters: Float?) = Unit
+    fun recordTelemetryDetailedSample(trace: TelemetrySampleTrace) = Unit
+    fun recordYawResponseAnomalyEvent(trace: YawResponseAnomalyEventTrace) = Unit
     fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit)
     fun exportFlightDiagnostics(destinationUri: String, onComplete: (Result<FlightDiagnosticsExport>) -> Unit) {
         onComplete(Result.failure(IllegalStateException("Flight diagnostics export is available only in debug builds")))
@@ -246,6 +295,9 @@ internal object VisionTraceJson {
         comma(); field("frameSequence", frame.frameSequence)
         comma(); field("sourceTimestampNanos", frame.sourceTimestampNanos)
         comma(); field("capturedFrameFile", capturedFrameFile)
+        if (frame.visionEpochId != null) {
+            comma(); field("visionEpochId", frame.visionEpochId)
+        }
         comma(); name("detector"); append('{')
         field("model", frame.detectorModel)
         comma(); field("backend", frame.detectorBackend)
@@ -290,6 +342,7 @@ internal object VisionTraceJson {
         comma(); field("estimatedTargetCenterX", trace.estimatedTargetCenterX)
         comma(); field("targetCenterVelocityPerSecond", trace.targetCenterVelocityPerSecond)
         comma(); field("predictionHorizonMillis", trace.predictionHorizonMillis)
+        comma(); field("predictionMode", trace.predictionMode?.name)
         comma(); field("controlYawError", trace.controlYawError)
         comma(); field("associationCompletedTimestampNanos", trace.associationCompletedTimestampNanos)
         comma(); field("yawDecisionTimestampNanos", trace.yawDecisionTimestampNanos)
@@ -300,6 +353,7 @@ internal object VisionTraceJson {
         comma(); field("controllerPhase", trace.controllerPhase?.name)
         comma(); field("telloYawDegrees", trace.telloYawDegrees)
         comma(); field("telloYawRateDegreesPerSecond", trace.telloYawRateDegreesPerSecond)
+        comma(); field("rawYawRateDegreesPerSecond", trace.rawYawRateDegreesPerSecond)
         comma(); field("suppressionReason", trace.suppressionReason.name)
         comma(); field("telemetryHeightMeters", trace.telemetryHeightMeters)
         comma(); field("yawFollowState", trace.yawFollowState.name)
@@ -320,6 +374,7 @@ internal object VisionTraceJson {
         comma(); field("estimatedTargetCenterX", trace.estimatedTargetCenterX)
         comma(); field("targetCenterVelocityPerSecond", trace.targetCenterVelocityPerSecond)
         comma(); field("predictionHorizonMillis", trace.predictionHorizonMillis)
+        comma(); field("predictionMode", trace.predictionMode?.name)
         comma(); field("controlYawError", trace.controlYawError)
         comma(); field("yawDecisionTimestampNanos", trace.yawDecisionTimestampNanos)
         comma(); field("desiredPublishedAtNanos", trace.desiredPublishedAtNanos)
@@ -332,6 +387,7 @@ internal object VisionTraceJson {
         comma(); field("controllerPhase", trace.controllerPhase?.name)
         comma(); field("telloYawDegrees", trace.telloYawDegrees)
         comma(); field("telloYawRateDegreesPerSecond", trace.telloYawRateDegreesPerSecond)
+        comma(); field("rawYawRateDegreesPerSecond", trace.rawYawRateDegreesPerSecond)
         comma(); field("yawSuppressionReason", trace.yawSuppressionReason?.name)
         comma(); name("requestedVector"); vector(trace.requestedVector)
         comma(); name("actualSentVector"); vector(trace.actualSentVector)
@@ -348,6 +404,12 @@ internal object VisionTraceJson {
         }
         comma(); field("flightControlEpoch", trace.flightControlEpoch)
         comma(); field("yawFollowGeneration", trace.yawFollowGeneration)
+        comma(); field("rcSendSequence", trace.rcSendSequence)
+        comma(); field("rawSdkCommand", trace.rawSdkCommand)
+        comma(); field("sendCompletedAtNanos", trace.sendCompletedAtNanos)
+        comma(); field("sendDurationNanos", trace.sendDurationNanos)
+        comma(); field("previousRcSendCompletedAtNanos", trace.previousRcSendCompletedAtNanos)
+        comma(); field("interSendIntervalMillis", trace.interSendIntervalMillis)
         append('}')
     }
 
@@ -433,6 +495,51 @@ internal object VisionTraceJson {
         comma(); field("consecutiveCorruptFrames", trace.consecutiveCorruptFrames)
         comma(); field("renderedFrames", trace.renderedFrames)
         comma(); field("recoveryDurationMillis", trace.recoveryDurationMillis)
+        append('}')
+    }
+
+    fun encodeTelemetrySample(trace: TelemetrySampleTrace): String = buildString(384) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", "telemetrySample")
+        comma(); field("telemetrySequence", trace.telemetrySequence)
+        comma(); field("receivedAtMonotonicMillis", trace.receivedAtMonotonicMillis)
+        comma(); field("receivedAtNanos", trace.receivedAtNanos)
+        comma(); field("yawDegrees", trace.yawDegrees)
+        comma(); field("previousYawDegrees", trace.previousYawDegrees)
+        comma(); field("shortestYawDeltaDegrees", trace.shortestYawDeltaDegrees)
+        comma(); field("deltaMillis", trace.deltaMillis)
+        comma(); field("rawYawRateDegreesPerSecond", trace.rawYawRateDegreesPerSecond)
+        comma(); field("filteredYawRateDegreesPerSecond", trace.filteredYawRateDegreesPerSecond)
+        comma(); field("heightMeters", trace.heightMeters)
+        comma(); field("velocityXCentimetersPerSecond", trace.velocityXCentimetersPerSecond)
+        comma(); field("velocityYCentimetersPerSecond", trace.velocityYCentimetersPerSecond)
+        comma(); field("velocityZCentimetersPerSecond", trace.velocityZCentimetersPerSecond)
+        comma(); field("batteryPercent", trace.batteryPercent)
+        if (trace.acceptedForSettling != null) {
+            comma(); field("acceptedForSettling", trace.acceptedForSettling)
+        }
+        if (trace.usedForAnomalyMonitor != null) {
+            comma(); field("usedForAnomalyMonitor", trace.usedForAnomalyMonitor)
+        }
+        append('}')
+    }
+
+    fun encodeYawResponseAnomalyEvent(trace: YawResponseAnomalyEventTrace): String = buildString(384) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", trace.eventType)
+        comma(); field("timestampNanos", trace.timestampNanos)
+        comma(); field("rawYawRate", trace.rawYawRate)
+        comma(); field("filteredYawRate", trace.filteredYawRate)
+        comma(); field("currentYawDegrees", trace.currentYawDegrees)
+        comma(); field("recentActualYawRcSummary", trace.recentActualYawRcSummary)
+        comma(); field("ageOfMostRecentNonzeroRcMillis", trace.ageOfMostRecentNonzeroRcMillis)
+        comma(); field("recentRcSign", trace.recentRcSign)
+        comma(); field("controllerPhase", trace.controllerPhase?.name)
+        comma(); field("targetCenter", trace.targetCenter)
+        comma(); field("rawError", trace.rawError)
+        comma(); field("controlError", trace.controlError)
+        comma(); field("frameSequence", trace.frameSequence)
+        comma(); field("reason", trace.reason)
         append('}')
     }
 

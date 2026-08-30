@@ -46,6 +46,11 @@ import com.alonibh.tellodrone.domain.TargetSelectionPoint
 import com.alonibh.tellodrone.domain.TargetSelectionAttemptResult
 import com.alonibh.tellodrone.vision.TargetSelectionAttemptTrace
 import com.alonibh.tellodrone.vision.FlightStateTransitionTrace
+import com.alonibh.tellodrone.domain.YawResponseSafetyMonitor
+import com.alonibh.tellodrone.domain.TelemetryYawSample
+import com.alonibh.tellodrone.domain.YawResponseSafetyStatus
+import com.alonibh.tellodrone.vision.TelemetrySampleTrace
+import com.alonibh.tellodrone.vision.YawResponseAnomalyEventTrace
 import com.alonibh.tellodrone.vision.ExternalGroundingTrace
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -112,6 +117,10 @@ class TelloFlightSession(
     private val distanceCalibrator = FollowDistanceCalibrator()
     private val yawFollowLock = Any()
     private val yawFollowGate = YawFollowGate()
+    private val yawRateFilter = TelemetryYawRateFilter()
+    private val yawResponseSafetyMonitor = YawResponseSafetyMonitor()
+    private var telemetrySequence = 0L
+    private var currentRawYawRateDegreesPerSecond: Float? = null
     private var yawFollowGeneration: Long? = null
     private var takeoffStabilizationSamples = 0
     private var firstTakeoffStabilizationAtMillis: Long? = null
@@ -812,11 +821,12 @@ class TelloFlightSession(
                     firstGroundedSampleAtMillis = null
                 }
 
+                telemetrySequence++
                 val sampleTimestampMillis = sample.receivedAtMonotonicMillis
                 val currentYaw = sample.yawDegrees
                 val previousYaw = lastTelemetryYawDegrees
                 val previousTimestampMillis = lastTelemetryYawTimestampMillis
-                val yawRate = if (currentYaw != null && previousYaw != null && previousTimestampMillis != null) {
+                val rawYawRate = if (currentYaw != null && previousYaw != null && previousTimestampMillis != null) {
                     calculateYawRateDegreesPerSecond(
                         previousYawDegrees = previousYaw,
                         currentYawDegrees = currentYaw,
@@ -824,11 +834,91 @@ class TelloFlightSession(
                         currentTimestampMillis = sampleTimestampMillis,
                     )
                 } else null
+                val filteredYawRate = rawYawRate?.let { yawRateFilter.filter(it) }
                 if (currentYaw != null) {
                     lastTelemetryYawDegrees = currentYaw
                     lastTelemetryYawTimestampMillis = sampleTimestampMillis
                 }
-                currentYawRateDegreesPerSecond = yawRate
+                currentYawRateDegreesPerSecond = filteredYawRate ?: rawYawRate
+                currentRawYawRateDegreesPerSecond = rawYawRate
+
+                val deltaMillis = if (previousTimestampMillis != null) sampleTimestampMillis - previousTimestampMillis else null
+                val deltaYawDegrees = if (currentYaw != null && previousYaw != null) {
+                    shortestAngularDifferenceDegrees(previousYaw.toFloat(), currentYaw.toFloat()).toInt()
+                } else null
+
+                visionTrace.recordTelemetryDetailedSample(
+                    TelemetrySampleTrace(
+                        telemetrySequence = telemetrySequence,
+                        receivedAtMonotonicMillis = sampleTimestampMillis,
+                        receivedAtNanos = sourceNowNanos(),
+                        yawDegrees = sample.yawDegrees,
+                        previousYawDegrees = previousYaw,
+                        shortestYawDeltaDegrees = deltaYawDegrees,
+                        deltaMillis = deltaMillis,
+                        rawYawRateDegreesPerSecond = rawYawRate,
+                        filteredYawRateDegreesPerSecond = filteredYawRate,
+                        heightMeters = sample.heightMeters,
+                        velocityXCentimetersPerSecond = sample.velocityXCentimetersPerSecond,
+                        velocityYCentimetersPerSecond = sample.velocityYCentimetersPerSecond,
+                        velocityZCentimetersPerSecond = sample.velocityZCentimetersPerSecond,
+                        batteryPercent = sample.batteryPercent,
+                    ),
+                )
+
+                val currentFlight = currentBefore.flight
+                val currentFollowState = currentBefore.yawFollowDecision.state
+                val anomalyEval = yawResponseSafetyMonitor.evaluate(
+                    sample = TelemetryYawSample(
+                        yawDegrees = sample.yawDegrees ?: 0,
+                        rawYawRateDegreesPerSecond = rawYawRate,
+                        filteredYawRateDegreesPerSecond = filteredYawRate,
+                        receivedAtMillis = sampleTimestampMillis,
+                    ),
+                    flightState = currentFlight,
+                    yawFollowState = currentFollowState,
+                )
+
+                if (anomalyEval.status == YawResponseSafetyStatus.ANOMALY_LATCHED) {
+                    visionTrace.recordYawResponseAnomalyEvent(
+                        YawResponseAnomalyEventTrace(
+                            timestampNanos = sourceNowNanos(),
+                            eventType = "yaw_response_anomaly_latched",
+                            rawYawRate = rawYawRate,
+                            filteredYawRate = filteredYawRate,
+                            currentYawDegrees = sample.yawDegrees,
+                            recentActualYawRcSummary = "dominantRc=${anomalyEval.dominantRecentRc}",
+                            ageOfMostRecentNonzeroRcMillis = null,
+                            recentRcSign = if (anomalyEval.dominantRecentRc > 0) 1 else if (anomalyEval.dominantRecentRc < 0) -1 else 0,
+                            controllerPhase = currentBefore.yawFollowDecision.control?.phase,
+                            targetCenter = currentBefore.trackingErrors?.targetCenterX,
+                            rawError = currentBefore.trackingErrors?.rawYawError,
+                            controlError = currentBefore.trackingErrors?.yawError,
+                            frameSequence = currentBefore.video.processedDetectorFrameSequence,
+                            reason = anomalyEval.reason,
+                        ),
+                    )
+                    latchYawFollowAndSendZero(YawFollowReason.YAW_RESPONSE_ANOMALY)
+                } else if (anomalyEval.status == YawResponseSafetyStatus.MISMATCH_SUSPECT) {
+                    visionTrace.recordYawResponseAnomalyEvent(
+                        YawResponseAnomalyEventTrace(
+                            timestampNanos = sourceNowNanos(),
+                            eventType = "yaw_response_mismatch_suspect",
+                            rawYawRate = rawYawRate,
+                            filteredYawRate = filteredYawRate,
+                            currentYawDegrees = sample.yawDegrees,
+                            recentActualYawRcSummary = "dominantRc=${anomalyEval.dominantRecentRc}",
+                            ageOfMostRecentNonzeroRcMillis = null,
+                            recentRcSign = if (anomalyEval.dominantRecentRc > 0) 1 else if (anomalyEval.dominantRecentRc < 0) -1 else 0,
+                            controllerPhase = currentBefore.yawFollowDecision.control?.phase,
+                            targetCenter = currentBefore.trackingErrors?.targetCenterX,
+                            rawError = currentBefore.trackingErrors?.rawYawError,
+                            controlError = currentBefore.trackingErrors?.yawError,
+                            frameSequence = currentBefore.video.processedDetectorFrameSequence,
+                            reason = anomalyEval.reason,
+                        ),
+                    )
+                }
 
                 mutableState.update { current ->
                     if (closed || current.connection !in setOf(DroneConnectionState.Connecting, DroneConnectionState.Connected)) {
@@ -1211,6 +1301,8 @@ class TelloFlightSession(
 
     private fun resetYawFollowForNewSession(): YawFollowDecision = synchronized(yawFollowLock) {
         yawFollowGeneration = null
+        yawResponseSafetyMonitor.reset()
+        yawRateFilter.reset()
         yawFollowGate.disarm()
     }
 
@@ -1365,6 +1457,7 @@ class TelloFlightSession(
     }
 
     private fun recordRcPublication(publication: RcPublication) {
+        yawResponseSafetyMonitor.recordSentRc(publication.sentAtMillis, publication.actualVector.yaw)
         val current = mutableState.value
         val activeContext = publication.autonomousContext.takeIf {
             publication.inputKind == RcInputKind.AUTONOMOUS_YAW
@@ -1659,6 +1752,7 @@ class TelloFlightSession(
         temperatureCelsius = temperatureCelsius,
         yawDegrees = yawDegrees,
         yawRateDegreesPerSecond = if (isFresh) currentYawRateDegreesPerSecond else null,
+        rawYawRateDegreesPerSecond = if (isFresh) currentRawYawRateDegreesPerSecond else null,
         receivedAt = receivedAt,
         isFresh = isFresh,
     )

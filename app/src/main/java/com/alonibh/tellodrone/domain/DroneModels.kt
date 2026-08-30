@@ -114,6 +114,7 @@ data class TelemetrySnapshot(
     val temperatureCelsius: Float? = null,
     val yawDegrees: Int? = null,
     val yawRateDegreesPerSecond: Float? = null,
+    val rawYawRateDegreesPerSecond: Float? = null,
     val receivedAt: Instant? = null,
     val isFresh: Boolean = false,
 )

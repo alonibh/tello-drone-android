@@ -8,8 +8,8 @@ import java.io.OutputStreamWriter
 import java.util.UUID
 
 /**
- * Owns one clean diagnostic session and a replaceable vision epoch inside it. The control stream
- * is session-scoped; only trace.jsonl and frames/ are reset at a target-selection boundary.
+ * Owns one clean diagnostic session across multiple vision epochs.
+ * Both trace.jsonl and control.jsonl are session-scoped and preserved continuously.
  */
 internal class DiagnosticSessionFiles(
     private val rootDirectory: File,
@@ -43,12 +43,13 @@ internal class DiagnosticSessionFiles(
 
     @Synchronized
     fun startVisionEpoch() {
-        traceWriter?.close()
-        traceWriter = null
-        if (traceFile.exists()) check(traceFile.delete()) { "Could not rotate trace.jsonl" }
-        if (framesDirectory.exists()) check(framesDirectory.deleteRecursively()) { "Could not rotate vision frames" }
-        check(framesDirectory.mkdirs() || framesDirectory.isDirectory) { "Could not create frames directory" }
-        check(traceFile.createNewFile() || traceFile.isFile) { "Could not create trace.jsonl" }
+        traceWriter?.flush()
+        if (!framesDirectory.exists()) {
+            check(framesDirectory.mkdirs() || framesDirectory.isDirectory) { "Could not create frames directory" }
+        }
+        if (!traceFile.exists()) {
+            check(traceFile.createNewFile() || traceFile.isFile) { "Could not create trace.jsonl" }
+        }
     }
 
     @Synchronized

@@ -25,6 +25,7 @@ enum class YawFollowReason {
     HOVER_INTERVENTION,
     LANDING,
     EMERGENCY,
+    YAW_RESPONSE_ANOMALY,
 }
 
 enum class YawControlSuppressionReason {
@@ -53,6 +54,8 @@ data class YawFollowInput(
     val commandTimestampNanos: Long,
     val telemetryYawDegrees: Int? = null,
     val telemetryYawRateDegreesPerSecond: Float? = null,
+    val rawYawRateDegreesPerSecond: Float? = null,
+    val responseAnomalyDetected: Boolean = false,
 )
 
 data class YawControlOutcome(
@@ -64,12 +67,14 @@ data class YawControlOutcome(
     val estimatedTargetCenterX: Float? = null,
     val targetCenterVelocityPerSecond: Float? = null,
     val predictionHorizonMillis: Long? = null,
+    val predictionMode: TargetPredictionMode? = null,
     val rawYawError: Float? = null,
     val filteredYawError: Float? = null,
     val controlYawError: Float? = null,
     val phase: YawControllerPhase = YawControllerPhase.HOLD,
     val telloYawDegrees: Int? = null,
     val telloYawRateDegreesPerSecond: Float? = null,
+    val rawYawRateDegreesPerSecond: Float? = null,
     val previousYawRc: Int = 0,
     val requestedYawRc: Int = 0,
     val safetyFilteredYawRc: Int = 0,
@@ -168,14 +173,16 @@ class ProductionYawController(
         telemetryYawDegrees: Int? = null,
         telemetryYawRateDegreesPerSecond: Float? = null,
         telemetryTimestampMillis: Long,
+        rawYawRateDegreesPerSecond: Float? = null,
     ) {
         val last = lastObservedTelemetryTimestampMillis
         if (last != null && telemetryTimestampMillis <= last) {
             return
         }
         lastObservedTelemetryTimestampMillis = telemetryTimestampMillis
-        if (telemetryYawRateDegreesPerSecond != null) {
-            if (abs(telemetryYawRateDegreesPerSecond) <= settledYawRateThreshold) {
+        val rate = telemetryYawRateDegreesPerSecond ?: rawYawRateDegreesPerSecond
+        if (rate != null) {
+            if (abs(rate) <= settledYawRateThreshold) {
                 consecutiveSettledSamples++
             } else {
                 consecutiveSettledSamples = 0
@@ -188,6 +195,7 @@ class ProductionYawController(
         commandTimestampNanos: Long,
         telemetryYawDegrees: Int? = null,
         telemetryYawRateDegreesPerSecond: Float? = null,
+        rawYawRateDegreesPerSecond: Float? = null,
     ): YawControlOutcome {
         val measurement = Measurement.from(errors)
             ?: return suppress(errors, commandTimestampNanos, YawControlSuppressionReason.INVALID_MEASUREMENT, true)
@@ -224,6 +232,7 @@ class ProductionYawController(
                         phase = phase,
                         telloYawDegrees = telemetryYawDegrees,
                         telloYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+                        rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
                         previousYawRc = lastYawRc,
                         requestedYawRc = requested,
                         safetyFilteredYawRc = 0,
@@ -243,6 +252,7 @@ class ProductionYawController(
                     phase = phase,
                     telloYawDegrees = telemetryYawDegrees,
                     telloYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+                    rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
                     previousYawRc = lastYawRc,
                     requestedYawRc = requested,
                     safetyFilteredYawRc = if (phase == YawControllerPhase.SETTLING) 0 else lastYawRc,
@@ -273,13 +283,21 @@ class ProductionYawController(
             )
         }
 
-        var estimate = estimator.update(measurement.targetCenterX, measurement.sourceTimestampNanos, ageNanos)
+        var estimate = estimator.update(
+            centerX = measurement.targetCenterX,
+            sourceTimestampNanos = measurement.sourceTimestampNanos,
+            perceptionAgeNanos = ageNanos,
+            physicalYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond ?: rawYawRateDegreesPerSecond,
+            isSettling = (phase == YawControllerPhase.SETTLING),
+            isRecovery = recovering,
+        )
         val controlError = estimate.estimatedCenterX - CENTER_X
 
         if (staleGapSettlingRequired) {
             val requested = requestedYaw(controlError)
             if (requested != 0 && staleGapPreviousYaw != 0 && requested.sign != staleGapPreviousYaw.sign) {
-                val isSettled = if (telemetryYawRateDegreesPerSecond != null) {
+                val rate = telemetryYawRateDegreesPerSecond ?: rawYawRateDegreesPerSecond
+                val isSettled = if (rate != null) {
                     consecutiveSettledSamples >= settledConsecutiveSamples
                 } else {
                     false
@@ -308,6 +326,7 @@ class ProductionYawController(
                         phase = YawControllerPhase.SETTLING,
                         telloYawDegrees = telemetryYawDegrees,
                         telloYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+                        rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
                         previousYawRc = 0,
                         requestedYawRc = requested,
                         safetyFilteredYawRc = 0,
@@ -321,7 +340,8 @@ class ProductionYawController(
 
         if (phase == YawControllerPhase.SETTLING) {
             settlingMeasurementsCount++
-            val isSettled = if (telemetryYawRateDegreesPerSecond != null) {
+            val rate = telemetryYawRateDegreesPerSecond ?: rawYawRateDegreesPerSecond
+            val isSettled = if (rate != null) {
                 consecutiveSettledSamples >= settledConsecutiveSamples
             } else {
                 val settlingDurationMillis = settlingStartedTimestampNanos?.let {
@@ -348,6 +368,7 @@ class ProductionYawController(
                     phase = YawControllerPhase.SETTLING,
                     telloYawDegrees = telemetryYawDegrees,
                     telloYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+                    rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
                     previousYawRc = 0,
                     requestedYawRc = requested,
                     safetyFilteredYawRc = 0,
@@ -388,6 +409,7 @@ class ProductionYawController(
                 phase = phase,
                 telloYawDegrees = telemetryYawDegrees,
                 telloYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+                rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
                 previousYawRc = previousYaw,
                 requestedYawRc = 0,
                 safetyFilteredYawRc = 0,
@@ -415,6 +437,7 @@ class ProductionYawController(
                 phase = YawControllerPhase.HOLD,
                 telloYawDegrees = telemetryYawDegrees,
                 telloYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+                rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
                 previousYawRc = previousYaw,
                 requestedYawRc = 0,
                 safetyFilteredYawRc = 0,
@@ -423,10 +446,17 @@ class ProductionYawController(
         }
 
         val requested = requestedYaw(controlError)
+        val rateForBrake = telemetryYawRateDegreesPerSecond ?: rawYawRateDegreesPerSecond
+        val hasHighAngularVelocity = rateForBrake != null && abs(rateForBrake) >= HIGH_ANGULAR_VELOCITY_BRAKE_RATE
+        val approachingCenterFast = previousYaw != 0 &&
+            abs(measurement.rawYawError) <= RAPID_APPROACH_BRAKE_ERROR &&
+            hasHighAngularVelocity && (previousYaw * rateForBrake > 0f)
+
         val crossedCenter = previousFiltered != null && previousYaw != 0 && (
             previousFiltered * measurement.rawYawError < 0f ||
                 abs(previousFiltered) >= RAPID_APPROACH_START_ERROR &&
-                abs(measurement.rawYawError) <= RAPID_APPROACH_BRAKE_ERROR
+                abs(measurement.rawYawError) <= RAPID_APPROACH_BRAKE_ERROR ||
+                approachingCenterFast
             )
         if (crossedCenter || (requested != 0 && previousYaw != 0 && requested.sign != previousYaw.sign)) {
             val brakedEstimate = estimator.brake(measurement.targetCenterX, measurement.sourceTimestampNanos)
@@ -443,6 +473,7 @@ class ProductionYawController(
                 phase = YawControllerPhase.SETTLING,
                 telloYawDegrees = telemetryYawDegrees,
                 telloYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+                rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
                 previousYawRc = previousYaw,
                 requestedYawRc = requested,
                 safetyFilteredYawRc = 0,
@@ -636,6 +667,7 @@ class ProductionYawController(
         phase: YawControllerPhase = this.phase,
         telloYawDegrees: Int? = null,
         telloYawRateDegreesPerSecond: Float? = null,
+        rawYawRateDegreesPerSecond: Float? = null,
         previousYawRc: Int,
         requestedYawRc: Int,
         safetyFilteredYawRc: Int,
@@ -658,12 +690,14 @@ class ProductionYawController(
             estimatedTargetCenterX = estimate?.estimatedCenterX,
             targetCenterVelocityPerSecond = estimate?.velocityPerSecond,
             predictionHorizonMillis = estimate?.predictionHorizonMillis,
+            predictionMode = estimate?.predictionMode,
             rawYawError = measurement.rawYawError,
             filteredYawError = estimate?.let { it.estimatedCenterX - CENTER_X } ?: measurement.filteredYawError,
             controlYawError = estimate?.let { it.estimatedCenterX - CENTER_X } ?: measurement.filteredYawError,
             phase = phase,
             telloYawDegrees = telloYawDegrees,
             telloYawRateDegreesPerSecond = telloYawRateDegreesPerSecond,
+            rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
             previousYawRc = previousYawRc,
             requestedYawRc = requestedYawRc,
             safetyFilteredYawRc = safetyFilteredYawRc,
@@ -723,6 +757,7 @@ class ProductionYawController(
         private const val FAR_ERROR_THRESHOLD = .24f
         private const val RAPID_APPROACH_START_ERROR = 0.12f
         private const val RAPID_APPROACH_BRAKE_ERROR = 0.06f
+        private const val HIGH_ANGULAR_VELOCITY_BRAKE_RATE = 20.0f
         private const val NANOS_PER_MILLISECOND = 1_000_000L
     }
 }
@@ -773,8 +808,14 @@ class YawFollowGate(
         telemetryYawDegrees: Int? = null,
         telemetryYawRateDegreesPerSecond: Float? = null,
         telemetryTimestampMillis: Long,
+        rawYawRateDegreesPerSecond: Float? = null,
     ) {
-        controller.observeTelemetry(telemetryYawDegrees, telemetryYawRateDegreesPerSecond, telemetryTimestampMillis)
+        controller.observeTelemetry(
+            telemetryYawDegrees = telemetryYawDegrees,
+            telemetryYawRateDegreesPerSecond = telemetryYawRateDegreesPerSecond,
+            telemetryTimestampMillis = telemetryTimestampMillis,
+            rawYawRateDegreesPerSecond = rawYawRateDegreesPerSecond,
+        )
     }
 
     fun evaluateSafetyGate(input: YawFollowInput): YawFollowDecision {
@@ -819,6 +860,7 @@ class YawFollowGate(
                     commandTimestampNanos = it.commandTimestampNanos,
                     telemetryYawDegrees = it.telemetryYawDegrees,
                     telemetryYawRateDegreesPerSecond = it.telemetryYawRateDegreesPerSecond,
+                    rawYawRateDegreesPerSecond = it.rawYawRateDegreesPerSecond,
                 )
             } else {
                 controller.suppress(
@@ -837,6 +879,7 @@ class YawFollowGate(
     }
 
     private fun blockingReason(input: YawFollowInput): YawFollowReason = when {
+        input.responseAnomalyDetected -> YawFollowReason.YAW_RESPONSE_ANOMALY
         input.flight == FlightState.Emergency -> YawFollowReason.EMERGENCY
         input.flight == FlightState.Landing -> YawFollowReason.LANDING
         input.connection != DroneConnectionState.Connected -> YawFollowReason.CONNECTION_LOST
@@ -872,6 +915,7 @@ class YawFollowGate(
             YawFollowReason.HOVER_INTERVENTION,
             YawFollowReason.LANDING,
             YawFollowReason.EMERGENCY,
+            YawFollowReason.YAW_RESPONSE_ANOMALY,
         )
     }
 }

@@ -95,6 +95,8 @@ internal class DebugVisionTraceRecorder internal constructor(
         data class TargetSelectionAttempt(val trace: TargetSelectionAttemptTrace) : Command
         data class CorruptFrame(val trace: CorruptFrameTrace) : Command
         data class VideoDiagnostic(val trace: VideoDiagnosticTrace) : Command
+        data class TelemetryDetailedSample(val trace: TelemetrySampleTrace) : Command
+        data class YawResponseAnomaly(val trace: YawResponseAnomalyEventTrace) : Command
         data class ExportTrace(val destinationUri: String, val callback: (Result<VisionTraceExport>) -> Unit) : Command
         data class ExportSession(
             val destinationUri: String,
@@ -150,6 +152,8 @@ internal class DebugVisionTraceRecorder internal constructor(
                         is Command.TargetSelectionAttempt -> write(command)
                         is Command.CorruptFrame -> write(command)
                         is Command.VideoDiagnostic -> write(command)
+                        is Command.TelemetryDetailedSample -> write(command)
+                        is Command.YawResponseAnomaly -> write(command)
                         is Command.ExportTrace -> exportTrace(command)
                         is Command.ExportSession -> exportSession(command)
                         is Command.ExportFlightDiagnostics -> exportFlightDiagnostics(command)
@@ -269,6 +273,14 @@ internal class DebugVisionTraceRecorder internal constructor(
 
     override fun recordVideoDiagnostic(trace: VideoDiagnosticTrace) {
         commands.trySend(Command.VideoDiagnostic(trace))
+    }
+
+    override fun recordTelemetryDetailedSample(trace: TelemetrySampleTrace) {
+        commands.trySend(Command.TelemetryDetailedSample(trace))
+    }
+
+    override fun recordYawResponseAnomalyEvent(trace: YawResponseAnomalyEventTrace) {
+        commands.trySend(Command.YawResponseAnomaly(trace))
     }
 
     override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) {
@@ -397,6 +409,14 @@ internal class DebugVisionTraceRecorder internal constructor(
 
     private fun write(command: Command.VideoDiagnostic) {
         storage.appendControl(VisionTraceJson.encodeVideoDiagnostic(command.trace))
+    }
+
+    private fun write(command: Command.TelemetryDetailedSample) {
+        storage.appendControl(VisionTraceJson.encodeTelemetrySample(command.trace))
+    }
+
+    private fun write(command: Command.YawResponseAnomaly) {
+        storage.appendControl(VisionTraceJson.encodeYawResponseAnomalyEvent(command.trace))
     }
 
     private fun exportTrace(command: Command.ExportTrace) {
@@ -694,13 +714,8 @@ internal class DebugVisionTraceRecorder internal constructor(
 
     private fun prepareEpoch(epoch: CaptureEpoch) {
         if (activeEpoch === epoch) return
-        resetVisionEpochStorage()
-        activeEpoch = epoch
-    }
-
-    private fun resetVisionEpochStorage() {
         storage.startVisionEpoch()
-        frames.clear()
+        activeEpoch = epoch
     }
 
     private fun resetWorkerStorage() {
@@ -719,7 +734,7 @@ internal class DebugVisionTraceRecorder internal constructor(
     }
 
     private fun rotate(exportedEpoch: CaptureEpoch) {
-        resetVisionEpochStorage()
+        storage.startVisionEpoch()
         activeEpoch = null
         synchronized(pendingLock) {
             pending.values.forEach { it.bitmap.recycle() }

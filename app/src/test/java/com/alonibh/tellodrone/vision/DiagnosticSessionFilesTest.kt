@@ -22,18 +22,17 @@ class DiagnosticSessionFilesTest {
 
             storage.startVisionEpoch()
             assertTrue(storage.traceFile.isFile)
-            assertEquals(0L, storage.traceFile.length())
             assertTrue(storage.framesDirectory.isDirectory)
-            assertTrue(storage.framesDirectory.listFiles().orEmpty().isEmpty())
+            assertEquals(listOf("pre-selection-frame"), storage.traceFile.readLines())
 
             storage.appendControl("target-selection")
             storage.appendTrace("post-selection-frame")
-            java.io.File(storage.framesDirectory, "000000.jpg").writeBytes(byteArrayOf(2, 3))
+            java.io.File(storage.framesDirectory, "000001.jpg").writeBytes(byteArrayOf(2, 3))
             storage.appendControl("follow")
             storage.flush()
 
             assertEquals(listOf("connect", "takeoff", "target-selection", "follow"), storage.controlFile.readLines())
-            assertEquals(listOf("post-selection-frame"), storage.traceFile.readLines())
+            assertEquals(listOf("pre-selection-frame", "post-selection-frame"), storage.traceFile.readLines())
 
             val bundle = java.io.File(root, "trace.zip")
             ZipOutputStream(bundle.outputStream()).use { zip ->
@@ -42,6 +41,7 @@ class DiagnosticSessionFilesTest {
                     "control.jsonl" to storage.controlFile,
                     "trace.jsonl" to storage.traceFile,
                     "frames/000000.jpg" to java.io.File(storage.framesDirectory, "000000.jpg"),
+                    "frames/000001.jpg" to java.io.File(storage.framesDirectory, "000001.jpg"),
                 ).forEach { (name, file) ->
                     zip.putNextEntry(ZipEntry(name))
                     file.inputStream().use { it.copyTo(zip) }
@@ -50,10 +50,11 @@ class DiagnosticSessionFilesTest {
             }
             ZipFile(bundle).use { zip ->
                 assertEquals(
-                    setOf("session.json", "control.jsonl", "trace.jsonl", "frames/000000.jpg"),
+                    setOf("session.json", "control.jsonl", "trace.jsonl", "frames/000000.jpg", "frames/000001.jpg"),
                     zip.entries().asSequence().map { it.name }.toSet(),
                 )
-                assertEquals("post-selection-frame", zip.getInputStream(zip.getEntry("trace.jsonl")).bufferedReader().readLine())
+                val traceLines = zip.getInputStream(zip.getEntry("trace.jsonl")).bufferedReader().readLines()
+                assertEquals(listOf("pre-selection-frame", "post-selection-frame"), traceLines)
             }
         } finally {
             storage.close()
