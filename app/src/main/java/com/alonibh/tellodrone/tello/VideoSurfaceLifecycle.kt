@@ -23,6 +23,59 @@ internal class VideoSurfaceLifecycle<T : Any> {
         generationCounter.incrementAndGet()
         return true
     }
+
+    fun isCurrent(value: T, expectedGeneration: Long): Boolean =
+        active.get() === value && generationCounter.get() == expectedGeneration
+}
+
+internal data class RenderAuthorizationDecision(
+    val shouldRender: Boolean,
+    val isStaleGeneration: Boolean,
+    val reason: String,
+)
+
+internal object VideoRenderAuthorizer {
+    fun authorizeRender(
+        codecBoundGeneration: Long,
+        currentSurfaceGeneration: Long,
+        isSurfaceAttached: Boolean,
+        isSurfaceValid: Boolean,
+        isCodecConfigOrEos: Boolean,
+    ): RenderAuthorizationDecision {
+        if (isCodecConfigOrEos) {
+            return RenderAuthorizationDecision(
+                shouldRender = false,
+                isStaleGeneration = false,
+                reason = "Codec config or EOS buffer",
+            )
+        }
+        if (!isSurfaceAttached) {
+            return RenderAuthorizationDecision(
+                shouldRender = false,
+                isStaleGeneration = true,
+                reason = "Surface detached (currentGen=$currentSurfaceGeneration, codecGen=$codecBoundGeneration)",
+            )
+        }
+        if (codecBoundGeneration != currentSurfaceGeneration) {
+            return RenderAuthorizationDecision(
+                shouldRender = false,
+                isStaleGeneration = true,
+                reason = "Stale generation (codecGen=$codecBoundGeneration != currentGen=$currentSurfaceGeneration)",
+            )
+        }
+        if (!isSurfaceValid) {
+            return RenderAuthorizationDecision(
+                shouldRender = false,
+                isStaleGeneration = false,
+                reason = "Surface is invalid",
+            )
+        }
+        return RenderAuthorizationDecision(
+            shouldRender = true,
+            isStaleGeneration = false,
+            reason = "Authorized for generation $codecBoundGeneration",
+        )
+    }
 }
 
 internal data class VideoRecoveryTransition(
@@ -31,18 +84,29 @@ internal data class VideoRecoveryTransition(
     val recoveryDurationNanos: Long? = null,
 )
 
-/** Pure state machine: only a real rendered frame can transition Recovering to Streaming. */
+/** Pure state machine: only a real rendered frame matching the current active generation can transition Recovering to Streaming. */
 internal class VideoRecoveryStateMachine {
     private var streamAcknowledged = false
     private var surfaceAttached = false
+    private var activeGeneration: Long? = null
     private var availability = VideoAvailability.Unavailable
     private var recoveryStartedAtNanos: Long? = null
     private var decoderResynchronizationPending = false
+
+    val currentAvailability: VideoAvailability get() = synchronized(this) { availability }
+    val currentGeneration: Long? get() = synchronized(this) { activeGeneration }
 
     @Synchronized
     fun onStreamAcknowledged(nowNanos: Long): VideoRecoveryTransition {
         streamAcknowledged = true
         return if (surfaceAttached) beginRecovery(nowNanos) else transition(VideoAvailability.Unavailable)
+    }
+
+    @Synchronized
+    fun onSurfaceAttached(generation: Long, nowNanos: Long): VideoRecoveryTransition {
+        surfaceAttached = true
+        activeGeneration = generation
+        return if (streamAcknowledged) beginRecovery(nowNanos) else transition(VideoAvailability.Unavailable)
     }
 
     @Synchronized
@@ -52,8 +116,9 @@ internal class VideoRecoveryStateMachine {
     }
 
     @Synchronized
-    fun onSurfaceDetached(): VideoRecoveryTransition {
+    fun onSurfaceDetached(generation: Long? = null): VideoRecoveryTransition {
         surfaceAttached = false
+        activeGeneration = null
         recoveryStartedAtNanos = null
         return transition(VideoAvailability.Unavailable)
     }
@@ -75,8 +140,11 @@ internal class VideoRecoveryStateMachine {
     }
 
     @Synchronized
-    fun onFrameRendered(nowNanos: Long): VideoRecoveryTransition {
+    fun onFrameRendered(frameGeneration: Long, nowNanos: Long): VideoRecoveryTransition {
         if (!streamAcknowledged || !surfaceAttached) return transition(VideoAvailability.Unavailable)
+        if (activeGeneration == null || frameGeneration != activeGeneration) {
+            return VideoRecoveryTransition(availability)
+        }
         if (decoderResynchronizationPending) return beginRecovery(nowNanos)
         val started = recoveryStartedAtNanos
         recoveryStartedAtNanos = null
@@ -88,9 +156,14 @@ internal class VideoRecoveryStateMachine {
     }
 
     @Synchronized
+    fun onFrameRendered(nowNanos: Long): VideoRecoveryTransition =
+        activeGeneration?.let { onFrameRendered(it, nowNanos) } ?: transition(VideoAvailability.Unavailable)
+
+    @Synchronized
     fun onFailed(): VideoRecoveryTransition {
         streamAcknowledged = false
         surfaceAttached = false
+        activeGeneration = null
         decoderResynchronizationPending = false
         recoveryStartedAtNanos = null
         return transition(VideoAvailability.Error)

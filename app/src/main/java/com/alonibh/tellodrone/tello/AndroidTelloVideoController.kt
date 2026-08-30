@@ -194,20 +194,24 @@ class AndroidTelloVideoController(
 
     fun attachSurface(value: Surface) {
         if (videoSurface.attach(value)) {
+            val gen = videoSurface.generation
             decodedFrameSource.start(value)
             val nowNanos = System.nanoTime()
-            publishRecoveryTransition(recoveryState.onSurfaceAttached(nowNanos), "surface_attached")
-            recordVideoDiagnostic("surface_attached", "Surface generation ${videoSurface.generation}")
+            publishRecoveryTransition(recoveryState.onSurfaceAttached(gen, nowNanos), "surface_attached")
+            recordVideoDiagnostic("surface_attach_requested", "Surface generation $gen")
+            recordVideoDiagnostic("surface_generation_changed", "Surface generation $gen attached")
         }
         unitSignal.trySend(Unit)
     }
 
     fun detachSurface(value: Surface) {
         if (videoSurface.detach(value)) {
+            val gen = videoSurface.generation
             stopDetectionAndScheduleRelease()
             decodedFrameSource.stop(value)
-            publishRecoveryTransition(recoveryState.onSurfaceDetached(), "surface_detached")
-            recordVideoDiagnostic("surface_detached", "Surface generation ${videoSurface.generation}")
+            publishRecoveryTransition(recoveryState.onSurfaceDetached(gen), "surface_detached")
+            recordVideoDiagnostic("surface_detach_requested", "Surface generation $gen")
+            recordVideoDiagnostic("surface_generation_changed", "Surface generation $gen detached")
         }
         unitSignal.trySend(Unit)
     }
@@ -293,9 +297,12 @@ class AndroidTelloVideoController(
         }
     }
 
+    private class RecoverableDecoderException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)
+
     private suspend fun decodeLoop() {
         var codec: MediaCodec? = null
         var codecSurface: Surface? = null
+        var codecBoundGeneration = -1L
         var observedSurfaceGeneration = -1L
         var sequenceParameterSet: ByteArray? = null
         var pictureParameterSet: ByteArray? = null
@@ -305,136 +312,181 @@ class AndroidTelloVideoController(
         try {
             while (scope.isActive && !closed.get() && !failed.get()) {
                 unitSignal.receive()
-                val generation = videoSurface.generation
-                if (generation != observedSurfaceGeneration) {
-                    val newSurface = videoSurface.current?.takeIf { it.isValid }
-                    if (newSurface != null && codec != null) {
-                        val switched = runCatching {
-                            codec.setOutputSurface(newSurface)
-                        }.isSuccess
-                        if (switched) {
-                            codecSurface = newSurface
-                            observedSurfaceGeneration = generation
+                try {
+                    val generation = videoSurface.generation
+                    if (generation != observedSurfaceGeneration) {
+                        recordVideoDiagnostic(
+                            "surface_generation_changed",
+                            "Surface generation changed from $observedSurfaceGeneration to $generation",
+                        )
+                        val newSurface = videoSurface.current?.takeIf { it.isValid }
+                        if (newSurface != null && codec != null && codecBoundGeneration != -1L) {
                             recordVideoDiagnostic(
-                                "decoder_surface_switched",
-                                "setOutputSurface succeeded for generation $generation",
+                                "decoder_surface_switch_start",
+                                "Attempting setOutputSurface from generation $codecBoundGeneration to $generation",
                             )
+                            val switched = runCatching {
+                                codec.setOutputSurface(newSurface)
+                            }.isSuccess
+                            if (switched) {
+                                codecSurface = newSurface
+                                codecBoundGeneration = generation
+                                observedSurfaceGeneration = generation
+                                recordVideoDiagnostic(
+                                    "decoder_surface_switch_success",
+                                    "setOutputSurface succeeded for generation $generation",
+                                )
+                            } else {
+                                recordVideoDiagnostic(
+                                    "decoder_surface_switch_failed",
+                                    "setOutputSurface failed for generation $generation; releasing decoder",
+                                )
+                                codec.releaseSafely()
+                                codec = null
+                                codecSurface = newSurface
+                                codecBoundGeneration = generation
+                                observedSurfaceGeneration = generation
+                                needsIdr = true
+                                publishRecoveryTransition(
+                                    recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                    "decoder_surface_switch_failed",
+                                )
+                                frameRate.reset()
+                                recordDecoderReset("setOutputSurface failed for generation $generation")
+                            }
                         } else {
-                            codec.releaseSafely()
-                            codec = null
+                            if (newSurface == null && codec != null) {
+                                recordVideoDiagnostic(
+                                    "decoder_release_for_surface_change",
+                                    "Surface detached; releasing decoder bound to generation $codecBoundGeneration",
+                                )
+                                codec.releaseSafely()
+                                codec = null
+                            }
                             codecSurface = newSurface
+                            codecBoundGeneration = if (newSurface != null) generation else -1L
                             observedSurfaceGeneration = generation
-                            needsIdr = true
-                            publishRecoveryTransition(
-                                recoveryState.requireDecoderResynchronization(System.nanoTime()),
-                                "decoder_surface_switch_failed",
-                            )
-                            frameRate.reset()
-                            recordDecoderReset("setOutputSurface failed for generation $generation")
-                        }
-                    } else {
-                        codecSurface = newSurface
-                        observedSurfaceGeneration = generation
-                        if (newSurface != null) {
-                            // No running decoder exists, so normal SPS/PPS/IDR bootstrap remains required.
-                            needsIdr = true
-                        } else {
-                            // Keep a configured decoder alive across a brief detach. A replacement surface
-                            // can then use setOutputSurface without discarding inter-frame decode state.
-                            frameRate.reset()
+                            if (newSurface != null) {
+                                needsIdr = true
+                                recordVideoDiagnostic(
+                                    "decoder_waiting_for_idr",
+                                    "Waiting for SPS/PPS/IDR for generation $generation",
+                                )
+                            } else {
+                                frameRate.reset()
+                            }
                         }
                     }
-                }
 
-                if (!streamIsAcknowledged.get()) continue
-                if (codecSurface == null) continue
-                var input = accessUnits.poll() ?: continue
-                do {
-                    when (input) {
-                        H264DecodeInput.Discontinuity -> {
-                            inputRetry.clear()
-                            publishRecoveryTransition(
-                                recoveryState.requireDecoderResynchronization(System.nanoTime()),
-                                "decoder_discontinuity",
-                            )
-                            codec.releaseSafely()
-                            codec = null
-                            needsIdr = true
-                            frameRate.reset()
-                            recordDecoderReset("Declared H264 discontinuity")
-                        }
-                        is H264DecodeInput.AccessUnit -> {
-                            inputRetry.begin(input.value, System.nanoTime())
-                            while (scope.isActive && !closed.get() && !failed.get()) {
-                                if (accessUnits.takeDiscontinuity()) {
-                                    inputRetry.clear()
-                                    publishRecoveryTransition(
-                                        recoveryState.requireDecoderResynchronization(System.nanoTime()),
-                                        "decoder_discontinuity",
-                                    )
-                                    codec.releaseSafely()
-                                    codec = null
-                                    needsIdr = true
-                                    frameRate.reset()
-                                    recordDecoderReset("Discontinuity interrupted pending decoder input")
-                                    break
-                                }
-                                val pendingUnit = checkNotNull(inputRetry.pendingAccessUnit)
-                                val result = processAccessUnit(
-                                    pendingUnit,
-                                    codecSurface,
-                                    codec,
-                                    sequenceParameterSet,
-                                    pictureParameterSet,
-                                    needsIdr,
-                                    frameRate,
+                    if (!streamIsAcknowledged.get()) continue
+                    if (codecSurface == null) continue
+                    var input = accessUnits.poll() ?: continue
+                    do {
+                        when (input) {
+                            H264DecodeInput.Discontinuity -> {
+                                inputRetry.clear()
+                                publishRecoveryTransition(
+                                    recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                    "decoder_discontinuity",
                                 )
-                                codec = result.codec
-                                sequenceParameterSet = result.sps
-                                pictureParameterSet = result.pps
-                                needsIdr = result.needsIdr
-                                when (result.outcome) {
-                                    AccessUnitProcessOutcome.Submitted,
-                                    AccessUnitProcessOutcome.Skipped -> {
-                                        check(inputRetry.complete() === pendingUnit)
-                                        break
-                                    }
-                                    AccessUnitProcessOutcome.TemporaryBackpressure -> {
-                                        if (inputRetry.onTemporaryMiss(System.nanoTime()) ==
-                                            DecoderInputRetryDecision.Recover
-                                        ) {
-                                            inputRetry.clear()
-                                            publishRecoveryTransition(
-                                                recoveryState.requireDecoderResynchronization(System.nanoTime()),
-                                                "codec_input_stall",
-                                            )
-                                            codec.releaseSafely()
-                                            codec = null
-                                            needsIdr = true
-                                            accessUnits.declareDiscontinuity()
-                                            frameRate.reset()
-                                            recordDecoderReset("Codec input stall exceeded recovery limit")
-                                            recordAccessUnitDiagnostics("decoder_resync_start", "Codec input stall")
-                                            break
-                                        }
-                                    }
-                                    AccessUnitProcessOutcome.ContinuityLost -> {
+                                codec.releaseSafely()
+                                codec = null
+                                needsIdr = true
+                                frameRate.reset()
+                                recordDecoderReset("Declared H264 discontinuity")
+                            }
+                            is H264DecodeInput.AccessUnit -> {
+                                inputRetry.begin(input.value, System.nanoTime())
+                                while (scope.isActive && !closed.get() && !failed.get()) {
+                                    if (accessUnits.takeDiscontinuity()) {
                                         inputRetry.clear()
                                         publishRecoveryTransition(
                                             recoveryState.requireDecoderResynchronization(System.nanoTime()),
-                                            "decoder_continuity_lost",
+                                            "decoder_discontinuity",
                                         )
-                                        accessUnits.declareDiscontinuity()
+                                        codec.releaseSafely()
+                                        codec = null
+                                        needsIdr = true
                                         frameRate.reset()
-                                        recordAccessUnitDiagnostics("decoder_resync_start", "Decoder continuity lost")
+                                        recordDecoderReset("Discontinuity interrupted pending decoder input")
                                         break
+                                    }
+                                    val pendingUnit = checkNotNull(inputRetry.pendingAccessUnit)
+                                    val result = processAccessUnit(
+                                        pendingUnit,
+                                        codecSurface,
+                                        codecBoundGeneration,
+                                        codec,
+                                        sequenceParameterSet,
+                                        pictureParameterSet,
+                                        needsIdr,
+                                        frameRate,
+                                    )
+                                    codec = result.codec
+                                    sequenceParameterSet = result.sps
+                                    pictureParameterSet = result.pps
+                                    needsIdr = result.needsIdr
+                                    when (result.outcome) {
+                                        AccessUnitProcessOutcome.Submitted,
+                                        AccessUnitProcessOutcome.Skipped -> {
+                                            check(inputRetry.complete() === pendingUnit)
+                                            break
+                                        }
+                                        AccessUnitProcessOutcome.TemporaryBackpressure -> {
+                                            if (inputRetry.onTemporaryMiss(System.nanoTime()) ==
+                                                DecoderInputRetryDecision.Recover
+                                            ) {
+                                                inputRetry.clear()
+                                                publishRecoveryTransition(
+                                                    recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                                    "codec_input_stall",
+                                                )
+                                                codec.releaseSafely()
+                                                codec = null
+                                                needsIdr = true
+                                                accessUnits.declareDiscontinuity()
+                                                frameRate.reset()
+                                                recordDecoderReset("Codec input stall exceeded recovery limit")
+                                                recordAccessUnitDiagnostics("decoder_resync_start", "Codec input stall")
+                                                break
+                                            }
+                                        }
+                                        AccessUnitProcessOutcome.ContinuityLost -> {
+                                            inputRetry.clear()
+                                            publishRecoveryTransition(
+                                                recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                                "decoder_continuity_lost",
+                                            )
+                                            accessUnits.declareDiscontinuity()
+                                            frameRate.reset()
+                                            recordAccessUnitDiagnostics("decoder_resync_start", "Decoder continuity lost")
+                                            break
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    input = accessUnits.poll() ?: break
-                } while (scope.isActive && !closed.get() && !failed.get())
+                        input = accessUnits.poll() ?: break
+                    } while (scope.isActive && !closed.get() && !failed.get())
+                } catch (recoverable: RecoverableDecoderException) {
+                    recordVideoDiagnostic(
+                        "decoder_recoverable_error",
+                        "Recoverable decoder error: ${recoverable.message}; cause: ${recoverable.cause?.message}",
+                    )
+                    codec.releaseSafely()
+                    codec = null
+                    codecSurface = null
+                    codecBoundGeneration = -1L
+                    observedSurfaceGeneration = -1L
+                    needsIdr = true
+                    inputRetry.clear()
+                    frameRate.reset()
+                    publishRecoveryTransition(
+                        recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                        "recoverable_decoder_error",
+                    )
+                    recordDecoderReset("Recoverable decoder error: ${recoverable.message}")
+                }
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -450,6 +502,7 @@ class AndroidTelloVideoController(
     private fun processAccessUnit(
         unit: H264AccessUnit,
         codecSurface: Surface?,
+        codecBoundGeneration: Long,
         currentCodec: MediaCodec?,
         currentSps: ByteArray?,
         currentPps: ByteArray?,
@@ -466,14 +519,17 @@ class AndroidTelloVideoController(
                 H264NalUnitType.PPS -> pictureParameterSet = nal.bytes
             }
         }
+        val currentGen = videoSurface.generation
         val display = codecSurface?.takeIf { it.isValid }
-            ?: return DecoderState(
+        if (display == null || currentGen != codecBoundGeneration) {
+            return DecoderState(
                 codec,
                 sequenceParameterSet,
                 pictureParameterSet,
                 needsIdr,
                 AccessUnitProcessOutcome.Skipped,
             )
+        }
         if (needsIdr && !unit.hasIdr) {
             return DecoderState(
                 codec,
@@ -501,13 +557,29 @@ class AndroidTelloVideoController(
                     needsIdr,
                     AccessUnitProcessOutcome.Skipped,
                 )
-            codec = createDecoder(display, sps, pps)
-            needsIdr = false
+            try {
+                codec = createDecoder(display, sps, pps)
+                needsIdr = false
+                recordVideoDiagnostic(
+                    "decoder_idr_submitted",
+                    "Created decoder bound to generation $codecBoundGeneration with IDR",
+                )
+            } catch (t: Throwable) {
+                recordVideoDiagnostic(
+                    "decoder_creation_failed",
+                    "Failed to create decoder for generation $codecBoundGeneration: ${t.message}",
+                )
+                throw RecoverableDecoderException("createDecoder failed", t)
+            }
         }
 
         val activeCodec = codec
-        drainOutput(activeCodec, display, frameRate)
-        val inputIndex = activeCodec.dequeueInputBuffer(CODEC_INPUT_TIMEOUT_MICROS)
+        drainOutput(activeCodec, codecBoundGeneration, frameRate)
+        val inputIndex = try {
+            activeCodec.dequeueInputBuffer(CODEC_INPUT_TIMEOUT_MICROS)
+        } catch (t: Throwable) {
+            throw RecoverableDecoderException("dequeueInputBuffer failed", t)
+        }
         if (inputIndex < 0) {
             recordCodecInputStall()
             return DecoderState(
@@ -531,7 +603,7 @@ class AndroidTelloVideoController(
                 )
             }
         if (unit.bytes.size > input.capacity()) {
-            activeCodec.queueInputBuffer(inputIndex, 0, 0, presentationTimeUs(), 0)
+            runCatching { activeCodec.queueInputBuffer(inputIndex, 0, 0, presentationTimeUs(), 0) }
             codec.releaseSafely()
             codec = null
             needsIdr = true
@@ -544,11 +616,15 @@ class AndroidTelloVideoController(
                 AccessUnitProcessOutcome.ContinuityLost,
             )
         }
-        input.clear()
-        input.put(unit.bytes)
-        activeCodec.queueInputBuffer(inputIndex, 0, unit.bytes.size, presentationTimeUs(), 0)
+        try {
+            input.clear()
+            input.put(unit.bytes)
+            activeCodec.queueInputBuffer(inputIndex, 0, unit.bytes.size, presentationTimeUs(), 0)
+        } catch (t: Throwable) {
+            throw RecoverableDecoderException("queueInputBuffer failed", t)
+        }
         if (unit.hasIdr) recoveryState.onDecoderResynchronized()
-        drainOutput(activeCodec, display, frameRate)
+        drainOutput(activeCodec, codecBoundGeneration, frameRate)
         return DecoderState(
             codec,
             sequenceParameterSet,
@@ -584,31 +660,81 @@ class AndroidTelloVideoController(
         }
     }
 
-    private fun drainOutput(codec: MediaCodec, display: Surface, frameRate: RenderedFrameRate) {
+    private fun drainOutput(
+        codec: MediaCodec,
+        codecBoundGeneration: Long,
+        frameRate: RenderedFrameRate,
+    ) {
         val info = MediaCodec.BufferInfo()
         while (true) {
-            val outputIndex = codec.dequeueOutputBuffer(info, 0)
+            val outputIndex = try {
+                codec.dequeueOutputBuffer(info, 0)
+            } catch (t: Throwable) {
+                throw RecoverableDecoderException("dequeueOutputBuffer failed", t)
+            }
             if (outputIndex < 0) return
-            val render = display.isValid &&
-                info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0 &&
-                info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM == 0
-            codec.releaseOutputBuffer(outputIndex, render)
+
+            val currentGeneration = videoSurface.generation
+            val currentSurface = videoSurface.current
+            val isSurfaceAttached = currentSurface != null
+            val isSurfaceValid = currentSurface?.isValid == true
+            val isConfigOrEos = (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) ||
+                (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0)
+
+            val decision = VideoRenderAuthorizer.authorizeRender(
+                codecBoundGeneration = codecBoundGeneration,
+                currentSurfaceGeneration = currentGeneration,
+                isSurfaceAttached = isSurfaceAttached,
+                isSurfaceValid = isSurfaceValid,
+                isCodecConfigOrEos = isConfigOrEos,
+            )
+
+            if (decision.isStaleGeneration && !isConfigOrEos) {
+                recordVideoDiagnostic(
+                    "decoder_surface_stale_render_suppressed",
+                    decision.reason,
+                )
+            }
+
+            val render = decision.shouldRender
+            try {
+                codec.releaseOutputBuffer(outputIndex, render)
+            } catch (t: Throwable) {
+                recordVideoDiagnostic(
+                    "decoder_output_release_failed",
+                    "Failed to release output buffer (render=$render): ${t.message}",
+                )
+                throw RecoverableDecoderException("releaseOutputBuffer failed", t)
+            }
+
             if (render) {
                 val nowNanos = System.nanoTime()
                 renderedFrames.incrementAndGet()
                 val measured = frameRate.onRendered(nowNanos)
-                val transition = recoveryState.onFrameRendered(nowNanos)
-                mutableState.update { current ->
-                    if (transition.availability != VideoAvailability.Streaming) current else current.copy(
-                        availability = transition.availability,
-                        measuredFps = measured ?: current.measuredFps,
-                        lastFrameAt = Instant.now(),
-                    )
+                val transition = recoveryState.onFrameRendered(codecBoundGeneration, nowNanos)
+                if (transition.availability == VideoAvailability.Streaming) {
+                    mutableState.update { current ->
+                        current.copy(
+                            availability = VideoAvailability.Streaming,
+                            measuredFps = measured ?: current.measuredFps,
+                            lastFrameAt = Instant.now(),
+                        )
+                    }
                 }
                 transition.recoveryDurationNanos?.let { duration ->
                     recordVideoDiagnostic(
+                        eventType = "first_current_generation_frame_rendered",
+                        detail = "Rendered frame to current generation $codecBoundGeneration",
+                        recoveryDurationMillis = duration / 1_000_000L,
+                    )
+                    recordVideoDiagnostic(
                         eventType = "first_good_frame_after_recovery",
                         detail = "Rendered a frame to the current surface",
+                        recoveryDurationMillis = duration / 1_000_000L,
+                    )
+                    recordVideoDiagnostic(
+                        eventType = "video_recovery_completed",
+                        detail = "Video recovered to Streaming on generation $codecBoundGeneration",
                         recoveryDurationMillis = duration / 1_000_000L,
                     )
                 }
