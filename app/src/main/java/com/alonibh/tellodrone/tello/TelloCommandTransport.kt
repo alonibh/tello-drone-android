@@ -91,12 +91,22 @@ class SerializedTelloCommandTransport(
         val payload = vector.asCommand()
         val startNanos = System.nanoTime()
         var success = false
+        var sendError: Throwable? = null
         try {
             sendMutex.withLock { endpoint.send(payload) }
             success = true
+        } catch (t: Throwable) {
+            sendError = t
+            throw t
         } finally {
             val endNanos = System.nanoTime()
-            onRcTransportSend?.invoke(seq, payload, startNanos, endNanos, success)
+            try {
+                onRcTransportSend?.invoke(seq, payload, startNanos, endNanos, success)
+            } catch (observerError: Throwable) {
+                if (observerError is CancellationException && sendError == null) {
+                    throw observerError
+                }
+            }
         }
     }
 

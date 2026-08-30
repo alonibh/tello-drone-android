@@ -359,6 +359,26 @@ class YawResponseSafetyMonitor(
     /** Thread-safe check for latched status. */
     fun isLatched(): Boolean = synchronized(lock) { isLatchedState }
 
+    /** Monotonic timestamp when the physical latch was committed under sendMutex fence. */
+    val physicalLatchCommittedAtNanos: Long? get() = synchronized(lock) { latchCommittedAtNanos }
+
+    /** Commits the physical latch atomically under the RC send fence. Thread-safe. */
+    fun commitPhysicalLatch(
+        anomalyReason: YawResponseAnomalyReason,
+        reason: String,
+        dominantRc: Int,
+        timestampMillis: Long,
+        committedAtNanos: Long,
+    ) = synchronized(lock) {
+        isLatchedState = true
+        latchedAnomalyReason = anomalyReason
+        latchReason = reason
+        if (firstMismatchTimestampMillis == null) {
+            firstMismatchTimestampMillis = timestampMillis
+        }
+        latchCommittedAtNanos = committedAtNanos
+    }
+
     /** Thread-safe check if physical settling conditions have been validated for re-arm. */
     fun isRearmReady(): Boolean = synchronized(lock) { rearmReadyState }
 
@@ -384,12 +404,15 @@ class YawResponseSafetyMonitor(
         resetLocked()
     }
 
+    private var latchCommittedAtNanos: Long? = null
+
     private fun resetLocked() {
         rcHistory.clear()
         consecutiveMismatchSamples = 0
         isLatchedState = false
         latchReason = null
         latchedAnomalyReason = null
+        latchCommittedAtNanos = null
         firstMismatchTimestampMillis = null
         lastObservedTelemetryTimestampMillis = null
         latestActualYawRc = 0

@@ -34,6 +34,12 @@ data class AutonomousYawContext(
     val telemetryHeightMeters: Float?,
 )
 
+data class AnomalyFenceResult(
+    val startedAtNanos: Long,
+    val committedAtNanos: Long,
+    val generation: Long,
+)
+
 data class RcPublication(
     val commandTimestampNanos: Long,
     val desiredPublishedAtNanos: Long,
@@ -48,6 +54,7 @@ data class RcPublication(
     val flightEpoch: Long,
     val autonomyGeneration: Long?,
     val autonomousContext: AutonomousYawContext?,
+    val rcSelectionSequence: Long? = null,
     val rcSendSequence: Long? = null,
     val rawSdkCommand: String? = null,
     val sendCompletedAtNanos: Long? = null,
@@ -207,7 +214,9 @@ class RcControlLoop(
     }
 
     private var rcSendSequenceCounter = 0L
+    private var rcSelectionSequenceCounter = 0L
     private var previousRcSendCompletedAtNanos: Long? = null
+    var beforeSenderHook: (suspend (RcVector) -> Unit)? = null
 
     suspend fun sendCycle() {
         val shouldSend = synchronized(lock) { enabled && !lockedOut }
@@ -217,10 +226,12 @@ class RcControlLoop(
                 // Read only after taking the send lock. A concurrent STOP/stale transition therefore
                 // either sends its zero first or waits for this already-sent vector and finishes with zero.
                 val nowMillis = clock.nowMillis()
+                val selectionSequence = synchronized(lock) { ++rcSelectionSequenceCounter }
                 val selection = synchronized(lock) { selectLocked(nowMillis) }
                 val sendSequence = synchronized(lock) { ++rcSendSequenceCounter }
                 val prevCompleted = synchronized(lock) { previousRcSendCompletedAtNanos }
                 val sendStartedAtNanos = traceClockNanos()
+                beforeSenderHook?.invoke(selection.actualVector)
                 sender(selection.actualVector)
                 val sentAtNanos = traceClockNanos()
                 val sendDuration = (sentAtNanos - sendStartedAtNanos).coerceAtLeast(0L)
@@ -242,6 +253,7 @@ class RcControlLoop(
                             flightEpoch = selection.desired.flightEpoch,
                             autonomyGeneration = selection.desired.autonomyGeneration,
                             autonomousContext = selection.desired.autonomousContext,
+                            rcSelectionSequence = selectionSequence,
                             rcSendSequence = sendSequence,
                             rawSdkCommand = selection.actualVector.asCommand(),
                             sendCompletedAtNanos = sentAtNanos,
@@ -266,6 +278,70 @@ class RcControlLoop(
     }
 
     /**
+     * Atomically fences against physical RC sends, commits monitor latch, invalidates autonomy,
+     * and sends a physical safety zero while holding the send lock.
+     */
+    suspend fun fenceAndCommitAnomaly(
+        commitMonitorLatch: (startedAtNanos: Long) -> Long,
+    ): AnomalyFenceResult = sendMutex.withLock {
+        val startedAtNanos = traceClockNanos()
+        val committedAtNanos = commitMonitorLatch(startedAtNanos)
+        val generation = synchronized(lock) {
+            preemptAutonomyLocked()
+        }
+        val sendStartedAtNanos = traceClockNanos()
+        var sendError: Throwable? = null
+        try {
+            sender(RcVector.Zero)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (t: Throwable) {
+            sendError = t
+            setHealthy(false)
+            onSendFailure(t)
+        }
+        val sentAtNanos = traceClockNanos()
+        val nowMillis = clock.nowMillis()
+        val selectionSequence = synchronized(lock) { ++rcSelectionSequenceCounter }
+        val sendSequence = synchronized(lock) { ++rcSendSequenceCounter }
+        val prevCompleted = synchronized(lock) { previousRcSendCompletedAtNanos }
+        synchronized(lock) { previousRcSendCompletedAtNanos = sentAtNanos }
+        val sendDuration = (sentAtNanos - sendStartedAtNanos).coerceAtLeast(0L)
+        val interSendInterval = prevCompleted?.let { (sendStartedAtNanos - it) / 1_000_000f }
+        runCatching {
+            onRcSent(
+                RcPublication(
+                    commandTimestampNanos = sendStartedAtNanos,
+                    desiredPublishedAtNanos = startedAtNanos,
+                    sendStartedAtNanos = sendStartedAtNanos,
+                    sentAtNanos = sentAtNanos,
+                    requestedVector = RcVector.Zero,
+                    actualVector = RcVector.Zero,
+                    inputKind = RcInputKind.SAFETY_ZERO,
+                    desiredPublishedAtMillis = nowMillis,
+                    sentAtMillis = nowMillis,
+                    suppressionReason = RcSendSuppressionReason.YAW_RESPONSE_ANOMALY,
+                    flightEpoch = flightEpoch,
+                    autonomyGeneration = generation,
+                    autonomousContext = null,
+                    rcSelectionSequence = selectionSequence,
+                    rcSendSequence = sendSequence,
+                    rawSdkCommand = RcVector.Zero.asCommand(),
+                    sendCompletedAtNanos = sentAtNanos,
+                    sendDurationNanos = sendDuration,
+                    previousRcSendCompletedAtNanos = prevCompleted,
+                    interSendIntervalMillis = interSendInterval,
+                ),
+            )
+        }
+        AnomalyFenceResult(
+            startedAtNanos = startedAtNanos,
+            committedAtNanos = committedAtNanos,
+            generation = generation,
+        )
+    }
+
+    /**
      * Sends the preemption zero only if no newer manual, safety, or re-arm action has won. This
      * preserves send serialization without allowing a delayed zero to overwrite a newer command.
      */
@@ -276,6 +352,7 @@ class RcControlLoop(
             }
             if (currentDesired == null) return@withLock
             try {
+                val selectionSequence = synchronized(lock) { ++rcSelectionSequenceCounter }
                 val sendSequence = synchronized(lock) { ++rcSendSequenceCounter }
                 val prevCompleted = synchronized(lock) { previousRcSendCompletedAtNanos }
                 val sendStartedAtNanos = traceClockNanos()
@@ -301,6 +378,7 @@ class RcControlLoop(
                             flightEpoch = currentDesired.flightEpoch,
                             autonomyGeneration = currentDesired.autonomyGeneration,
                             autonomousContext = currentDesired.autonomousContext,
+                            rcSelectionSequence = selectionSequence,
                             rcSendSequence = sendSequence,
                             rawSdkCommand = RcVector.Zero.asCommand(),
                             sendCompletedAtNanos = sentAtNanos,

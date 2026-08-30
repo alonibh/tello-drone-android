@@ -32,6 +32,7 @@ import com.alonibh.tellodrone.domain.YawFollowInput
 import com.alonibh.tellodrone.domain.YawFollowReason
 import com.alonibh.tellodrone.domain.YawFollowState
 import com.alonibh.tellodrone.domain.YawControlSuppressionReason
+import com.alonibh.tellodrone.domain.YawResponseAnomalyReason
 import com.alonibh.tellodrone.domain.withPersonDetectionVideoState
 import com.alonibh.tellodrone.domain.isZero
 import com.alonibh.tellodrone.vision.PersonDetectionStore
@@ -926,9 +927,24 @@ class TelloFlightSession(
                 )
 
                 if (anomalyEval.isJustLatched) {
+                    val detectionNanos = sourceNowNanos()
+                    val fenceResult = rcLoop.fenceAndCommitAnomaly { startedAtNanos ->
+                        val committedAtNanos = sourceNowNanos()
+                        yawResponseSafetyMonitor.commitPhysicalLatch(
+                            anomalyReason = anomalyEval.anomalyReason ?: YawResponseAnomalyReason.SUSTAINED_DIRECTION_MISMATCH,
+                            reason = anomalyEval.reason ?: "Yaw response anomaly latched",
+                            dominantRc = anomalyEval.dominantRecentRc,
+                            timestampMillis = sampleTimestampMillis,
+                            committedAtNanos = committedAtNanos,
+                        )
+                        committedAtNanos
+                    }
                     visionTrace.recordYawResponseAnomalyEvent(
                         YawResponseAnomalyEventTrace(
-                            timestampNanos = sourceNowNanos(),
+                            timestampNanos = detectionNanos,
+                            anomalyDetectedAtNanos = detectionNanos,
+                            anomalyPhysicalLatchStartedAtNanos = fenceResult.startedAtNanos,
+                            anomalyPhysicalLatchCommittedAtNanos = fenceResult.committedAtNanos,
                             eventType = "yaw_response_anomaly_latched",
                             rawYawRate = rawYawRate,
                             filteredYawRate = filteredYawRate,
@@ -950,7 +966,7 @@ class TelloFlightSession(
                             reason = anomalyEval.reason,
                         ),
                     )
-                    latchYawFollowAndSendZero(YawFollowReason.YAW_RESPONSE_ANOMALY)
+                    latchYawFollow(YawFollowReason.YAW_RESPONSE_ANOMALY)
                 } else if (anomalyEval.status == YawResponseSafetyStatus.MISMATCH_SUSPECT) {
                     visionTrace.recordYawResponseAnomalyEvent(
                         YawResponseAnomalyEventTrace(

@@ -139,6 +139,7 @@ data class RcPublicationTrace(
     val manualVector: RcVector? = null,
     val flightControlEpoch: Long? = null,
     val yawFollowGeneration: Long? = null,
+    val rcSelectionSequence: Long? = null,
     val rcSendSequence: Long? = null,
     val rawSdkCommand: String? = null,
     val sendCompletedAtNanos: Long? = null,
@@ -227,6 +228,9 @@ data class TelemetrySampleTrace(
 data class YawResponseAnomalyEventTrace(
     val timestampNanos: Long,
     val eventType: String,
+    val anomalyDetectedAtNanos: Long? = null,
+    val anomalyPhysicalLatchStartedAtNanos: Long? = null,
+    val anomalyPhysicalLatchCommittedAtNanos: Long? = null,
     val rawYawRate: Float?,
     val filteredYawRate: Float?,
     val currentYawDegrees: Int?,
@@ -421,6 +425,7 @@ internal object VisionTraceJson {
         }
         comma(); field("flightControlEpoch", trace.flightControlEpoch)
         comma(); field("yawFollowGeneration", trace.yawFollowGeneration)
+        comma(); field("rcSelectionSequence", trace.rcSelectionSequence)
         comma(); field("rcSendSequence", trace.rcSendSequence)
         comma(); field("rawSdkCommand", trace.rawSdkCommand)
         comma(); field("sendCompletedAtNanos", trace.sendCompletedAtNanos)
@@ -548,6 +553,15 @@ internal object VisionTraceJson {
         append('{'); field("schemaVersion", 1)
         comma(); field("eventType", trace.eventType)
         comma(); field("timestampNanos", trace.timestampNanos)
+        if (trace.anomalyDetectedAtNanos != null) {
+            comma(); field("anomalyDetectedAtNanos", trace.anomalyDetectedAtNanos)
+        }
+        if (trace.anomalyPhysicalLatchStartedAtNanos != null) {
+            comma(); field("anomalyPhysicalLatchStartedAtNanos", trace.anomalyPhysicalLatchStartedAtNanos)
+        }
+        if (trace.anomalyPhysicalLatchCommittedAtNanos != null) {
+            comma(); field("anomalyPhysicalLatchCommittedAtNanos", trace.anomalyPhysicalLatchCommittedAtNanos)
+        }
         comma(); field("rawYawRate", trace.rawYawRate)
         comma(); field("filteredYawRate", trace.filteredYawRate)
         comma(); field("currentYawDegrees", trace.currentYawDegrees)

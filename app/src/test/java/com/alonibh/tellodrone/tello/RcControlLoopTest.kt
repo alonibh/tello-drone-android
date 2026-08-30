@@ -324,6 +324,130 @@ class RcControlLoopTest {
         assertEquals(RcSendSuppressionReason.TRACKING_INACTIVE, pub.suppressionReason)
     }
 
+    @Test fun `send cycle in-flight blocks anomaly commit until completion then anomaly commits zero`() = runTest {
+        val physicallySent = mutableListOf<RcVector>()
+        val publications = mutableListOf<RcPublication>()
+        val clock = FakeClock(1_000)
+        var traceNowNanos = 10_000_000L
+        val monitor = com.alonibh.tellodrone.domain.YawResponseSafetyMonitor()
+        val loop = RcControlLoop(
+            scope = backgroundScope,
+            sender = { physicallySent += it },
+            clock = clock,
+            traceClockNanos = { traceNowNanos },
+            onRcSent = { publications += it },
+            authorityValidator = { kind, _ ->
+                if (kind == RcInputKind.AUTONOMOUS_YAW && monitor.isLatched()) {
+                    RcSendSuppressionReason.YAW_RESPONSE_ANOMALY
+                } else null
+            },
+        )
+        loop.enableForNewFlight()
+        val gen = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(-24, gen)
+
+        val beforeSenderReached = CompletableDeferred<Unit>()
+        val releaseSender = CompletableDeferred<Unit>()
+        loop.beforeSenderHook = { vector ->
+            if (vector.yaw == -24) {
+                beforeSenderReached.complete(Unit)
+                releaseSender.await()
+            }
+        }
+
+        val sendCycleJob = async { loop.sendCycle() }
+        beforeSenderReached.await()
+
+        var anomalyCommitted = false
+        val anomalyFenceJob = async {
+            loop.fenceAndCommitAnomaly { startedAtNanos ->
+                traceNowNanos = 20_000_000L
+                monitor.commitPhysicalLatch(
+                    anomalyReason = com.alonibh.tellodrone.domain.YawResponseAnomalyReason.SUSTAINED_DIRECTION_MISMATCH,
+                    reason = "Sustained mismatch",
+                    dominantRc = -24,
+                    timestampMillis = 1000L,
+                    committedAtNanos = traceNowNanos,
+                )
+                anomalyCommitted = true
+                traceNowNanos
+            }
+        }
+        runCurrent()
+        org.junit.Assert.assertFalse(anomalyCommitted)
+        org.junit.Assert.assertFalse(monitor.isLatched())
+
+        traceNowNanos = 15_000_000L
+        releaseSender.complete(Unit)
+        sendCycleJob.await()
+
+        val fenceResult = anomalyFenceJob.await()
+        assertTrue(anomalyCommitted)
+        assertTrue(monitor.isLatched())
+        assertEquals(20_000_000L, fenceResult.committedAtNanos)
+
+        assertEquals(listOf(RcVector(yaw = -24), RcVector.Zero), physicallySent)
+        val firstPub = publications[0]
+        assertEquals(RcVector(yaw = -24), firstPub.actualVector)
+        assertTrue(firstPub.sentAtNanos < fenceResult.committedAtNanos)
+
+        val gen2 = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(-24, gen2)
+        loop.sendCycle()
+        assertEquals(listOf(RcVector(yaw = -24), RcVector.Zero, RcVector.Zero), physicallySent)
+        assertEquals(RcVector.Zero, publications.last().actualVector)
+        assertEquals(RcSendSuppressionReason.YAW_RESPONSE_ANOMALY, publications.last().suppressionReason)
+    }
+
+    @Test fun `anomaly fence commits before sendCycle forcing subsequent autonomous send to zero`() = runTest {
+        val physicallySent = mutableListOf<RcVector>()
+        val publications = mutableListOf<RcPublication>()
+        val clock = FakeClock(1_000)
+        var traceNowNanos = 10_000_000L
+        val monitor = com.alonibh.tellodrone.domain.YawResponseSafetyMonitor()
+        val loop = RcControlLoop(
+            scope = backgroundScope,
+            sender = { physicallySent += it },
+            clock = clock,
+            traceClockNanos = { traceNowNanos },
+            onRcSent = { publications += it },
+            authorityValidator = { kind, _ ->
+                if (kind == RcInputKind.AUTONOMOUS_YAW && monitor.isLatched()) {
+                    RcSendSuppressionReason.YAW_RESPONSE_ANOMALY
+                } else null
+            },
+        )
+        loop.enableForNewFlight()
+        val gen = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(-24, gen)
+
+        traceNowNanos = 15_000_000L
+        val fenceResult = loop.fenceAndCommitAnomaly { startedAtNanos ->
+            traceNowNanos = 16_000_000L
+            monitor.commitPhysicalLatch(
+                anomalyReason = com.alonibh.tellodrone.domain.YawResponseAnomalyReason.SUSTAINED_DIRECTION_MISMATCH,
+                reason = "Sustained mismatch",
+                dominantRc = -24,
+                timestampMillis = 1000L,
+                committedAtNanos = traceNowNanos,
+            )
+            traceNowNanos
+        }
+        assertTrue(monitor.isLatched())
+        assertEquals(listOf(RcVector.Zero), physicallySent)
+
+        val gen2 = loop.beginAutonomousYaw()
+        loop.publishAutonomousYaw(-24, gen2)
+        traceNowNanos = 20_000_000L
+        loop.sendCycle()
+
+        assertEquals(listOf(RcVector.Zero, RcVector.Zero), physicallySent)
+        val secondPub = publications.last()
+        assertEquals(RcVector.Zero, secondPub.actualVector)
+        assertEquals(RcSendSuppressionReason.YAW_RESPONSE_ANOMALY, secondPub.suppressionReason)
+        assertTrue(secondPub.sendStartedAtNanos > fenceResult.committedAtNanos)
+    }
+
     internal class FakeClock(var value: Long) : MonotonicClock { override fun nowMillis() = value }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

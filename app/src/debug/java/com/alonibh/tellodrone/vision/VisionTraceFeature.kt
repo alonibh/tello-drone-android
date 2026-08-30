@@ -129,9 +129,23 @@ internal class DebugVisionTraceRecorder internal constructor(
     private val pending = linkedMapOf<FrameKey, PendingFrame>()
     private var nextGeneration = 1L
     @Volatile private var currentEpoch = CaptureEpoch(0L, VisionCaptureStartReason.DetectionStarted)
-    private val sessionLimiter = VisionCaptureLimiter(maxFrames = 1200, maxDurationNanos = 600_000_000_000L)
+    private var normalFramesCaptured = 0
+    private var safetyReserveFramesCaptured = 0
     private val safetyWindows = mutableListOf<LongRange>()
     private var capturePaused = false
+
+    private val criticalVideoEventTypes = setOf(
+        "decoder_reset",
+        "decoder_resync_start",
+        "decoder_resync_complete",
+        "surface_attach_requested",
+        "surface_detach_requested",
+        "surface_generation_changed",
+        "video_session_closed",
+        "codec_input_stall",
+        "corrupt_frame_escalation",
+        "stream_unavailable",
+    )
 
     private val frames = mutableListOf<VisionSessionFrameEntry>()
     private val recordedEpochs = mutableListOf<CaptureEpoch>()
@@ -186,15 +200,36 @@ internal class DebugVisionTraceRecorder internal constructor(
         safetyWindows.any { timestampNanos in it }
 
     private fun addSafetyWindow(timestampNanos: Long) = synchronized(pendingLock) {
-        val window = (timestampNanos - 2_000_000_000L)..(timestampNanos + 2_000_000_000L)
-        safetyWindows += window
+        val newStart = timestampNanos - 2_000_000_000L
+        val newEnd = timestampNanos + 2_000_000_000L
+        safetyWindows.add(newStart..newEnd)
+        safetyWindows.sortBy { it.first }
+        val merged = mutableListOf<LongRange>()
+        for (range in safetyWindows) {
+            if (merged.isEmpty()) {
+                merged.add(range)
+            } else {
+                val last = merged.last()
+                if (range.first <= last.last) {
+                    merged[merged.size - 1] = last.first..maxOf(last.last, range.last)
+                } else {
+                    merged.add(range)
+                }
+            }
+        }
+        while (merged.size > MAX_SAFETY_WINDOWS) {
+            merged.removeAt(0)
+        }
+        safetyWindows.clear()
+        safetyWindows.addAll(merged)
     }
 
     override fun startNewSession() {
         synchronized(pendingLock) {
             pending.values.forEach { it.bitmap.recycle() }
             pending.clear()
-            sessionLimiter.reset()
+            normalFramesCaptured = 0
+            safetyReserveFramesCaptured = 0
             safetyWindows.clear()
             currentEpoch = CaptureEpoch(nextGeneration++, VisionCaptureStartReason.DetectionStarted)
             capturePaused = false
@@ -208,8 +243,16 @@ internal class DebugVisionTraceRecorder internal constructor(
             if (capturePaused) return
             val epoch = currentEpoch
             val isSafety = isNearSafetyEventLocked(sourceTimestampNanos)
-            val sessionRes = sessionLimiter.reserve(sourceTimestampNanos)
-            if (sessionRes != VisionCaptureReservation.Accepted && !isSafety) {
+            val canAcceptSession = if (normalFramesCaptured < NORMAL_FRAME_BUDGET) {
+                normalFramesCaptured++
+                true
+            } else if (isSafety && safetyReserveFramesCaptured < SAFETY_RESERVE_BUDGET) {
+                safetyReserveFramesCaptured++
+                true
+            } else {
+                false
+            }
+            if (!canAcceptSession) {
                 epoch.excludedAfterLimit.incrementAndGet()
                 return
             }
@@ -310,7 +353,9 @@ internal class DebugVisionTraceRecorder internal constructor(
     }
 
     override fun recordVideoDiagnostic(trace: VideoDiagnosticTrace) {
-        addSafetyWindow(trace.timestampNanos)
+        if (trace.eventType in criticalVideoEventTypes || (trace.decoderResets ?: 0L) > 0L) {
+            addSafetyWindow(trace.timestampNanos)
+        }
         commands.trySend(Command.VideoDiagnostic(trace))
     }
 
@@ -853,6 +898,10 @@ internal class DebugVisionTraceRecorder internal constructor(
     companion object {
         internal const val QUEUE_CAPACITY = 128
         internal const val MAX_PENDING_BITMAPS = 8
+        internal const val NORMAL_FRAME_BUDGET = 1000
+        internal const val SAFETY_RESERVE_BUDGET = 200
+        internal const val HARD_MAX_SESSION_FRAMES = 1200
+        internal const val MAX_SAFETY_WINDOWS = 50
     }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

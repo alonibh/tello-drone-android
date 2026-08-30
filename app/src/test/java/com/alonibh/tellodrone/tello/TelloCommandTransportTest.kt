@@ -156,6 +156,48 @@ class TelloCommandTransportTest {
         assertEquals(listOf("rc 10 -20 30 -40"), endpoint.sent)
     }
 
+    @Test fun `diagnostic callback throws when endpoint send succeeds and sendRc still returns successfully`() = runTest {
+        val endpoint = FakeEndpoint()
+        var callbackInvoked = false
+        val transport = SerializedTelloCommandTransport(
+            endpoint = endpoint,
+            onRcTransportSend = { _, _, _, _, _ ->
+                callbackInvoked = true
+                throw RuntimeException("Trace queue closed")
+            },
+        )
+
+        transport.sendRc(RcVector(lateral = 0, forward = 0, vertical = 0, yaw = 10))
+        assertTrue(callbackInvoked)
+        assertEquals(listOf("rc 0 0 0 10"), endpoint.sent)
+    }
+
+    @Test fun `diagnostic callback throws when endpoint send fails and original failure remains thrown`() = runTest {
+        val expectedError = java.io.IOException("Socket send failed")
+        val endpoint = object : TelloDatagramEndpoint {
+            override suspend fun send(payload: String) { throw expectedError }
+            override suspend fun receive(timeoutMillis: Long): String = ""
+            override suspend fun close() = Unit
+        }
+        var callbackInvoked = false
+        val transport = SerializedTelloCommandTransport(
+            endpoint = endpoint,
+            onRcTransportSend = { _, _, _, _, success ->
+                callbackInvoked = true
+                org.junit.Assert.assertFalse(success)
+                throw RuntimeException("Diagnostic error")
+            },
+        )
+
+        try {
+            transport.sendRc(RcVector(lateral = 0, forward = 0, vertical = 0, yaw = 10))
+            org.junit.Assert.fail("Expected IOException")
+        } catch (actual: Throwable) {
+            assertEquals(expectedError, actual)
+        }
+        assertTrue(callbackInvoked)
+    }
+
     private class FakeEndpoint(private val timeoutOnEmpty: Boolean = false) : TelloDatagramEndpoint {
         val sent = mutableListOf<String>()
         val sentSignal = Channel<Unit>(Channel.UNLIMITED)
