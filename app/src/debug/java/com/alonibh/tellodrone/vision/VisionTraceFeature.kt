@@ -52,6 +52,9 @@ internal class DebugVisionTraceRecorder internal constructor(
         context?.contentResolver?.openOutputStream(Uri.parse(uriString), "w")
     },
     internal val storage: DiagnosticSessionFiles = DiagnosticSessionFiles(File(cacheDirectory, "vision-session")),
+    private val temporaryArchiveFactory: (File) -> File = { cacheDir ->
+        File.createTempFile("vision-trace-export-", ".zip", cacheDir)
+    },
 ) : VisionTraceRecorder {
     constructor(context: Context) : this(
         context = context,
@@ -60,6 +63,9 @@ internal class DebugVisionTraceRecorder internal constructor(
             context.contentResolver.openOutputStream(Uri.parse(uriString), "w")
         },
         storage = DiagnosticSessionFiles(File(context.cacheDir, "vision-session")),
+        temporaryArchiveFactory = { cacheDir ->
+            File.createTempFile("vision-trace-export-", ".zip", cacheDir)
+        },
     )
 
     override val capturesFrames = true
@@ -440,7 +446,7 @@ internal class DebugVisionTraceRecorder internal constructor(
 
             // Stage 4: Create temp ZIP in app cache
             val temp = runCatching {
-                File.createTempFile("vision-trace-export-", ".zip", cacheDirectory).also { tempZip = it }
+                temporaryArchiveFactory(cacheDirectory).also { tempZip = it }
             }.getOrElse { e ->
                 throw IllegalStateException("Failed to create temporary archive file: ${e.message ?: e.javaClass.simpleName}", e)
             }
@@ -564,7 +570,7 @@ internal class DebugVisionTraceRecorder internal constructor(
                 storage.controlFile.readLines(Charsets.UTF_8),
             )
             val temp = runCatching {
-                File.createTempFile("vision-session-export-", ".zip", cacheDirectory).also { tempZip = it }
+                temporaryArchiveFactory(cacheDirectory).also { tempZip = it }
             }.getOrElse { e ->
                 throw IllegalStateException("Failed to create temporary session archive file: ${e.message ?: e.javaClass.simpleName}", e)
             }

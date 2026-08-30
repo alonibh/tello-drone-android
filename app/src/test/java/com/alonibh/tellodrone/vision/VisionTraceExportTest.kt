@@ -306,27 +306,29 @@ class VisionTraceExportTest {
     @Test
     fun `test G - internal ZIP creation failure reports deterministic failure to callback`() = runBlocking {
         val tempDir = Files.createTempDirectory("vision-export-test-g").toFile()
-        val readOnlyCache = File(tempDir, "readonly-cache").apply {
-            mkdirs()
-            setReadOnly()
-        }
         val destFile = File(tempDir, "export-g.zip")
         val recorder = DebugVisionTraceRecorder(
-            cacheDirectory = readOnlyCache,
+            cacheDirectory = tempDir,
             destinationOpener = { FileOutputStream(destFile) },
+            temporaryArchiveFactory = {
+                throw IOException("Simulated temporary archive creation failure")
+            },
         )
         try {
+            recorder.startNewSession()
             val deferred = CompletableDeferred<Result<VisionTraceExport>>()
             recorder.export(destFile.absolutePath) { deferred.complete(it) }
 
             val result = withTimeout(5_000) { deferred.await() }
-            if (result.isFailure) {
-                val error = result.exceptionOrNull()
-                assertNotNull(error)
-                assertTrue(error!!.message?.contains("archive") == true || error.message?.contains("temporary") == true || error.message?.contains("Failed") == true)
-            }
+            assertTrue("Expected export to fail when temporary archive creation fails", result.isFailure)
+            val error = result.exceptionOrNull()
+            assertNotNull(error)
+            assertTrue(
+                "Expected error message to mention temporary archive creation, got: ${error?.message}",
+                error?.message?.contains("temporary archive file") == true || error?.message?.contains("Simulated temporary archive creation failure") == true,
+            )
+            assertFalse("Destination file should not be created if temp ZIP creation fails", destFile.exists())
         } finally {
-            readOnlyCache.setWritable(true)
             recorder.storage.close()
             tempDir.deleteRecursively()
         }
