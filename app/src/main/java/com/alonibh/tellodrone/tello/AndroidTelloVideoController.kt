@@ -674,74 +674,92 @@ class AndroidTelloVideoController(
             }
             if (outputIndex < 0) return
 
-            val currentGeneration = videoSurface.generation
-            val currentSurface = videoSurface.current
-            val isSurfaceAttached = currentSurface != null
-            val isSurfaceValid = currentSurface?.isValid == true
             val isConfigOrEos = (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) ||
                 (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0)
 
-            val decision = VideoRenderAuthorizer.authorizeRender(
-                codecBoundGeneration = codecBoundGeneration,
-                currentSurfaceGeneration = currentGeneration,
-                isSurfaceAttached = isSurfaceAttached,
-                isSurfaceValid = isSurfaceValid,
-                isCodecConfigOrEos = isConfigOrEos,
-            )
-
-            if (decision.isStaleGeneration && !isConfigOrEos) {
-                recordVideoDiagnostic(
-                    "decoder_surface_stale_render_suppressed",
-                    decision.reason,
-                )
+            if (isConfigOrEos) {
+                try {
+                    codec.releaseOutputBuffer(outputIndex, false)
+                } catch (t: Throwable) {
+                    recordVideoDiagnostic(
+                        "decoder_output_release_failed",
+                        "Failed to release config/EOS buffer: ${t.message}",
+                    )
+                    throw RecoverableDecoderException("releaseOutputBuffer failed", t)
+                }
+                continue
             }
 
-            val render = decision.shouldRender
-            try {
-                codec.releaseOutputBuffer(outputIndex, render)
-            } catch (t: Throwable) {
-                recordVideoDiagnostic(
-                    "decoder_output_release_failed",
-                    "Failed to release output buffer (render=$render): ${t.message}",
-                )
-                throw RecoverableDecoderException("releaseOutputBuffer failed", t)
+            val leaseResult = videoSurface.withRenderLease(
+                expectedSurface = null,
+                expectedGeneration = codecBoundGeneration,
+                predicate = { surface -> surface.isValid },
+            ) {
+                try {
+                    codec.releaseOutputBuffer(outputIndex, true)
+                } catch (t: Throwable) {
+                    recordVideoDiagnostic(
+                        "decoder_output_release_failed",
+                        "Failed to release output buffer (render=true): ${t.message}",
+                    )
+                    throw RecoverableDecoderException("releaseOutputBuffer failed", t)
+                }
             }
 
-            if (render) {
-                val nowNanos = System.nanoTime()
-                renderedFrames.incrementAndGet()
-                val measured = frameRate.onRendered(nowNanos)
-                val transition = recoveryState.onFrameRendered(codecBoundGeneration, nowNanos)
-                if (transition.availability == VideoAvailability.Streaming) {
-                    mutableState.update { current ->
-                        current.copy(
-                            availability = VideoAvailability.Streaming,
-                            measuredFps = measured ?: current.measuredFps,
-                            lastFrameAt = Instant.now(),
+            when (leaseResult) {
+                is RenderLeaseResult.Denied -> {
+                    if (leaseResult.isStaleGeneration) {
+                        recordVideoDiagnostic(
+                            "decoder_surface_stale_render_suppressed",
+                            leaseResult.reason,
                         )
                     }
+                    try {
+                        codec.releaseOutputBuffer(outputIndex, false)
+                    } catch (t: Throwable) {
+                        recordVideoDiagnostic(
+                            "decoder_output_release_failed",
+                            "Failed to release discarded output buffer: ${t.message}",
+                        )
+                        throw RecoverableDecoderException("releaseOutputBuffer failed", t)
+                    }
                 }
-                transition.recoveryDurationNanos?.let { duration ->
-                    recordVideoDiagnostic(
-                        eventType = "first_current_generation_frame_rendered",
-                        detail = "Rendered frame to current generation $codecBoundGeneration",
-                        recoveryDurationMillis = duration / 1_000_000L,
-                    )
-                    recordVideoDiagnostic(
-                        eventType = "first_good_frame_after_recovery",
-                        detail = "Rendered a frame to the current surface",
-                        recoveryDurationMillis = duration / 1_000_000L,
-                    )
-                    recordVideoDiagnostic(
-                        eventType = "video_recovery_completed",
-                        detail = "Video recovered to Streaming on generation $codecBoundGeneration",
-                        recoveryDurationMillis = duration / 1_000_000L,
-                    )
+                is RenderLeaseResult.Granted -> {
+                    val nowNanos = System.nanoTime()
+                    renderedFrames.incrementAndGet()
+                    val measured = frameRate.onRendered(nowNanos)
+                    val transition = recoveryState.onFrameRendered(codecBoundGeneration, nowNanos)
+                    if (transition.availability == VideoAvailability.Streaming) {
+                        mutableState.update { current ->
+                            current.copy(
+                                availability = VideoAvailability.Streaming,
+                                measuredFps = measured ?: current.measuredFps,
+                                lastFrameAt = Instant.now(),
+                            )
+                        }
+                    }
+                    transition.recoveryDurationNanos?.let { duration ->
+                        recordVideoDiagnostic(
+                            eventType = "first_current_generation_frame_rendered",
+                            detail = "Rendered frame to current generation $codecBoundGeneration",
+                            recoveryDurationMillis = duration / 1_000_000L,
+                        )
+                        recordVideoDiagnostic(
+                            eventType = "first_good_frame_after_recovery",
+                            detail = "Rendered a frame to the current surface",
+                            recoveryDurationMillis = duration / 1_000_000L,
+                        )
+                        recordVideoDiagnostic(
+                            eventType = "video_recovery_completed",
+                            detail = "Video recovered to Streaming on generation $codecBoundGeneration",
+                            recoveryDurationMillis = duration / 1_000_000L,
+                        )
+                    }
+                    if (renderedFrames.get() % VIDEO_DIAGNOSTIC_RENDER_INTERVAL == 0L) {
+                        recordVideoDiagnostic("render_progress", "Rendered video frame progress")
+                    }
+                    decodedFrameSource.onFrameRendered(nowNanos)
                 }
-                if (renderedFrames.get() % VIDEO_DIAGNOSTIC_RENDER_INTERVAL == 0L) {
-                    recordVideoDiagnostic("render_progress", "Rendered video frame progress")
-                }
-                decodedFrameSource.onFrameRendered(nowNanos)
             }
         }
     }

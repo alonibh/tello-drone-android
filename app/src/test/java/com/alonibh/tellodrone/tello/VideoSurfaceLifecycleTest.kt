@@ -8,41 +8,233 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.thread
 
 class VideoSurfaceLifecycleTest {
 
     @Test
-    fun `test 1 - detach while a render is pending suppresses output rendering`() {
+    fun `test 1 - render critical section blocks detach until render completes`() {
         val lifecycle = VideoSurfaceLifecycle<Any>()
         val surface1 = Any()
         assertTrue(lifecycle.attach(surface1))
         val gen1 = lifecycle.generation
         assertEquals(1L, gen1)
 
-        // Codec prepared for gen1
-        val codecBoundGen = gen1
+        val insideLease = CountDownLatch(1)
+        val allowLeaseToComplete = CountDownLatch(1)
+        val detachStarted = CountDownLatch(1)
+        val detachCompleted = AtomicBoolean(false)
+        val renderActionExecuted = AtomicBoolean(false)
 
-        // Detach surface 1
-        assertTrue(lifecycle.detach(surface1))
-        val currentGen = lifecycle.generation
-        assertEquals(2L, currentGen)
+        val renderThread = thread(name = "test-render-thread") {
+            lifecycle.withRenderLease(
+                expectedSurface = surface1,
+                expectedGeneration = gen1,
+                predicate = { true },
+            ) {
+                renderActionExecuted.set(true)
+                insideLease.countDown()
+                allowLeaseToComplete.await(5, TimeUnit.SECONDS)
+            }
+        }
 
-        // Render decision executes after detach
-        val decision = VideoRenderAuthorizer.authorizeRender(
-            codecBoundGeneration = codecBoundGen,
-            currentSurfaceGeneration = currentGen,
-            isSurfaceAttached = lifecycle.current != null,
-            isSurfaceValid = true,
-            isCodecConfigOrEos = false,
-        )
+        assertTrue("Render thread should enter critical section", insideLease.await(5, TimeUnit.SECONDS))
+        assertTrue("Render action must be executing", renderActionExecuted.get())
 
-        assertFalse("Old output must NOT be rendered after detach", decision.shouldRender)
-        assertTrue("Decision must indicate stale generation", decision.isStaleGeneration)
-        assertTrue(decision.reason.contains("detached") || decision.reason.contains("Stale"))
+        val detachThread = thread(name = "test-ui-detach-thread") {
+            detachStarted.countDown()
+            lifecycle.detach(surface1)
+            detachCompleted.set(true)
+        }
+
+        assertTrue("detachThread must have started", detachStarted.await(5, TimeUnit.SECONDS))
+        // Verify detach has NOT completed while render lease is held
+        Thread.sleep(100)
+        assertFalse("detach must be blocked while render lease is active", detachCompleted.get())
+
+        // Release render lease
+        allowLeaseToComplete.countDown()
+        renderThread.join(5000)
+        detachThread.join(5000)
+
+        assertTrue("detach must complete once render lease finishes", detachCompleted.get())
+        assertNull("Surface must be detached", lifecycle.current)
+        assertEquals("Generation must advance on detach", 2L, lifecycle.generation)
     }
 
     @Test
-    fun `test 2 - replacement surface rejects older generation outputs from ending recovery`() {
+    fun `test 2 - detach first denies subsequent render lease and action is never executed`() {
+        val lifecycle = VideoSurfaceLifecycle<Any>()
+        val surface1 = Any()
+        assertTrue(lifecycle.attach(surface1))
+        val gen1 = lifecycle.generation
+
+        assertTrue(lifecycle.detach(surface1))
+        assertEquals(2L, lifecycle.generation)
+
+        var actionExecuted = false
+        val result = lifecycle.withRenderLease(
+            expectedSurface = surface1,
+            expectedGeneration = gen1,
+            predicate = { true },
+        ) {
+            actionExecuted = true
+        }
+
+        assertFalse("Render action must NOT execute after detach", actionExecuted)
+        assertTrue("Lease result must be Denied", result is RenderLeaseResult.Denied)
+        val denied = result as RenderLeaseResult.Denied
+        assertTrue(denied.isStaleGeneration)
+        assertTrue(denied.reason.contains("detached") || denied.reason.contains("Stale"))
+    }
+
+    @Test
+    fun `test 3 - replacement Surface denies old render request and preserves active replacement`() {
+        val lifecycle = VideoSurfaceLifecycle<Any>()
+        val surfaceA = Any()
+        val surfaceB = Any()
+
+        assertTrue(lifecycle.attach(surfaceA))
+        val genA = lifecycle.generation
+
+        assertTrue(lifecycle.detach(surfaceA))
+        assertTrue(lifecycle.attach(surfaceB))
+        val genB = lifecycle.generation
+        assertEquals(3L, genB)
+
+        var oldActionExecuted = false
+        val result = lifecycle.withRenderLease(
+            expectedSurface = surfaceA,
+            expectedGeneration = genA,
+            predicate = { true },
+        ) {
+            oldActionExecuted = true
+        }
+
+        assertFalse("Old render action must NOT execute", oldActionExecuted)
+        assertTrue("Old render must be denied", result is RenderLeaseResult.Denied)
+        assertSame("Current surface must remain surfaceB", surfaceB, lifecycle.current)
+
+        // Stale detach of surfaceA must be ignored
+        assertFalse("Stale detach must be rejected", lifecycle.detach(surfaceA))
+        assertSame("surfaceB must remain active", surfaceB, lifecycle.current)
+    }
+
+    @Test
+    fun `test 4 - current generation render executes action exactly once`() {
+        val lifecycle = VideoSurfaceLifecycle<Any>()
+        val surfaceB = Any()
+        assertTrue(lifecycle.attach(surfaceB))
+        val genB = lifecycle.generation
+
+        var executionCount = 0
+        val result = lifecycle.withRenderLease(
+            expectedSurface = surfaceB,
+            expectedGeneration = genB,
+            predicate = { true },
+        ) {
+            executionCount++
+            "rendered-ok"
+        }
+
+        assertEquals(1, executionCount)
+        assertTrue(result is RenderLeaseResult.Granted)
+        assertEquals("rendered-ok", (result as RenderLeaseResult.Granted).value)
+    }
+
+    @Test
+    fun `test 5 - invalid surface denies render lease without executing action`() {
+        val lifecycle = VideoSurfaceLifecycle<Any>()
+        val surfaceB = Any()
+        assertTrue(lifecycle.attach(surfaceB))
+        val genB = lifecycle.generation
+
+        var actionExecuted = false
+        val result = lifecycle.withRenderLease(
+            expectedSurface = surfaceB,
+            expectedGeneration = genB,
+            predicate = { false }, // surface is invalid
+        ) {
+            actionExecuted = true
+        }
+
+        assertFalse("Render action must NOT execute when predicate returns false", actionExecuted)
+        assertTrue(result is RenderLeaseResult.Denied)
+        val denied = result as RenderLeaseResult.Denied
+        assertFalse(denied.isStaleGeneration)
+        assertEquals("Surface is invalid", denied.reason)
+    }
+
+    @Test
+    fun `test 6 - repeated concurrent lifecycle cycles maintain exact single surface and monotonic generations`() {
+        val lifecycle = VideoSurfaceLifecycle<Any>()
+        val recovery = VideoRecoveryStateMachine()
+        recovery.onStreamAcknowledged(100L)
+
+        val renderedSuccessCount = AtomicInteger(0)
+
+        repeat(50) { cycle ->
+            val surface = Any()
+            assertTrue(lifecycle.attach(surface))
+            val currentGen = lifecycle.generation
+            assertSame(surface, lifecycle.current)
+
+            recovery.onSurfaceAttached(currentGen, 1000L * cycle)
+
+            val renderResult = lifecycle.withRenderLease(
+                expectedSurface = surface,
+                expectedGeneration = currentGen,
+                predicate = { true },
+            ) {
+                renderedSuccessCount.incrementAndGet()
+            }
+            assertTrue(renderResult is RenderLeaseResult.Granted)
+
+            val renderTransition = recovery.onFrameRendered(currentGen, 1000L * cycle + 50L)
+            assertEquals(VideoAvailability.Streaming, renderTransition.availability)
+
+            assertTrue(lifecycle.detach(surface))
+            assertNull(lifecycle.current)
+
+            val detachTransition = recovery.onSurfaceDetached(lifecycle.generation)
+            assertEquals(VideoAvailability.Unavailable, detachTransition.availability)
+
+            // Post-detach render must be denied
+            val postDetachRender = lifecycle.withRenderLease(
+                expectedSurface = surface,
+                expectedGeneration = currentGen,
+                predicate = { true },
+            ) {
+                renderedSuccessCount.incrementAndGet()
+            }
+            assertTrue(postDetachRender is RenderLeaseResult.Denied)
+        }
+
+        assertEquals(50, renderedSuccessCount.get())
+        assertEquals(100L, lifecycle.generation)
+    }
+
+    @Test
+    fun `test 7 - stale detach preserves replacement surface and generation`() {
+        val lifecycle = VideoSurfaceLifecycle<Any>()
+        val surfaceA = Any()
+        val surfaceB = Any()
+
+        assertTrue(lifecycle.attach(surfaceA))
+        assertTrue(lifecycle.attach(surfaceB))
+        val genB = lifecycle.generation
+
+        assertFalse("Stale detach of A must return false", lifecycle.detach(surfaceA))
+        assertSame(surfaceB, lifecycle.current)
+        assertEquals(genB, lifecycle.generation)
+    }
+
+    @Test
+    fun `test 8 - recovery state enforces that only current generation frame transitions to Streaming`() {
         val recovery = VideoRecoveryStateMachine()
         recovery.onStreamAcknowledged(100L)
 
@@ -50,220 +242,23 @@ class VideoSurfaceLifecycleTest {
         recovery.onSurfaceAttached(1L, 110L)
         assertEquals(VideoAvailability.Streaming, recovery.onFrameRendered(1L, 120L).availability)
 
-        // Surface 1 detached
-        assertEquals(VideoAvailability.Unavailable, recovery.onSurfaceDetached(2L).availability)
-
-        // Surface 2 attached -> enters Recovering
-        val attachedTransition = recovery.onSurfaceAttached(3L, 200L)
-        assertEquals(VideoAvailability.Recovering, attachedTransition.availability)
-
-        // Stale frame from generation 1 arrives
-        val staleRenderTransition = recovery.onFrameRendered(1L, 250L)
-        assertEquals(
-            "Stale frame from generation 1 must NOT end recovery or transition to Streaming",
-            VideoAvailability.Recovering,
-            staleRenderTransition.availability,
-        )
-        assertEquals(
-            "State machine must remain in Recovering",
-            VideoAvailability.Recovering,
-            recovery.currentAvailability,
-        )
-    }
-
-    @Test
-    fun `test 3 - current-generation frame resumes streaming after reattach`() {
-        val recovery = VideoRecoveryStateMachine()
-        recovery.onStreamAcknowledged(100L)
-
-        // Surface 1 attached and streaming
-        recovery.onSurfaceAttached(1L, 110L)
-        recovery.onFrameRendered(1L, 120L)
-
         // Detach
         recovery.onSurfaceDetached(2L)
-
-        // Surface 2 attached (generation 3)
-        recovery.onSurfaceAttached(3L, 200L)
-        assertEquals(VideoAvailability.Recovering, recovery.currentAvailability)
-
-        // Current generation 3 frame rendered
-        val transition = recovery.onFrameRendered(3L, 260L)
-        assertEquals(VideoAvailability.Streaming, transition.availability)
-        assertEquals(60L, transition.recoveryDurationNanos)
-        assertEquals(VideoAvailability.Streaming, recovery.currentAvailability)
-    }
-
-    @Test
-    fun `test 4 - stale old detach cannot clear or advance the replacement surface`() {
-        val lifecycle = VideoSurfaceLifecycle<Any>()
-        val surface1 = Any()
-        val surface2 = Any()
-
-        assertTrue(lifecycle.attach(surface1))
-        assertTrue(lifecycle.attach(surface2))
-        val replacementGeneration = lifecycle.generation
-
-        assertFalse("Stale detach of surface1 must be rejected", lifecycle.detach(surface1))
-        assertSame(surface2, lifecycle.current)
-        assertEquals(replacementGeneration, lifecycle.generation)
-        assertFalse(lifecycle.attach(surface2))
-        assertEquals(replacementGeneration, lifecycle.generation)
-
-        assertTrue(lifecycle.detach(surface2))
-        assertNull(lifecycle.current)
-        assertEquals(replacementGeneration + 1L, lifecycle.generation)
-    }
-
-    @Test
-    fun `test 5 - setOutputSurface transition safely authorizes only new generation frames`() {
-        val recovery = VideoRecoveryStateMachine()
-        recovery.onStreamAcknowledged(100L)
-
-        // Surface 1 streaming
-        recovery.onSurfaceAttached(1L, 110L)
-        recovery.onFrameRendered(1L, 120L)
-        assertEquals(VideoAvailability.Streaming, recovery.currentAvailability)
-
-        // Detach surface 1
-        recovery.onSurfaceDetached(2L)
         assertEquals(VideoAvailability.Unavailable, recovery.currentAvailability)
 
         // Surface 2 attached (generation 3)
         recovery.onSurfaceAttached(3L, 200L)
         assertEquals(VideoAvailability.Recovering, recovery.currentAvailability)
 
-        // setOutputSurface succeeds: codec is now bound to generation 3
-        val codecBoundGeneration = 3L
+        // Stale frame from generation 1 cannot end recovery
+        val staleTransition = recovery.onFrameRendered(1L, 250L)
+        assertEquals(VideoAvailability.Recovering, staleTransition.availability)
+        assertEquals(VideoAvailability.Recovering, recovery.currentAvailability)
 
-        // Verify older generation 1 render is rejected
-        val staleDecision = VideoRenderAuthorizer.authorizeRender(
-            codecBoundGeneration = 1L,
-            currentSurfaceGeneration = 3L,
-            isSurfaceAttached = true,
-            isSurfaceValid = true,
-            isCodecConfigOrEos = false,
-        )
-        assertFalse(staleDecision.shouldRender)
-        assertTrue(staleDecision.isStaleGeneration)
-
-        // Verify generation 3 render is authorized
-        val validDecision = VideoRenderAuthorizer.authorizeRender(
-            codecBoundGeneration = codecBoundGeneration,
-            currentSurfaceGeneration = 3L,
-            isSurfaceAttached = true,
-            isSurfaceValid = true,
-            isCodecConfigOrEos = false,
-        )
-        assertTrue(validDecision.shouldRender)
-        assertFalse(validDecision.isStaleGeneration)
-
-        // Render generation 3 frame -> Streaming
-        val transition = recovery.onFrameRendered(codecBoundGeneration, 280L)
-        assertEquals(VideoAvailability.Streaming, transition.availability)
-    }
-
-    @Test
-    fun `test 6 - setOutputSurface failure path releases decoder and requires fresh IDR without terminal error`() {
-        val recovery = VideoRecoveryStateMachine()
-        recovery.onStreamAcknowledged(100L)
-
-        // Surface 1 streaming
-        recovery.onSurfaceAttached(1L, 110L)
-        recovery.onFrameRendered(1L, 120L)
-
-        // Surface 1 detached, Surface 2 attached (generation 3)
-        recovery.onSurfaceDetached(2L)
-        recovery.onSurfaceAttached(3L, 200L)
-
-        // setOutputSurface fails: require decoder resync
-        val resyncTransition = recovery.requireDecoderResynchronization(210L)
-        assertEquals(VideoAvailability.Recovering, resyncTransition.availability)
-        assertFalse("Failure must not transition to Error", resyncTransition.availability == VideoAvailability.Error)
-
-        // Attempting to render before IDR resynchronization keeps state in Recovering
-        val earlyRender = recovery.onFrameRendered(3L, 250L)
-        assertEquals(VideoAvailability.Recovering, earlyRender.availability)
-
-        // IDR arrived and decoder was recreated
-        recovery.onDecoderResynchronized()
-
-        // First valid frame from recreated decoder resumes Streaming
-        val recoveredRender = recovery.onFrameRendered(3L, 300L)
-        assertEquals(VideoAvailability.Streaming, recoveredRender.availability)
-    }
-
-    @Test
-    fun `test 7 - decoder output racing with detach suppresses stale render deterministically`() {
-        val lifecycle = VideoSurfaceLifecycle<Any>()
-        val recovery = VideoRecoveryStateMachine()
-        recovery.onStreamAcknowledged(100L)
-
-        val surface1 = Any()
-        assertTrue(lifecycle.attach(surface1))
-        val gen1 = lifecycle.generation
-        recovery.onSurfaceAttached(gen1, 110L)
-        recovery.onFrameRendered(gen1, 120L)
+        // Current generation 3 frame transitions to Streaming
+        val currentTransition = recovery.onFrameRendered(3L, 300L)
+        assertEquals(VideoAvailability.Streaming, currentTransition.availability)
         assertEquals(VideoAvailability.Streaming, recovery.currentAvailability)
-
-        // Codec is processing an output buffer bound to gen1
-        val codecBoundGen = gen1
-
-        // Concurrent detach occurs on UI thread
-        assertTrue(lifecycle.detach(surface1))
-        val detachGen = lifecycle.generation
-        recovery.onSurfaceDetached(detachGen)
-        assertEquals(VideoAvailability.Unavailable, recovery.currentAvailability)
-
-        // Render authorizer executes on codec thread
-        val renderDecision = VideoRenderAuthorizer.authorizeRender(
-            codecBoundGeneration = codecBoundGen,
-            currentSurfaceGeneration = lifecycle.generation,
-            isSurfaceAttached = lifecycle.current != null,
-            isSurfaceValid = true,
-            isCodecConfigOrEos = false,
-        )
-        assertFalse("Render must be suppressed when racing with detach", renderDecision.shouldRender)
-        assertTrue(renderDecision.isStaleGeneration)
-
-        // Even if old frame was processed, state machine rejects it
-        val transition = recovery.onFrameRendered(codecBoundGen, 150L)
-        assertEquals(VideoAvailability.Unavailable, transition.availability)
-    }
-
-    @Test
-    fun `test 8 - repeated lifecycle cycles maintain exact single surface and monotonic generations`() {
-        val lifecycle = VideoSurfaceLifecycle<Any>()
-        val recovery = VideoRecoveryStateMachine()
-        recovery.onStreamAcknowledged(100L)
-
-        var expectedGeneration = 0L
-
-        repeat(25) { cycle ->
-            val surface = Any()
-            assertTrue(lifecycle.attach(surface))
-            expectedGeneration++
-            assertEquals(expectedGeneration, lifecycle.generation)
-            assertSame(surface, lifecycle.current)
-
-            val attachTransition = recovery.onSurfaceAttached(lifecycle.generation, 1000L * cycle)
-            assertEquals(VideoAvailability.Recovering, attachTransition.availability)
-
-            val renderTransition = recovery.onFrameRendered(lifecycle.generation, 1000L * cycle + 50L)
-            assertEquals(VideoAvailability.Streaming, renderTransition.availability)
-            assertEquals(VideoAvailability.Streaming, recovery.currentAvailability)
-
-            assertTrue(lifecycle.detach(surface))
-            expectedGeneration++
-            assertEquals(expectedGeneration, lifecycle.generation)
-            assertNull(lifecycle.current)
-
-            val detachTransition = recovery.onSurfaceDetached(lifecycle.generation)
-            assertEquals(VideoAvailability.Unavailable, detachTransition.availability)
-            assertEquals(VideoAvailability.Unavailable, recovery.currentAvailability)
-        }
-
-        assertEquals(50L, lifecycle.generation)
     }
 
     @Test

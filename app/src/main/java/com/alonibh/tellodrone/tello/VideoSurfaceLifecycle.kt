@@ -4,28 +4,86 @@ import com.alonibh.tellodrone.domain.VideoAvailability
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
-/** Identity-based ownership for the one UI surface currently allowed to receive decoded video. */
+/** Result of an atomic render lease request. */
+internal sealed interface RenderLeaseResult<out R> {
+    data class Granted<R>(val value: R) : RenderLeaseResult<R>
+    data class Denied(val isStaleGeneration: Boolean, val reason: String) : RenderLeaseResult<Nothing>
+}
+
+/**
+ * Identity-based, synchronized ownership for the one UI surface currently allowed to receive decoded video.
+ *
+ * Synchronization invariant:
+ * The internal lock protects active Surface identity, generation counter, and the minimal critical
+ * section executing physical MediaCodec releaseOutputBuffer(..., render=true).
+ * No outside locks (recoveryState, StateFlow, PixelCopy, UDP) are ever acquired while holding this lock.
+ */
 internal class VideoSurfaceLifecycle<T : Any> {
-    private val active = AtomicReference<T?>()
-    private val generationCounter = AtomicLong()
+    private val lock = Any()
+    private var active: T? = null
+    private var generationCounter = 0L
 
-    val current: T? get() = active.get()
-    val generation: Long get() = generationCounter.get()
+    val current: T? get() = synchronized(lock) { active }
+    val generation: Long get() = synchronized(lock) { generationCounter }
 
-    fun attach(value: T): Boolean {
-        if (active.getAndSet(value) === value) return false
-        generationCounter.incrementAndGet()
-        return true
+    fun attach(value: T): Boolean = synchronized(lock) {
+        if (active === value) return false
+        active = value
+        generationCounter++
+        true
     }
 
-    fun detach(value: T): Boolean {
-        if (!active.compareAndSet(value, null)) return false
-        generationCounter.incrementAndGet()
-        return true
+    fun detach(value: T): Boolean = synchronized(lock) {
+        if (active !== value) return false
+        active = null
+        generationCounter++
+        true
     }
 
-    fun isCurrent(value: T, expectedGeneration: Long): Boolean =
-        active.get() === value && generationCounter.get() == expectedGeneration
+    fun isCurrent(value: T, expectedGeneration: Long): Boolean = synchronized(lock) {
+        active === value && generationCounter == expectedGeneration
+    }
+
+    /**
+     * Atomically validates surface ownership and generation, and if valid, executes [action]
+     * under the lifecycle lock so that a concurrent detach cannot invalidate or disconnect
+     * the native surface before [action] completes.
+     */
+    fun <R> withRenderLease(
+        expectedSurface: T? = null,
+        expectedGeneration: Long,
+        predicate: (T) -> Boolean = { true },
+        action: (T) -> R,
+    ): RenderLeaseResult<R> = synchronized(lock) {
+        val currentSurface = active
+        val currentGen = generationCounter
+        if (currentSurface == null) {
+            return RenderLeaseResult.Denied(
+                isStaleGeneration = true,
+                reason = "Surface detached (currentGen=$currentGen, expectedGen=$expectedGeneration)",
+            )
+        }
+        if (expectedSurface != null && currentSurface !== expectedSurface) {
+            return RenderLeaseResult.Denied(
+                isStaleGeneration = true,
+                reason = "Surface instance mismatch (current=$currentSurface != expected=$expectedSurface)",
+            )
+        }
+        if (currentGen != expectedGeneration) {
+            return RenderLeaseResult.Denied(
+                isStaleGeneration = true,
+                reason = "Stale generation (currentGen=$currentGen != expectedGen=$expectedGeneration)",
+            )
+        }
+        if (!predicate(currentSurface)) {
+            return RenderLeaseResult.Denied(
+                isStaleGeneration = false,
+                reason = "Surface is invalid",
+            )
+        }
+        val result = action(currentSurface)
+        RenderLeaseResult.Granted(result)
+    }
 }
 
 internal data class RenderAuthorizationDecision(
