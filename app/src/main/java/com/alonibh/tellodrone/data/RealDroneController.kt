@@ -105,8 +105,11 @@ class RealDroneController(context: Context) : DroneController {
             TelloSessionStore.update { state ->
                 state.copy(
                     lastMessage = result.fold(
-                        onSuccess = { "Exported ${it.frameCount} vision trace frames (${it.droppedFrameCount} dropped)" },
-                        onFailure = { "Vision trace export failed: ${it.message ?: it.javaClass.simpleName}" },
+                        onSuccess = { export ->
+                            val kb = if (export.byteCount > 0L) (export.byteCount + 1023L) / 1024L else 0L
+                            "Exported trace: $kb KB, ${export.controlEventCount} control events, ${export.frameCount} frames"
+                        },
+                        onFailure = { "Trace export failed: ${it.message ?: it.javaClass.simpleName}" },
                     ),
                 )
             }

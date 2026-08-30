@@ -11,9 +11,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStream
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
 object VisionTraceFeature {
@@ -43,7 +45,23 @@ object VisionTraceFeature {
     }
 }
 
-internal class DebugVisionTraceRecorder(private val context: Context) : VisionTraceRecorder {
+internal class DebugVisionTraceRecorder internal constructor(
+    private val context: Context? = null,
+    private val cacheDirectory: File = context?.cacheDir ?: File(System.getProperty("java.io.tmpdir") ?: "."),
+    private val destinationOpener: (String) -> OutputStream? = { uriString ->
+        context?.contentResolver?.openOutputStream(Uri.parse(uriString), "w")
+    },
+    internal val storage: DiagnosticSessionFiles = DiagnosticSessionFiles(File(cacheDirectory, "vision-session")),
+) : VisionTraceRecorder {
+    constructor(context: Context) : this(
+        context = context,
+        cacheDirectory = context.cacheDir,
+        destinationOpener = { uriString ->
+            context.contentResolver.openOutputStream(Uri.parse(uriString), "w")
+        },
+        storage = DiagnosticSessionFiles(File(context.cacheDir, "vision-session")),
+    )
+
     override val capturesFrames = true
 
     private data class FrameKey(val sequence: Long, val timestampNanos: Long)
@@ -97,7 +115,6 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     @Volatile private var currentEpoch = CaptureEpoch(0L, VisionCaptureStartReason.DetectionStarted)
     private var capturePaused = false
 
-    private val storage = DiagnosticSessionFiles(File(context.cacheDir, "vision-session"))
     private val frames = mutableListOf<VisionSessionFrameEntry>()
     private var activeEpoch: CaptureEpoch? = null
 
@@ -114,20 +131,31 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
 
     init {
         scope.launch {
-            for (command in commands) when (command) {
-                is Command.StartNewSession -> resetWorkerStorage()
-                is Command.Pair -> write(command)
-                is Command.ControlMeasurement -> write(command)
-                is Command.RcPublication -> write(command)
-                is Command.SdkCommand -> write(command)
-                is Command.FlightTransition -> write(command)
-                is Command.ExternalGrounding -> write(command)
-                is Command.TargetSelectionAttempt -> write(command)
-                is Command.CorruptFrame -> write(command)
-                is Command.VideoDiagnostic -> write(command)
-                is Command.ExportTrace -> exportTrace(command)
-                is Command.ExportSession -> exportSession(command)
-                is Command.ExportFlightDiagnostics -> exportFlightDiagnostics(command)
+            for (command in commands) {
+                try {
+                    when (command) {
+                        is Command.StartNewSession -> resetWorkerStorage()
+                        is Command.Pair -> write(command)
+                        is Command.ControlMeasurement -> write(command)
+                        is Command.RcPublication -> write(command)
+                        is Command.SdkCommand -> write(command)
+                        is Command.FlightTransition -> write(command)
+                        is Command.ExternalGrounding -> write(command)
+                        is Command.TargetSelectionAttempt -> write(command)
+                        is Command.CorruptFrame -> write(command)
+                        is Command.VideoDiagnostic -> write(command)
+                        is Command.ExportTrace -> exportTrace(command)
+                        is Command.ExportSession -> exportSession(command)
+                        is Command.ExportFlightDiagnostics -> exportFlightDiagnostics(command)
+                    }
+                } catch (t: Throwable) {
+                    when (command) {
+                        is Command.ExportTrace -> runCatching { command.callback(Result.failure(t)) }
+                        is Command.ExportSession -> runCatching { command.callback(Result.failure(t)) }
+                        is Command.ExportFlightDiagnostics -> runCatching { command.callback(Result.failure(t)) }
+                        else -> Unit
+                    }
+                }
             }
         }
     }
@@ -366,64 +394,158 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     }
 
     private fun exportTrace(command: Command.ExportTrace) {
+        var tempZip: File? = null
         val result = runCatching {
-            storage.flush()
+            // Stage 1: Flush diagnostic storage
+            runCatching { storage.flush() }.getOrElse { e ->
+                throw IllegalStateException("Failed to flush diagnostic storage: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+
+            // Stage 2: Safely read source files
             val directory = storage.directory
             val sourceTrace = storage.traceFile.takeIf { it.exists() && it.length() > 0 }
             val controlSource = storage.controlFile
-            val traceLines = sourceTrace?.readLines(Charsets.UTF_8) ?: emptyList()
-            val controlLines = if (controlSource.exists()) controlSource.readLines(Charsets.UTF_8) else emptyList()
-            val summary = FlightSummaryBuilder.build(traceLines, controlLines)
+            val traceLines = if (sourceTrace != null) {
+                runCatching { sourceTrace.readLines(Charsets.UTF_8) }.getOrElse { e ->
+                    throw IllegalStateException("Failed to read trace file: ${e.message ?: e.javaClass.simpleName}", e)
+                }
+            } else {
+                emptyList()
+            }
+            val controlLines = if (controlSource.exists()) {
+                runCatching { controlSource.readLines(Charsets.UTF_8) }.getOrElse { e ->
+                    throw IllegalStateException("Failed to read control file: ${e.message ?: e.javaClass.simpleName}", e)
+                }
+            } else {
+                emptyList()
+            }
+            val sessionContent = if (storage.sessionFile.exists()) {
+                runCatching { storage.sessionFile.readText(Charsets.UTF_8) }.getOrElse { e ->
+                    throw IllegalStateException("Failed to read session file: ${e.message ?: e.javaClass.simpleName}", e)
+                }
+            } else {
+                "{\"sessionId\":\"${storage.sessionId.ifEmpty { "unknown-session" }}\"}\n"
+            }
 
-            context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "w")?.use { output ->
-                ZipOutputStream(output.buffered()).use { zip ->
-                    if (frames.isNotEmpty()) {
-                        val manifest = VisionSessionManifest(
-                            capturedFrameCount = frames.size,
-                            droppedFrameCount = activeEpoch?.drops?.total() ?: 0L,
-                            excludedAfterLimitFrameCount = activeEpoch?.excludedAfterLimit?.get() ?: 0L,
-                            captureStartReason = activeEpoch?.startReason ?: VisionCaptureStartReason.TargetSelected,
-                            frames = frames.toList(),
-                        )
-                        zip.putNextEntry(ZipEntry("manifest.json"))
-                        zip.write(VisionSessionManifestJson.encode(manifest).toByteArray(Charsets.UTF_8))
+            // Stage 3: Build flight summary
+            val summary = runCatching { FlightSummaryBuilder.build(traceLines, controlLines) }.getOrElse { e ->
+                throw IllegalStateException("Failed to build flight summary: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+            val summaryJson = runCatching { FlightSummaryBuilder.json(summary) }.getOrElse { e ->
+                throw IllegalStateException("Failed to serialize flight summary JSON: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+            val summaryText = runCatching { FlightSummaryBuilder.text(summary) }.getOrElse { e ->
+                throw IllegalStateException("Failed to format flight summary text: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+
+            // Stage 4: Create temp ZIP in app cache
+            val temp = runCatching {
+                File.createTempFile("vision-trace-export-", ".zip", cacheDirectory).also { tempZip = it }
+            }.getOrElse { e ->
+                throw IllegalStateException("Failed to create temporary archive file: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+
+            runCatching {
+                FileOutputStream(temp).buffered().use { fileOut ->
+                    ZipOutputStream(fileOut).use { zip ->
+                        if (frames.isNotEmpty()) {
+                            val manifest = VisionSessionManifest(
+                                capturedFrameCount = frames.size,
+                                droppedFrameCount = activeEpoch?.drops?.total() ?: 0L,
+                                excludedAfterLimitFrameCount = activeEpoch?.excludedAfterLimit?.get() ?: 0L,
+                                captureStartReason = activeEpoch?.startReason ?: VisionCaptureStartReason.TargetSelected,
+                                frames = frames.toList(),
+                            )
+                            zip.putNextEntry(ZipEntry("manifest.json"))
+                            zip.write(VisionSessionManifestJson.encode(manifest).toByteArray(Charsets.UTF_8))
+                            zip.closeEntry()
+                        }
+                        if (sourceTrace != null && traceLines.isNotEmpty()) {
+                            zip.putNextEntry(ZipEntry("trace.jsonl"))
+                            sourceTrace.inputStream().buffered().use { it.copyTo(zip) }
+                            zip.closeEntry()
+                        }
+                        zip.putNextEntry(ZipEntry("control.jsonl"))
+                        if (controlSource.exists() && controlSource.length() > 0) {
+                            controlSource.inputStream().buffered().use { it.copyTo(zip) }
+                        } else {
+                            zip.write(controlLines.joinToString("\n", postfix = if (controlLines.isNotEmpty()) "\n" else "").toByteArray(Charsets.UTF_8))
+                        }
                         zip.closeEntry()
-                    }
-                    if (sourceTrace != null) {
-                        zip.putNextEntry(ZipEntry("trace.jsonl"))
-                        sourceTrace.inputStream().buffered().use { it.copyTo(zip) }
+                        zip.putNextEntry(ZipEntry("session.json"))
+                        zip.write(sessionContent.toByteArray(Charsets.UTF_8))
                         zip.closeEntry()
-                    }
-                    zip.putNextEntry(ZipEntry("control.jsonl"))
-                    controlSource.inputStream().buffered().use { it.copyTo(zip) }
-                    zip.closeEntry()
-                    zip.putNextEntry(ZipEntry("session.json"))
-                    storage.sessionFile.inputStream().buffered().use { it.copyTo(zip) }
-                    zip.closeEntry()
-                    zip.putNextEntry(ZipEntry("flight_summary.json"))
-                    zip.write(FlightSummaryBuilder.json(summary).toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                    zip.putNextEntry(ZipEntry("flight_summary.txt"))
-                    zip.write(FlightSummaryBuilder.text(summary).toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                    if (frames.isNotEmpty()) {
-                        frames.forEach { frame ->
-                            val frameFile = File(directory, frame.file)
-                            if (frameFile.exists()) {
-                                zip.putNextEntry(ZipEntry(frame.file))
-                                frameFile.inputStream().buffered().use { it.copyTo(zip) }
-                                zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("flight_summary.json"))
+                        zip.write(summaryJson.toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("flight_summary.txt"))
+                        zip.write(summaryText.toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                        if (frames.isNotEmpty()) {
+                            frames.forEach { frame ->
+                                val frameFile = File(directory, frame.file)
+                                if (frameFile.exists()) {
+                                    zip.putNextEntry(ZipEntry(frame.file))
+                                    frameFile.inputStream().buffered().use { it.copyTo(zip) }
+                                    zip.closeEntry()
+                                }
                             }
                         }
                     }
                 }
-            } ?: throw IllegalStateException("Could not open the selected export destination")
-            VisionTraceExport(frames.size.toLong(), activeEpoch?.drops?.total() ?: 0L)
+            }.getOrElse { e ->
+                throw IllegalStateException("Failed to write entries to ZIP archive: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+
+            val archiveLength = temp.length()
+            if (!temp.exists() || archiveLength <= 0L) {
+                throw IllegalStateException("Temporary archive is missing or 0 bytes after creation")
+            }
+            runCatching {
+                ZipFile(temp).use { zf ->
+                    val requiredEntries = setOf("session.json", "control.jsonl", "flight_summary.json", "flight_summary.txt")
+                    val names = zf.entries().asSequence().map { it.name }.toSet()
+                    val missing = requiredEntries - names
+                    if (missing.isNotEmpty()) {
+                        throw IllegalStateException("Archive is missing required entries: $missing")
+                    }
+                }
+            }.getOrElse { e ->
+                throw IllegalStateException("Archive validation failed: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+
+            // Stage 5: Open destination stream
+            val destinationStream = runCatching {
+                destinationOpener(command.destinationUri)
+            }.getOrElse { e ->
+                throw IllegalStateException("Could not open destination URI: ${e.message ?: e.javaClass.simpleName}", e)
+            } ?: throw IllegalStateException("Could not open destination URI: destination stream returned null")
+
+            // Stage 6: Copy temp ZIP to destination
+            runCatching {
+                temp.inputStream().buffered().use { input ->
+                    destinationStream.buffered().use { output ->
+                        input.copyTo(output)
+                        output.flush()
+                    }
+                }
+            }.getOrElse { e ->
+                throw IllegalStateException("Failed to copy archive to destination: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+
+            VisionTraceExport(
+                frameCount = frames.size.toLong(),
+                droppedFrameCount = activeEpoch?.drops?.total() ?: 0L,
+                byteCount = archiveLength,
+                controlEventCount = controlLines.size.toLong(),
+            )
         }
+        tempZip?.delete()
         command.callback(result)
     }
 
     private fun exportSession(command: Command.ExportSession) {
+        var tempZip: File? = null
         val result = runCatching {
             storage.flush()
             val directory = storage.directory
@@ -441,33 +563,62 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                 sourceTrace.readLines(Charsets.UTF_8),
                 storage.controlFile.readLines(Charsets.UTF_8),
             )
-            context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "w")?.use { output ->
-                ZipOutputStream(output.buffered()).use { zip ->
-                    zip.putNextEntry(ZipEntry("manifest.json"))
-                    zip.write(VisionSessionManifestJson.encode(manifest).toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                    zip.putNextEntry(ZipEntry("trace.jsonl"))
-                    sourceTrace.inputStream().buffered().use { it.copyTo(zip) }
-                    zip.closeEntry()
-                    zip.putNextEntry(ZipEntry("control.jsonl"))
-                    storage.controlFile.inputStream().buffered().use { it.copyTo(zip) }
-                    zip.closeEntry()
-                    zip.putNextEntry(ZipEntry("session.json"))
-                    storage.sessionFile.inputStream().buffered().use { it.copyTo(zip) }
-                    zip.closeEntry()
-                    zip.putNextEntry(ZipEntry("flight_summary.json"))
-                    zip.write(FlightSummaryBuilder.json(summary).toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                    zip.putNextEntry(ZipEntry("flight_summary.txt"))
-                    zip.write(FlightSummaryBuilder.text(summary).toByteArray(Charsets.UTF_8))
-                    zip.closeEntry()
-                    frames.forEach { frame ->
-                        zip.putNextEntry(ZipEntry(frame.file))
-                        File(directory, frame.file).inputStream().buffered().use { it.copyTo(zip) }
+            val temp = runCatching {
+                File.createTempFile("vision-session-export-", ".zip", cacheDirectory).also { tempZip = it }
+            }.getOrElse { e ->
+                throw IllegalStateException("Failed to create temporary session archive file: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+            runCatching {
+                FileOutputStream(temp).buffered().use { fileOut ->
+                    ZipOutputStream(fileOut).use { zip ->
+                        zip.putNextEntry(ZipEntry("manifest.json"))
+                        zip.write(VisionSessionManifestJson.encode(manifest).toByteArray(Charsets.UTF_8))
                         zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("trace.jsonl"))
+                        sourceTrace.inputStream().buffered().use { it.copyTo(zip) }
+                        zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("control.jsonl"))
+                        storage.controlFile.inputStream().buffered().use { it.copyTo(zip) }
+                        zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("session.json"))
+                        storage.sessionFile.inputStream().buffered().use { it.copyTo(zip) }
+                        zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("flight_summary.json"))
+                        zip.write(FlightSummaryBuilder.json(summary).toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                        zip.putNextEntry(ZipEntry("flight_summary.txt"))
+                        zip.write(FlightSummaryBuilder.text(summary).toByteArray(Charsets.UTF_8))
+                        zip.closeEntry()
+                        frames.forEach { frame ->
+                            zip.putNextEntry(ZipEntry(frame.file))
+                            File(directory, frame.file).inputStream().buffered().use { it.copyTo(zip) }
+                            zip.closeEntry()
+                        }
                     }
                 }
-            } ?: throw IllegalStateException("Could not open the selected export destination")
+            }.getOrElse { e ->
+                throw IllegalStateException("Failed to write entries to session ZIP archive: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+            if (!temp.exists() || temp.length() <= 0L) {
+                throw IllegalStateException("Temporary session archive is missing or 0 bytes after creation")
+            }
+            val destinationStream = runCatching {
+                destinationOpener(command.destinationUri)
+            }.getOrElse { e ->
+                throw IllegalStateException("Could not open destination URI for session export: ${e.message ?: e.javaClass.simpleName}", e)
+            } ?: throw IllegalStateException("Could not open destination URI for session export")
+
+            runCatching {
+                temp.inputStream().buffered().use { input ->
+                    destinationStream.buffered().use { output ->
+                        input.copyTo(output)
+                        output.flush()
+                    }
+                }
+            }.getOrElse { e ->
+                throw IllegalStateException("Failed to copy session archive to destination: ${e.message ?: e.javaClass.simpleName}", e)
+            }
+
             val duration = frames.last().sourceTimestampNanos - frames.first().sourceTimestampNanos
             VisionSessionExport(
                 frames.size,
@@ -476,6 +627,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                 duration.coerceAtLeast(0L),
             )
         }
+        tempZip?.delete()
         if (result.isSuccess) rotate(command.epoch) else synchronized(pendingLock) { capturePaused = false }
         command.callback(result)
     }
@@ -513,9 +665,16 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                 appendLine("  ]")
                 appendLine("}")
             }
-            context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "w")?.use { output ->
-                output.bufferedWriter(Charsets.UTF_8).use { it.write(content) }
+            val destinationStream = runCatching {
+                destinationOpener(command.destinationUri)
+            }.getOrElse { e ->
+                throw IllegalStateException("Could not open destination URI for flight diagnostics export: ${e.message ?: e.javaClass.simpleName}", e)
             } ?: throw IllegalStateException("Could not open destination URI for flight diagnostics export")
+            runCatching {
+                destinationStream.bufferedWriter(Charsets.UTF_8).use { it.write(content); it.flush() }
+            }.getOrElse { e ->
+                throw IllegalStateException("Failed to write flight diagnostics to destination: ${e.message ?: e.javaClass.simpleName}", e)
+            }
             FlightDiagnosticsExport(
                 transitionsCount = transitions.size,
                 commandsCount = sdkCommands.size,

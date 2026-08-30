@@ -63,7 +63,12 @@ data class VisionTraceFrame(
     val detectorMeasuredFps: Float? = null,
 )
 
-data class VisionTraceExport(val frameCount: Long, val droppedFrameCount: Long)
+data class VisionTraceExport(
+    val frameCount: Long,
+    val droppedFrameCount: Long = 0L,
+    val byteCount: Long = 0L,
+    val controlEventCount: Long = 0L,
+)
 
 data class YawControlMeasurementTrace(
     val frameSequence: Long,
