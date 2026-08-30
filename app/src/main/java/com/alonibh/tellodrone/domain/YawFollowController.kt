@@ -132,6 +132,7 @@ class ProductionYawController(
     private var lastMeasurementDecisionTimestampNanos: Long? = null
     private var lastYawRc = 0
     private var phase = YawControllerPhase.HOLD
+    private var lastObservedTelemetryTimestampMillis: Long? = null
     private var consecutiveSettledSamples = 0
     private var settlingStartedTimestampNanos: Long? = null
     private var settlingMeasurementsCount = 0
@@ -161,12 +162,18 @@ class ProductionYawController(
 
     /**
      * Updates telemetry yaw and yaw-rate settling state without re-evaluating perception
-     * or resetting target estimation.
+     * or resetting target estimation. Non-new/duplicate telemetry samples are ignored.
      */
     fun observeTelemetry(
         telemetryYawDegrees: Int? = null,
         telemetryYawRateDegreesPerSecond: Float? = null,
+        telemetryTimestampMillis: Long,
     ) {
+        val last = lastObservedTelemetryTimestampMillis
+        if (last != null && telemetryTimestampMillis <= last) {
+            return
+        }
+        lastObservedTelemetryTimestampMillis = telemetryTimestampMillis
         if (telemetryYawRateDegreesPerSecond != null) {
             if (abs(telemetryYawRateDegreesPerSecond) <= settledYawRateThreshold) {
                 consecutiveSettledSamples++
@@ -194,8 +201,6 @@ class ProductionYawController(
                 requireStable = true,
             )
         }
-
-        observeTelemetry(telemetryYawDegrees, telemetryYawRateDegreesPerSecond)
 
         val lastFrame = lastFrameSequence
         val lastSource = lastSourceTimestampNanos
@@ -284,8 +289,17 @@ class ProductionYawController(
                     settlingStartedTimestampNanos = commandTimestampNanos
                     settlingMeasurementsCount = 0
                     consecutiveSettledSamples = 0
+                    staleGapSettlingRequired = false
+                    staleGapPreviousYaw = 0
                     val brakedEstimate = estimator.brake(measurement.targetCenterX, measurement.sourceTimestampNanos)
                     observe(measurement, brakedEstimate, commandTimestampNanos)
+                    if (recovering) {
+                        consistentRecoveryMeasurements++
+                        if (consistentRecoveryMeasurements >= stableResumeMeasurements) {
+                            recovering = false
+                            consistentRecoveryMeasurements = 0
+                        }
+                    }
                     lastYawRc = 0
                     return outcome(
                         measurement,
@@ -319,6 +333,13 @@ class ProductionYawController(
             if (!isSettled) {
                 val requested = requestedYaw(controlError)
                 observe(measurement, estimate, commandTimestampNanos)
+                if (recovering) {
+                    consistentRecoveryMeasurements++
+                    if (consistentRecoveryMeasurements >= stableResumeMeasurements) {
+                        recovering = false
+                        consistentRecoveryMeasurements = 0
+                    }
+                }
                 lastYawRc = 0
                 return outcome(
                     measurement,
@@ -352,6 +373,13 @@ class ProductionYawController(
                 phase = YawControllerPhase.HOLD
             }
             observe(measurement, brakedEstimate, commandTimestampNanos)
+            if (recovering) {
+                consistentRecoveryMeasurements++
+                if (consistentRecoveryMeasurements >= stableResumeMeasurements) {
+                    recovering = false
+                    consistentRecoveryMeasurements = 0
+                }
+            }
             lastYawRc = 0
             return outcome(
                 measurement,
@@ -372,6 +400,13 @@ class ProductionYawController(
         if (phase == YawControllerPhase.HOLD && abs(controlError) < engageThreshold) {
             val brakedEstimate = estimator.brake(measurement.targetCenterX, measurement.sourceTimestampNanos)
             observe(measurement, brakedEstimate, commandTimestampNanos)
+            if (recovering) {
+                consistentRecoveryMeasurements++
+                if (consistentRecoveryMeasurements >= stableResumeMeasurements) {
+                    recovering = false
+                    consistentRecoveryMeasurements = 0
+                }
+            }
             lastYawRc = 0
             return outcome(
                 measurement,
@@ -506,6 +541,7 @@ class ProductionYawController(
         lastMeasurementDecisionTimestampNanos = null
         lastYawRc = 0
         phase = YawControllerPhase.HOLD
+        lastObservedTelemetryTimestampMillis = null
         consecutiveSettledSamples = 0
         settlingStartedTimestampNanos = null
         settlingMeasurementsCount = 0
@@ -517,6 +553,8 @@ class ProductionYawController(
     }
 
     fun currentYawRc(): Int = lastYawRc
+
+    internal fun settledTelemetrySampleCount(): Int = consecutiveSettledSamples
 
     private fun suppressMeasurement(
         measurement: Measurement,
@@ -734,8 +772,9 @@ class YawFollowGate(
     fun observeTelemetry(
         telemetryYawDegrees: Int? = null,
         telemetryYawRateDegreesPerSecond: Float? = null,
+        telemetryTimestampMillis: Long,
     ) {
-        controller.observeTelemetry(telemetryYawDegrees, telemetryYawRateDegreesPerSecond)
+        controller.observeTelemetry(telemetryYawDegrees, telemetryYawRateDegreesPerSecond, telemetryTimestampMillis)
     }
 
     fun evaluateSafetyGate(input: YawFollowInput): YawFollowDecision {

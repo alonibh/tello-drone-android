@@ -267,11 +267,13 @@ class YawFollowControllerTest {
         assertEquals(YawControllerPhase.SETTLING, crossing.phase)
 
         // First sample with low rate (4 deg/s <= 8 deg/s) - only 1 sample, not yet settled
+        controller.observeTelemetry(0, 4f, 1_000L)
         val sample1 = controller.command(errors(-.07f, 5L), commandTime(5L), telemetryYawRateDegreesPerSecond = 4f)
         assertEquals(0, sample1.safetyFilteredYawRc)
         assertEquals(YawControllerPhase.SETTLING, sample1.phase)
 
         // Second consecutive sample with low rate (2 deg/s <= 8 deg/s) -> now settled, begins smooth reversal
+        controller.observeTelemetry(0, 2f, 1_100L)
         val sample2 = controller.command(errors(-.08f, 6L), commandTime(6L), telemetryYawRateDegreesPerSecond = 2f)
         assertTrue(sample2.safetyFilteredYawRc < 0)
         assertTrue(abs(sample2.safetyFilteredYawRc) <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
@@ -309,11 +311,13 @@ class YawFollowControllerTest {
         assertEquals(YawControllerPhase.SETTLING, crossing.phase)
 
         // Settling sample 1 with yaw rate = 0 (count = 1 < 2)
+        controller.observeTelemetry(0, 0f, 1_000L)
         val settling1 = controller.command(errors(.07f, 3L), commandTime(3L), telemetryYawRateDegreesPerSecond = 0f)
         assertEquals(0, settling1.safetyFilteredYawRc)
         assertEquals(YawControllerPhase.SETTLING, settling1.phase)
 
         // Settling sample 2 with yaw rate = 0 (count = 2 >= 2) -> transitions to CORRECTING and follows
+        controller.observeTelemetry(0, 0f, 1_100L)
         val followed = controller.command(errors(.08f, 4L), commandTime(4L), telemetryYawRateDegreesPerSecond = 0f)
         assertTrue(followed.safetyFilteredYawRc > 0)
         assertTrue(followed.safetyFilteredYawRc <= ProductionYawController.MAXIMUM_ACCELERATION_STEP)
@@ -438,9 +442,58 @@ class YawFollowControllerTest {
         assertEquals(YawFollowState.ACTIVE, firstDecision.state)
 
         // Telemetry observation updates settling state without recomputing command
-        gate.observeTelemetry(10, 2f)
+        gate.observeTelemetry(10, 2f, 1_000L)
         val safetyCheck = gate.evaluateSafetyGate(initialInput)
         assertEquals(YawFollowState.ACTIVE, safetyCheck.state)
+    }
+
+    @Test fun `duplicate telemetry sample cannot settle through repeated detector frames`() {
+        val controller = ProductionYawController()
+        controller.command(errors(.12f, 1L), commandTime(1L), telemetryYawRateDegreesPerSecond = 12f)
+        val crossing = controller.command(errors(-.05f, 2L), commandTime(2L), telemetryYawRateDegreesPerSecond = 2f)
+        assertEquals(YawControllerPhase.SETTLING, crossing.phase)
+
+        controller.observeTelemetry(0, 2f, 2_000L)
+        repeat(8) { index ->
+            controller.observeTelemetry(0, 2f, 2_000L)
+            val frame = index + 3L
+            val held = controller.command(errors(-.06f, frame), commandTime(frame), telemetryYawRateDegreesPerSecond = 2f)
+            assertEquals(0, held.safetyFilteredYawRc)
+            assertEquals(YawControllerPhase.SETTLING, held.phase)
+        }
+        assertEquals(1, controller.settledTelemetrySampleCount())
+
+        controller.observeTelemetry(0, 2f, 2_100L)
+        assertEquals(2, controller.settledTelemetrySampleCount())
+        val reversed = controller.command(errors(-.08f, 11L), commandTime(11L), telemetryYawRateDegreesPerSecond = 2f)
+        assertTrue(reversed.safetyFilteredYawRc < 0)
+    }
+
+    @Test fun `stale gap opposite yaw waits for distinct physical settling samples`() {
+        val controller = ProductionYawController()
+        controller.command(errors(.15f, 1L), commandTime(1L), telemetryYawRateDegreesPerSecond = 14f)
+        controller.command(
+            errors(.15f, 1L),
+            commandTime(1L) + 460L * NANOS_PER_MILLISECOND,
+            telemetryYawRateDegreesPerSecond = 2f,
+        )
+        val opposite = controller.command(
+            errors(-.02f, 2L),
+            commandTime(1L) + 500L * NANOS_PER_MILLISECOND,
+            telemetryYawRateDegreesPerSecond = 2f,
+        )
+        assertEquals(0, opposite.safetyFilteredYawRc)
+
+        controller.observeTelemetry(0, 2f, 3_000L)
+        assertEquals(1, controller.settledTelemetrySampleCount())
+        val oneSample = controller.command(errors(-.08f, 7L), commandTime(7L), telemetryYawRateDegreesPerSecond = 2f)
+        assertEquals(0, oneSample.safetyFilteredYawRc)
+        assertEquals(1, controller.settledTelemetrySampleCount())
+
+        controller.observeTelemetry(0, 2f, 3_100L)
+        assertEquals(2, controller.settledTelemetrySampleCount())
+        val reversed = controller.command(errors(-.08f, 8L), commandTime(8L), telemetryYawRateDegreesPerSecond = 2f)
+        assertTrue(reversed.safetyFilteredYawRc < 0)
     }
 
     private fun healthy(

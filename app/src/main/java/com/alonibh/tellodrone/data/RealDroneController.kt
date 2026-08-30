@@ -7,12 +7,12 @@ import androidx.core.content.ContextCompat
 import com.alonibh.tellodrone.domain.ControlAuthority
 import com.alonibh.tellodrone.domain.DroneConnectionState
 import com.alonibh.tellodrone.domain.DroneController
-import com.alonibh.tellodrone.domain.FlightState
 import com.alonibh.tellodrone.domain.ManualControlVector
 import com.alonibh.tellodrone.domain.NetworkSelectionState
 import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.RcSpeedMode
 import com.alonibh.tellodrone.domain.TrackingMode
+import com.alonibh.tellodrone.domain.isTraceExportAllowed
 import com.alonibh.tellodrone.service.TelloDroneService
 import com.alonibh.tellodrone.service.TelloServiceGateway
 import com.alonibh.tellodrone.vision.VisionTraceFeature
@@ -95,9 +95,9 @@ class RealDroneController(context: Context) : DroneController {
     override fun setYawFollowArmed(armed: Boolean) { TelloServiceGateway.setYawFollowArmed(armed) }
     override fun exportVisionTrace(destinationUri: String) {
         val currentFlight = TelloSessionStore.state.value.flight
-        if (currentFlight in setOf(FlightState.TakingOff, FlightState.Flying, FlightState.Landing)) {
+        if (!isTraceExportAllowed(currentFlight)) {
             TelloSessionStore.update {
-                it.copy(lastMessage = "Trace export disabled while airborne")
+                it.copy(lastMessage = "Trace export allowed only when grounded")
             }
             return
         }

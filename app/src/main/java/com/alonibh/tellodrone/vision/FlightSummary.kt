@@ -26,8 +26,10 @@ internal data class FlightSummary(
     val jumpSuppressions: Int, val crossingBrakes: Int, val stableRecoverySuppressions: Int, val physicalExpirations: Int,
     val manualOverrides: Int, val stopHoverPreemptions: Int, val emergencyEvents: Int, val lostSafetyLatches: Int,
     val nonYawAutonomousAxisViolations: Int,
-    val fractionOfActiveNonZeroYaw: Double?, val perceptionAgeExpiredCount: Int, val perceptionAgeExpiredPercent: Double?,
-    val longestPerceptionExpiryZeroIntervalMs: Long,
+    val fractionOfActiveNonZeroYaw: Double?,
+    val commandHoldExpiredCount: Int, val commandHoldExpiredPercent: Double?,
+    val sourceAgeExpiredCount: Int, val sourceAgeExpiredPercent: Double?,
+    val longestExpirationZeroIntervalMs: Long,
     val interMeasurementMeanMs: Double?, val interMeasurementP50Ms: Double?, val interMeasurementP95Ms: Double?,
     val timeOutsideError15Ms: Long, val timeOutsideError20Ms: Long,
     val maxContinuousOutsideError15Ms: Long, val maxContinuousOutsideError20Ms: Long,
@@ -61,7 +63,10 @@ internal object FlightSummaryBuilder {
         val renderToDetectorComplete = elapsedMillis(traces, "renderedFrameTimestampNanos", "detectorInferenceCompletedTimestampNanos")
         val detectorToAssociation = elapsedMillis(traces, "detectorInferenceCompletedTimestampNanos", "associationCompletedTimestampNanos")
         val controlMeasurements = controls.filter { it.string("eventType") == "controlMeasurement" }
-        val sourceToDecision = elapsedMillis(controlMeasurements, "sourceTimestampNanos", "yawDecisionTimestampNanos")
+        val uniqueControlMeasurements = controlMeasurements.distinctBy {
+            it.long("frameSequence") to it.long("sourceTimestampNanos")
+        }
+        val sourceToDecision = elapsedMillis(uniqueControlMeasurements, "sourceTimestampNanos", "yawDecisionTimestampNanos")
         val sentAutonomous = publications.filter { it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("sendSuppressionReason") == "NONE" }
         val firstSendPerDecision = (if (sentAutonomous.isNotEmpty()) sentAutonomous else publications.filter { it.string("inputKind") == "AUTONOMOUS_YAW" })
             .groupBy { it.long("yawDecisionTimestampNanos") ?: it.long("frameSequence") ?: it.long("commandTimestampNanos") }
@@ -72,7 +77,11 @@ internal object FlightSummaryBuilder {
         val modelInference = stageMillis("detectorModelInferenceNanos")
         val decodeAndNms = stageMillis("detectorDecodeAndNmsNanos")
         val appearance = stageMillis("detectorAppearanceNanos")
-        val ages = publications.mapNotNull { it.long("perceptionAgeMillis") }.ifEmpty { controls.mapNotNull { it.long("perceptionAgeMillis") } }
+        val ages = uniqueControlMeasurements.mapNotNull { measurement ->
+            val source = measurement.long("sourceTimestampNanos") ?: return@mapNotNull null
+            val decision = measurement.long("yawDecisionTimestampNanos") ?: return@mapNotNull null
+            (decision - source).takeIf { it >= 0L }?.div(MS_NANOS)
+        }
         val sentYaw = sentAutonomous.mapNotNull { it.int("actualSentVector", "yaw") }
         val absYaw = sentYaw.map(::abs)
         val heights = controls.mapNotNull { it.double("telemetryHeightMeters") }
@@ -90,23 +99,39 @@ internal object FlightSummaryBuilder {
         val hover = count("STOP/HOVER") { it.string("yawFollowReason") == "HOVER_INTERVENTION" }
         val emergency = count("Emergency") { it.string("yawFollowReason") == "EMERGENCY" }
 
-        val activePublications = publications.filter { it.string("yawFollowState") == "ACTIVE" || (it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("yawFollowState") != "DISARMED") }
+        val activePublications = publications.filter {
+            it.string("inputKind") == "AUTONOMOUS_YAW" && it.string("yawFollowState") != "DISARMED"
+        }
         val activeNonZeroCount = activePublications.count { (it.int("actualSentVector", "yaw") ?: 0) != 0 }
         val fractionOfActiveNonZeroYaw = if (activePublications.isEmpty()) null else activeNonZeroCount.toDouble() / activePublications.size
-        val expiredPublications = activePublications.filter { it.string("sendSuppressionReason") == "PERCEPTION_AGE_EXPIRED" }
-        val perceptionAgeExpiredCount = count("perception age expired") { it.string("sendSuppressionReason") == "PERCEPTION_AGE_EXPIRED" }
-        val perceptionAgeExpiredPercent = if (activePublications.isEmpty()) null else expiredPublications.size * 100.0 / activePublications.size
+        val sourceAgeExpiredPublications = activePublications.filter {
+            it.string("sendSuppressionReason") == "PERCEPTION_AGE_EXPIRED"
+        }
+        val commandHoldExpiredPublications = activePublications.filter {
+            it.string("sendSuppressionReason") == "AUTONOMOUS_COMMAND_HOLD_EXPIRED"
+        }
+        val sourceAgeExpiredPercent = if (activePublications.isEmpty()) null else
+            sourceAgeExpiredPublications.size * 100.0 / activePublications.size
+        val commandHoldExpiredPercent = if (activePublications.isEmpty()) null else
+            commandHoldExpiredPublications.size * 100.0 / activePublications.size
 
-        var maxPerceptionZeroSpanMs = 0L
+        var maxExpirationZeroSpanMs = 0L
         var curZeroStart: Long? = null
         for (pub in activePublications) {
-            val isExpired = pub.string("sendSuppressionReason") == "PERCEPTION_AGE_EXPIRED" || (pub.int("actualSentVector", "yaw") ?: 0) == 0
+            val isExpired = pub.string("sendSuppressionReason") in setOf(
+                "PERCEPTION_AGE_EXPIRED",
+                "AUTONOMOUS_COMMAND_HOLD_EXPIRED",
+            )
             val ts = pub.long("commandTimestampNanos") ?: 0L
             if (isExpired) {
                 if (curZeroStart == null) curZeroStart = ts
                 val span = (ts - curZeroStart) / MS_NANOS
-                if (span > maxPerceptionZeroSpanMs) maxPerceptionZeroSpanMs = span
+                if (span > maxExpirationZeroSpanMs) maxExpirationZeroSpanMs = span
             } else {
+                curZeroStart?.let { start ->
+                    val span = (ts - start).coerceAtLeast(0L) / MS_NANOS
+                    if (span > maxExpirationZeroSpanMs) maxExpirationZeroSpanMs = span
+                }
                 curZeroStart = null
             }
         }
@@ -203,9 +228,11 @@ internal object FlightSummaryBuilder {
             lostSafetyLatches = count("Lost/re-arm") { it.string("yawFollowReason") == "TARGET_LOST" },
             nonYawAutonomousAxisViolations = sentAutonomous.count { it.int("actualSentVector", "lateral") != 0 || it.int("actualSentVector", "forward") != 0 || it.int("actualSentVector", "vertical") != 0 },
             fractionOfActiveNonZeroYaw = fractionOfActiveNonZeroYaw,
-            perceptionAgeExpiredCount = perceptionAgeExpiredCount,
-            perceptionAgeExpiredPercent = perceptionAgeExpiredPercent,
-            longestPerceptionExpiryZeroIntervalMs = maxPerceptionZeroSpanMs,
+            commandHoldExpiredCount = commandHoldExpiredPublications.size,
+            commandHoldExpiredPercent = commandHoldExpiredPercent,
+            sourceAgeExpiredCount = sourceAgeExpiredPublications.size,
+            sourceAgeExpiredPercent = sourceAgeExpiredPercent,
+            longestExpirationZeroIntervalMs = maxExpirationZeroSpanMs,
             interMeasurementMeanMs = interMeasurementMeanMs,
             interMeasurementP50Ms = interMeasurementP50Ms,
             interMeasurementP95Ms = interMeasurementP95Ms,
@@ -244,9 +271,11 @@ internal object FlightSummaryBuilder {
         "target_error_jump_suppressions" to s.jumpSuppressions, "center_crossing_brake_events" to s.crossingBrakes, "stable_recovery_consistency_suppressions" to s.stableRecoverySuppressions, "physical_command_expirations" to s.physicalExpirations,
         "manual_override_preemptions" to s.manualOverrides, "stop_hover_preemptions" to s.stopHoverPreemptions, "emergency_events" to s.emergencyEvents, "lost_safety_latches" to s.lostSafetyLatches, "non_yaw_autonomous_axis_violations" to s.nonYawAutonomousAxisViolations,
         "fraction_of_active_non_zero_yaw" to s.fractionOfActiveNonZeroYaw,
-        "perception_age_expired_count" to s.perceptionAgeExpiredCount,
-        "perception_age_expired_percent" to s.perceptionAgeExpiredPercent,
-        "longest_perception_expiry_zero_interval_ms" to s.longestPerceptionExpiryZeroIntervalMs,
+        "command_hold_expiration_count" to s.commandHoldExpiredCount,
+        "command_hold_expiration_percent" to s.commandHoldExpiredPercent,
+        "source_age_expiration_count" to s.sourceAgeExpiredCount,
+        "source_age_expiration_percent" to s.sourceAgeExpiredPercent,
+        "longest_zero_interval_caused_by_expiration_ms" to s.longestExpirationZeroIntervalMs,
         "inter_measurement_mean_ms" to s.interMeasurementMeanMs,
         "inter_measurement_p50_ms" to s.interMeasurementP50Ms,
         "inter_measurement_p95_ms" to s.interMeasurementP95Ms,
@@ -271,7 +300,8 @@ internal object FlightSummaryBuilder {
         appendLine("Source -> physical send p50/p95: ${metric(s.sourceToPhysicalSendP50, " ms")} / ${metric(s.sourceToPhysicalSendP95, " ms")}")
         appendLine("Analysis/detector FPS: ${metric(s.analysisFps)} / ${metric(s.detectorFps)}; dropped ${s.analysisDroppedFrames ?: "unavailable"}, max pending ${s.maximumAnalysisPendingDepth ?: "unavailable"}")
         appendLine("Yaw RC p95/max: ${metric(s.p95AbsYaw)} / ${s.maxAbsYaw ?: "unavailable"}"); appendLine("Safety suppressions: stale ${s.excessiveAgeRejections}, jump ${s.jumpSuppressions}, crossing ${s.crossingBrakes}")
-        appendLine("Autonomous yaw activity: ${metric(s.fractionOfActiveNonZeroYaw?.times(100.0), "% non-zero")} (expiry suppressions: ${s.perceptionAgeExpiredCount}, longest gap: ${s.longestPerceptionExpiryZeroIntervalMs}ms)")
+        appendLine("Autonomous yaw activity: ${metric(s.fractionOfActiveNonZeroYaw?.times(100.0), "% non-zero")}")
+        appendLine("Command-hold / source-age expirations: ${s.commandHoldExpiredCount} / ${s.sourceAgeExpiredCount}; longest expiration zero interval: ${s.longestExpirationZeroIntervalMs}ms")
         appendLine("Inter-measurement p50/p95: ${metric(s.interMeasurementP50Ms, " ms")} / ${metric(s.interMeasurementP95Ms, " ms")}")
         appendLine("Time outside |error|>0.15 / >0.20: ${s.timeOutsideError15Ms}ms (max continuous ${s.maxContinuousOutsideError15Ms}ms) / ${s.timeOutsideError20Ms}ms (max continuous ${s.maxContinuousOutsideError20Ms}ms)")
         appendLine("Oscillation & Settling: max yaw rate ${metric(s.maximumYawRate, " deg/s")}, reversals ${s.directionReversalsCount}, unsettled reversals ${s.reversalsWhileYawRateUnsettledCount}")

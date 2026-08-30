@@ -14,10 +14,13 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.alonibh.tellodrone.data.TelloPermissionPolicy
 import com.alonibh.tellodrone.domain.NetworkSelectionState
+import com.alonibh.tellodrone.domain.isTraceExportAllowed
 import com.alonibh.tellodrone.ui.DroneDashboard
 import com.alonibh.tellodrone.ui.DroneViewModel
 
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
             ) {
                 val viewModel: DroneViewModel = viewModel(factory = DroneViewModel.Factory(controller))
                 val state = viewModel.uiState.collectAsStateWithLifecycle().value
+                val currentFlight by rememberUpdatedState(state.flight)
                 val permissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions(),
                 ) {
@@ -51,7 +55,7 @@ class MainActivity : ComponentActivity() {
                 val exportTraceLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.CreateDocument("application/zip"),
                 ) { uri ->
-                    if (uri != null) {
+                    if (uri != null && isTraceExportAllowed(currentFlight)) {
                         viewModel.exportVisionTrace(uri.toString())
                     }
                 }
@@ -64,9 +68,11 @@ class MainActivity : ComponentActivity() {
                     state = state,
                     viewModel = viewModel,
                     onExportTrace = {
-                        val timestamp = java.time.LocalDateTime.now()
-                            .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
-                        exportTraceLauncher.launch("tello-follow-trace-$timestamp.zip")
+                        if (isTraceExportAllowed(currentFlight)) {
+                            val timestamp = java.time.LocalDateTime.now()
+                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"))
+                            exportTraceLauncher.launch("tello-follow-trace-$timestamp.zip")
+                        }
                     },
                 )
             }

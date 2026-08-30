@@ -252,6 +252,10 @@ class BoundedAccessUnitBuffer(
 
     fun isWaitingForIdr(): Boolean = synchronized(lock) { waitingForIdr }
 
+    fun diagnostics(): AccessUnitBufferDiagnostics = synchronized(lock) {
+        AccessUnitBufferDiagnostics(droppedAccessUnits, discontinuities, queued.size, waitingForIdr)
+    }
+
     private fun retainParameterSets(value: H264AccessUnit) {
         if (!value.hasSequenceParameterSet && !value.hasPictureParameterSet) return
         AnnexBParser.parse(value.bytes).forEach { nal ->
@@ -299,4 +303,11 @@ class BoundedAccessUnitBuffer(
         private const val MIN_RECOVERY_CAPACITY = 3
     }
 }
+
+data class AccessUnitBufferDiagnostics(
+    val droppedAccessUnits: Long,
+    val discontinuities: Long,
+    val pendingAccessUnits: Int,
+    val waitingForIdr: Boolean,
+)
 // SPDX-License-Identifier: AGPL-3.0-only

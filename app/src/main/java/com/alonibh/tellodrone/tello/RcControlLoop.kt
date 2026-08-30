@@ -21,7 +21,8 @@ enum class RcInputKind { MANUAL, AUTONOMOUS_YAW, SAFETY_ZERO }
 enum class RcSendSuppressionReason {
     NONE, DISABLED, UNHEALTHY, LOCKED_OUT, RC_TTL_EXPIRED, PERCEPTION_AGE_EXPIRED,
     AUTONOMOUS_COMMAND_HOLD_EXPIRED, STALE_FLIGHT_EPOCH, STALE_AUTONOMY_GENERATION,
-    TRACKING_INACTIVE, FLIGHT_STATE_INACTIVE,
+    TRACKING_INACTIVE, FLIGHT_STATE_INACTIVE, CONNECTION_INACTIVE, TELEMETRY_STALE,
+    VIDEO_UNSAFE, DETECTOR_INACTIVE, TARGET_UNSAFE, MANUAL_OVERRIDE, HOVER_ACTIVE,
 }
 
 data class AutonomousYawContext(
@@ -331,17 +332,23 @@ class RcControlLoop(
 
     private fun selectLocked(nowMillis: Long): Selection {
         val ageMillis = nowMillis - desired.publishedAtMillis
-        val validatorSuppression = authorityValidator?.invoke(desired.inputKind, desired.autonomousContext)
-        val suppression = when {
+        val internalSuppression = when {
             lockedOut -> RcSendSuppressionReason.LOCKED_OUT
             !enabled -> RcSendSuppressionReason.DISABLED
             !healthy -> RcSendSuppressionReason.UNHEALTHY
             desired.flightEpoch != flightEpoch -> RcSendSuppressionReason.STALE_FLIGHT_EPOCH
-            validatorSuppression != null -> validatorSuppression
-            ageMillis >= inputTtlMillis -> RcSendSuppressionReason.RC_TTL_EXPIRED
             desired.inputKind == RcInputKind.AUTONOMOUS_YAW &&
                 desired.autonomyGeneration != activeAutonomyGeneration ->
                 RcSendSuppressionReason.STALE_AUTONOMY_GENERATION
+            else -> null
+        }
+        val validatorSuppression = if (internalSuppression == null) {
+            authorityValidator?.invoke(desired.inputKind, desired.autonomousContext)
+        } else {
+            null
+        }
+        val suppression = internalSuppression ?: validatorSuppression ?: when {
+            ageMillis >= inputTtlMillis -> RcSendSuppressionReason.RC_TTL_EXPIRED
             desired.inputKind == RcInputKind.AUTONOMOUS_YAW &&
                 ageMillis >= (desired.perceptionValidityMillis ?: 0L) ->
                 desired.validityExpiryReason

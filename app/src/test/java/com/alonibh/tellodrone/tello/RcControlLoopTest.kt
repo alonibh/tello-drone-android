@@ -294,12 +294,13 @@ class RcControlLoopTest {
     }
 
     @Test fun `authority validator suppressing autonomous yaw enforces zero actual vector`() = runTest {
+        val physicallySent = mutableListOf<RcVector>()
         val publications = mutableListOf<RcPublication>()
         val clock = FakeClock(1_000)
-        var allowAutonomous = false
+        var allowAutonomous = true
         val loop = RcControlLoop(
             scope = backgroundScope,
-            sender = {},
+            sender = { physicallySent += it },
             clock = clock,
             onRcSent = { publications += it },
             authorityValidator = { kind, _ ->
@@ -311,9 +312,14 @@ class RcControlLoopTest {
         loop.enableForNewFlight()
         val gen = loop.beginAutonomousYaw()
         loop.publishAutonomousYaw(15, gen)
+        assertEquals(RcVector(yaw = 15), loop.currentVector())
+
+        // Perception/session safety changes before ordinary yaw-gate reconciliation can publish zero.
+        allowAutonomous = false
 
         loop.sendCycle()
         val pub = publications.single()
+        assertEquals(listOf(RcVector.Zero), physicallySent)
         assertEquals(RcVector.Zero, pub.actualVector)
         assertEquals(RcSendSuppressionReason.TRACKING_INACTIVE, pub.suppressionReason)
     }

@@ -1,5 +1,6 @@
 package com.alonibh.tellodrone.vision
 
+import android.graphics.Bitmap
 import com.alonibh.tellodrone.domain.NormalizedBoundingBox
 import com.alonibh.tellodrone.domain.DetectorBackend
 import com.alonibh.tellodrone.domain.DetectorBackendPreference
@@ -8,6 +9,7 @@ import com.alonibh.tellodrone.domain.PersonDetection
 import com.alonibh.tellodrone.domain.PersonDetectionState
 import com.alonibh.tellodrone.tello.AnalysisFrameMetadata
 import com.alonibh.tellodrone.tello.AnalysisPixelRepresentation
+import com.alonibh.tellodrone.tello.DecodedVideoFrame
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
@@ -376,6 +378,83 @@ class PersonDetectionPipelineTest {
 
         assertTrue(captured === input)
         assertTrue(detected === input)
+    }
+
+    @Test fun `runtime frame quality is evaluated exactly once`() {
+        var qualityChecks = 0
+        var detections = 0
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { _, _ -> FakePersonDetector { detections++; emptyList() } },
+            onSnapshot = {},
+            frameQualityAnalyzer = {
+                qualityChecks++
+                FrameQualityMetrics(false, 0f, 100f)
+            },
+        )
+        pipeline.start()
+
+        pipeline.onFrame(object : DecodedVideoFrame {
+            override val metadata = AnalysisFrameMetadata(
+                320,
+                240,
+                100L,
+                AnalysisPixelRepresentation.ARGB_8888_BITMAP,
+                1L,
+            )
+            override val bitmap: Bitmap get() = error("Quality analyzer and detector do not need pixels")
+            override fun close() = Unit
+        })
+
+        assertEquals(1, qualityChecks)
+        assertEquals(1, detections)
+    }
+
+    @Test fun `isolated corrupt frame preserves prior detection result without false empty result`() {
+        val qualities = ArrayDeque(
+            listOf(
+                FrameQualityMetrics(false, 0f, 100f),
+                FrameQualityMetrics(true, 1f, 0f),
+                FrameQualityMetrics(false, 0f, 100f),
+            ),
+        )
+        val snapshots = mutableListOf<PersonDetectionSnapshot>()
+        val corruptCounts = mutableListOf<Int>()
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { _, _ -> FakePersonDetector { listOf(detection(100L)) } },
+            onSnapshot = snapshots::add,
+            onCorruptFrame = { _, _, consecutive, _, _ -> corruptCounts += consecutive },
+            frameQualityAnalyzer = { qualities.removeFirst() },
+        )
+        pipeline.start()
+        pipeline.process(frame())
+        val beforeCorrupt = snapshots.last()
+
+        pipeline.process(frame())
+
+        assertEquals(listOf(1), corruptCounts)
+        assertTrue(snapshots.last() === beforeCorrupt)
+        assertEquals(1, snapshots.last().detections.size)
+
+        pipeline.process(frame())
+        assertEquals(PersonDetectionState.Detecting, snapshots.last().state)
+        assertEquals(1, snapshots.last().detections.size)
+    }
+
+    @Test fun `three repeated corrupt frames report threshold without running detector`() {
+        var detections = 0
+        val corruptCounts = mutableListOf<Int>()
+        val pipeline = PersonDetectionPipeline(
+            detectorFactory = { _, _ -> FakePersonDetector { detections++; emptyList() } },
+            onSnapshot = {},
+            onCorruptFrame = { _, _, consecutive, _, _ -> corruptCounts += consecutive },
+            frameQualityAnalyzer = { FrameQualityMetrics(true, .99f, 1f) },
+        )
+        pipeline.start()
+
+        repeat(FrameQualityGate.MAX_CONSECUTIVE_CORRUPT_FRAMES) { pipeline.process(frame()) }
+
+        assertEquals(listOf(1, 2, 3), corruptCounts)
+        assertEquals(0, detections)
     }
 
     private fun frame() = PersonDetectorFrame(

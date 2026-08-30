@@ -151,6 +151,15 @@ class DroneDashboardTest {
         }
     }
 
+    @Test fun export_trace_action_is_disabled_while_airborne() {
+        render(DroneSessionState(flight = FlightState.Flying))
+        if (BuildConfig.DEBUG) {
+            compose.onNodeWithTag("export_trace").assertExists().assertIsNotEnabled()
+        } else {
+            compose.onNodeWithTag("export_trace").assertDoesNotExist()
+        }
+    }
+
     @Test fun one_aspect_fit_video_surface_is_attached_for_the_unified_screen() {
         val actions = RecordingActions()
         render(

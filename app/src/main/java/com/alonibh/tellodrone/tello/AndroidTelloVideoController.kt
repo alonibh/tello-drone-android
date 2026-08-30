@@ -18,6 +18,8 @@ import com.alonibh.tellodrone.vision.PersonDetectionStore
 import com.alonibh.tellodrone.vision.DetectorInferenceMeasurement
 import com.alonibh.tellodrone.vision.Yolo11nLiteRtPersonDetector
 import com.alonibh.tellodrone.vision.VisionTraceFeature
+import com.alonibh.tellodrone.vision.CorruptFrameTrace
+import com.alonibh.tellodrone.vision.VideoDiagnosticTrace
 import com.alonibh.tellodrone.vision.startProductionDetection
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -27,6 +29,7 @@ import java.nio.ByteBuffer
 import java.time.Instant
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -70,6 +73,15 @@ class AndroidTelloVideoController(
         Yolo11nLiteRtPersonDetector(context.applicationContext, model, backend)
     }
     private val visionRecorder = VisionTraceFeature.recorder(context.applicationContext)
+    private val recoveryState = VideoRecoveryStateMachine()
+    private val udpDatagramsReceived = AtomicLong()
+    private val assemblerDroppedAccessUnits = AtomicLong()
+    private val decoderResets = AtomicLong()
+    private val codecInputStalls = AtomicLong()
+    private val renderedFrames = AtomicLong()
+    private val corruptFramesRejected = AtomicLong()
+    private val lastReportedBufferDrops = AtomicLong()
+    private val lastReportedDiscontinuities = AtomicLong()
     private val detectionPipeline = PersonDetectionPipeline(
         detectorFactory = { model, preference -> detectorFactory.create(model, preference) },
         onSnapshot = ::publishDetectionSnapshot,
@@ -85,9 +97,29 @@ class AndroidTelloVideoController(
                 )
             }
         },
-        onCorruptFrame = { sequence, timestampNanos, consecutive ->
-            if (consecutive >= FrameQualityGate.MAX_CONSECUTIVE_CORRUPT_FRAMES) {
+        onCorruptFrame = { sequence, timestampNanos, consecutive, blackFraction, avgLum ->
+            corruptFramesRejected.incrementAndGet()
+            visionRecorder.recordCorruptFrame(
+                CorruptFrameTrace(
+                    frameSequence = sequence,
+                    sourceTimestampNanos = timestampNanos,
+                    consecutiveCorruptCount = consecutive,
+                    blackPixelFraction = blackFraction,
+                    averageLuminance = avgLum,
+                ),
+            )
+            recordVideoDiagnostic(
+                eventType = "corrupt_analysis_frame_rejected",
+                detail = "Rejected analysis frame $sequence",
+                consecutiveCorruptFrames = consecutive,
+            )
+            if (consecutive == FrameQualityGate.MAX_CONSECUTIVE_CORRUPT_FRAMES) {
+                publishRecoveryTransition(
+                    recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                    "corrupt_frame_threshold",
+                )
                 accessUnits.declareDiscontinuity()
+                recordAccessUnitDiagnostics("decoder_resync_start", "Repeated corrupt analysis frames")
                 unitSignal.trySend(Unit)
             }
         },
@@ -134,13 +166,17 @@ class AndroidTelloVideoController(
     override fun streamAcknowledged() {
         if (!prepared.get() || failed.get() || closed.get()) return
         streamIsAcknowledged.set(true)
-        mutableState.value = VideoState(availability = VideoAvailability.Streaming)
+        publishRecoveryTransition(
+            recoveryState.onStreamAcknowledged(System.nanoTime()),
+            "stream_acknowledged",
+        )
         unitSignal.trySend(Unit)
     }
 
     override fun streamFailed(reason: String) {
         if (closed.get() || !failed.compareAndSet(false, true)) return
         streamIsAcknowledged.set(false)
+        recoveryState.onFailed()
         socket.getAndSet(null)?.close()
         receiverJob?.cancel()
         decoderJob?.cancel()
@@ -159,6 +195,9 @@ class AndroidTelloVideoController(
     fun attachSurface(value: Surface) {
         if (videoSurface.attach(value)) {
             decodedFrameSource.start(value)
+            val nowNanos = System.nanoTime()
+            publishRecoveryTransition(recoveryState.onSurfaceAttached(nowNanos), "surface_attached")
+            recordVideoDiagnostic("surface_attached", "Surface generation ${videoSurface.generation}")
         }
         unitSignal.trySend(Unit)
     }
@@ -167,6 +206,8 @@ class AndroidTelloVideoController(
         if (videoSurface.detach(value)) {
             stopDetectionAndScheduleRelease()
             decodedFrameSource.stop(value)
+            publishRecoveryTransition(recoveryState.onSurfaceDetached(), "surface_detached")
+            recordVideoDiagnostic("surface_detached", "Surface generation ${videoSurface.generation}")
         }
         unitSignal.trySend(Unit)
     }
@@ -190,6 +231,7 @@ class AndroidTelloVideoController(
 
     override suspend fun close() {
         if (!closed.compareAndSet(false, true)) return
+        recordVideoDiagnostic("video_session_closed", "Video controller closing")
         streamIsAcknowledged.set(false)
         socket.getAndSet(null)?.close()
         unitSignal.close()
@@ -215,15 +257,26 @@ class AndroidTelloVideoController(
                 val packet = DatagramPacket(bytes, bytes.size)
                 try {
                     receiver.receive(packet)
+                    val datagramCount = udpDatagramsReceived.incrementAndGet()
                     val unit = assembler.offerDatagram(packet.data, packet.length)
                     if (assembler.droppedAccessUnits != observedAssemblerDrops) {
                         observedAssemblerDrops = assembler.droppedAccessUnits
+                        assemblerDroppedAccessUnits.set(observedAssemblerDrops)
+                        publishRecoveryTransition(
+                            recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                            "assembler_drop",
+                        )
                         accessUnits.declareDiscontinuity()
+                        recordAccessUnitDiagnostics("assembler_access_unit_drop", "Assembler dropped an access unit")
                         unitSignal.trySend(Unit)
                     }
                     unit?.let {
                         accessUnits.offer(it)
+                        recordAccessUnitDiagnostics("access_unit_buffer_update")
                         unitSignal.trySend(Unit)
+                    }
+                    if (datagramCount % VIDEO_DIAGNOSTIC_DATAGRAM_INTERVAL == 0L) {
+                        recordVideoDiagnostic("udp_progress", "Video UDP receive progress")
                     }
                 } catch (_: SocketTimeoutException) {
                     // Poll cancellation and surface/session changes without inventing stream health.
@@ -254,34 +307,76 @@ class AndroidTelloVideoController(
                 unitSignal.receive()
                 val generation = videoSurface.generation
                 if (generation != observedSurfaceGeneration) {
-                    codec.releaseSafely()
-                    codec = null
-                    codecSurface = videoSurface.current?.takeIf { it.isValid }
-                    observedSurfaceGeneration = generation
-                    needsIdr = true
-                    frameRate.reset()
+                    val newSurface = videoSurface.current?.takeIf { it.isValid }
+                    if (newSurface != null && codec != null) {
+                        val switched = runCatching {
+                            codec.setOutputSurface(newSurface)
+                        }.isSuccess
+                        if (switched) {
+                            codecSurface = newSurface
+                            observedSurfaceGeneration = generation
+                            recordVideoDiagnostic(
+                                "decoder_surface_switched",
+                                "setOutputSurface succeeded for generation $generation",
+                            )
+                        } else {
+                            codec.releaseSafely()
+                            codec = null
+                            codecSurface = newSurface
+                            observedSurfaceGeneration = generation
+                            needsIdr = true
+                            publishRecoveryTransition(
+                                recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                "decoder_surface_switch_failed",
+                            )
+                            frameRate.reset()
+                            recordDecoderReset("setOutputSurface failed for generation $generation")
+                        }
+                    } else {
+                        codecSurface = newSurface
+                        observedSurfaceGeneration = generation
+                        if (newSurface != null) {
+                            // No running decoder exists, so normal SPS/PPS/IDR bootstrap remains required.
+                            needsIdr = true
+                        } else {
+                            // Keep a configured decoder alive across a brief detach. A replacement surface
+                            // can then use setOutputSurface without discarding inter-frame decode state.
+                            frameRate.reset()
+                        }
+                    }
                 }
 
                 if (!streamIsAcknowledged.get()) continue
+                if (codecSurface == null) continue
                 var input = accessUnits.poll() ?: continue
                 do {
                     when (input) {
                         H264DecodeInput.Discontinuity -> {
                             inputRetry.clear()
+                            publishRecoveryTransition(
+                                recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                "decoder_discontinuity",
+                            )
                             codec.releaseSafely()
                             codec = null
                             needsIdr = true
                             frameRate.reset()
+                            recordDecoderReset("Declared H264 discontinuity")
                         }
                         is H264DecodeInput.AccessUnit -> {
                             inputRetry.begin(input.value, System.nanoTime())
                             while (scope.isActive && !closed.get() && !failed.get()) {
                                 if (accessUnits.takeDiscontinuity()) {
                                     inputRetry.clear()
+                                    publishRecoveryTransition(
+                                        recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                        "decoder_discontinuity",
+                                    )
                                     codec.releaseSafely()
                                     codec = null
                                     needsIdr = true
                                     frameRate.reset()
+                                    recordDecoderReset("Discontinuity interrupted pending decoder input")
                                     break
                                 }
                                 val pendingUnit = checkNotNull(inputRetry.pendingAccessUnit)
@@ -309,18 +404,29 @@ class AndroidTelloVideoController(
                                             DecoderInputRetryDecision.Recover
                                         ) {
                                             inputRetry.clear()
+                                            publishRecoveryTransition(
+                                                recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                                "codec_input_stall",
+                                            )
                                             codec.releaseSafely()
                                             codec = null
                                             needsIdr = true
                                             accessUnits.declareDiscontinuity()
                                             frameRate.reset()
+                                            recordDecoderReset("Codec input stall exceeded recovery limit")
+                                            recordAccessUnitDiagnostics("decoder_resync_start", "Codec input stall")
                                             break
                                         }
                                     }
                                     AccessUnitProcessOutcome.ContinuityLost -> {
                                         inputRetry.clear()
+                                        publishRecoveryTransition(
+                                            recoveryState.requireDecoderResynchronization(System.nanoTime()),
+                                            "decoder_continuity_lost",
+                                        )
                                         accessUnits.declareDiscontinuity()
                                         frameRate.reset()
+                                        recordAccessUnitDiagnostics("decoder_resync_start", "Decoder continuity lost")
                                         break
                                     }
                                 }
@@ -403,6 +509,7 @@ class AndroidTelloVideoController(
         drainOutput(activeCodec, display, frameRate)
         val inputIndex = activeCodec.dequeueInputBuffer(CODEC_INPUT_TIMEOUT_MICROS)
         if (inputIndex < 0) {
+            recordCodecInputStall()
             return DecoderState(
                 codec,
                 sequenceParameterSet,
@@ -414,6 +521,7 @@ class AndroidTelloVideoController(
         val input = activeCodec.getInputBuffer(inputIndex)
             ?: run {
                 codec.releaseSafely()
+                recordDecoderReset("Codec returned a null input buffer")
                 return DecoderState(
                     null,
                     sequenceParameterSet,
@@ -427,6 +535,7 @@ class AndroidTelloVideoController(
             codec.releaseSafely()
             codec = null
             needsIdr = true
+            recordDecoderReset("Encoded access unit exceeded codec input capacity")
             return DecoderState(
                 codec,
                 sequenceParameterSet,
@@ -438,6 +547,7 @@ class AndroidTelloVideoController(
         input.clear()
         input.put(unit.bytes)
         activeCodec.queueInputBuffer(inputIndex, 0, unit.bytes.size, presentationTimeUs(), 0)
+        if (unit.hasIdr) recoveryState.onDecoderResynchronized()
         drainOutput(activeCodec, display, frameRate)
         return DecoderState(
             codec,
@@ -485,16 +595,114 @@ class AndroidTelloVideoController(
             codec.releaseOutputBuffer(outputIndex, render)
             if (render) {
                 val nowNanos = System.nanoTime()
+                renderedFrames.incrementAndGet()
                 val measured = frameRate.onRendered(nowNanos)
+                val transition = recoveryState.onFrameRendered(nowNanos)
                 mutableState.update { current ->
-                    if (current.availability != VideoAvailability.Streaming) current else current.copy(
+                    if (transition.availability != VideoAvailability.Streaming) current else current.copy(
+                        availability = transition.availability,
                         measuredFps = measured ?: current.measuredFps,
                         lastFrameAt = Instant.now(),
                     )
                 }
+                transition.recoveryDurationNanos?.let { duration ->
+                    recordVideoDiagnostic(
+                        eventType = "first_good_frame_after_recovery",
+                        detail = "Rendered a frame to the current surface",
+                        recoveryDurationMillis = duration / 1_000_000L,
+                    )
+                }
+                if (renderedFrames.get() % VIDEO_DIAGNOSTIC_RENDER_INTERVAL == 0L) {
+                    recordVideoDiagnostic("render_progress", "Rendered video frame progress")
+                }
                 decodedFrameSource.onFrameRendered(nowNanos)
             }
         }
+    }
+
+    private fun publishRecoveryTransition(transition: VideoRecoveryTransition, reason: String) {
+        mutableState.update { current ->
+            if (current.availability == VideoAvailability.Error) {
+                current
+            } else when (transition.availability) {
+                VideoAvailability.Recovering,
+                VideoAvailability.Unavailable -> current.withoutCurrentPerception(transition.availability)
+                VideoAvailability.Streaming -> current.copy(availability = VideoAvailability.Streaming)
+                VideoAvailability.Error -> current.copy(availability = VideoAvailability.Error)
+            }
+        }
+        if (transition.recoveryStarted) {
+            recordVideoDiagnostic("decoder_resync_start", reason)
+        }
+    }
+
+    private fun VideoState.withoutCurrentPerception(availability: VideoAvailability): VideoState = copy(
+        availability = availability,
+        personDetectionState = com.alonibh.tellodrone.domain.PersonDetectionState.Off,
+        detectorCandidates = emptyList(),
+        personDetections = emptyList(),
+        processedDetectorFrameSequence = null,
+        processedDetectorSourceTimestampNanos = null,
+        processedRenderedFrameTimestampNanos = null,
+        processedCaptureRequestTimestampNanos = null,
+        processedPixelCopyCompletedTimestampNanos = null,
+        processedDetectorInferenceStartedTimestampNanos = null,
+        processedDetectorInferenceCompletedTimestampNanos = null,
+        detectorPreprocessingNanos = null,
+        detectorModelInferenceNanos = null,
+        detectorDecodeAndNmsNanos = null,
+        detectorAppearanceNanos = null,
+    )
+
+    private fun recordAccessUnitDiagnostics(eventType: String, detail: String? = null) {
+        val diagnostics = accessUnits.diagnostics()
+        val dropsChanged = lastReportedBufferDrops.getAndSet(diagnostics.droppedAccessUnits) !=
+            diagnostics.droppedAccessUnits
+        val discontinuitiesChanged = lastReportedDiscontinuities.getAndSet(diagnostics.discontinuities) !=
+            diagnostics.discontinuities
+        if (dropsChanged || discontinuitiesChanged || eventType != "access_unit_buffer_update") {
+            recordVideoDiagnostic(eventType, detail)
+        }
+    }
+
+    private fun recordDecoderReset(reason: String) {
+        decoderResets.incrementAndGet()
+        recordVideoDiagnostic("decoder_reset", reason)
+    }
+
+    private fun recordCodecInputStall() {
+        val count = codecInputStalls.incrementAndGet()
+        if (count == 1L || count % CODEC_STALL_DIAGNOSTIC_INTERVAL == 0L) {
+            recordVideoDiagnostic("codec_input_stall", "MediaCodec input buffer unavailable")
+        }
+    }
+
+    private fun recordVideoDiagnostic(
+        eventType: String,
+        detail: String? = null,
+        consecutiveCorruptFrames: Int? = null,
+        recoveryDurationMillis: Long? = null,
+    ) {
+        val accessUnitDiagnostics = accessUnits.diagnostics()
+        visionRecorder.recordVideoDiagnostic(
+            VideoDiagnosticTrace(
+                timestampNanos = System.nanoTime(),
+                eventType = eventType,
+                detail = detail,
+                udpDatagramsReceived = udpDatagramsReceived.get(),
+                droppedAccessUnits = assemblerDroppedAccessUnits.get(),
+                accessUnitBufferDrops = accessUnitDiagnostics.droppedAccessUnits,
+                pendingAccessUnits = accessUnitDiagnostics.pendingAccessUnits,
+                waitingForIdr = accessUnitDiagnostics.waitingForIdr,
+                discontinuities = accessUnitDiagnostics.discontinuities,
+                decoderResets = decoderResets.get(),
+                codecInputStalls = codecInputStalls.get(),
+                corruptFramesRejected = corruptFramesRejected.get(),
+                consecutiveCorruptFrames = consecutiveCorruptFrames,
+                renderedFrames = renderedFrames.get(),
+                recoveryDurationMillis = recoveryDurationMillis,
+            ),
+        )
     }
 
     private fun updateAnalysisDiagnostics(diagnostics: AnalysisFrameDiagnostics) {
@@ -634,6 +842,9 @@ class AndroidTelloVideoController(
         private const val FPS_WINDOW_NANOS = 1_000_000_000L
         private const val CODEC_INPUT_TIMEOUT_MICROS = 5_000L
         private const val MAX_CODEC_INPUT_STALL_NANOS = 500_000_000L
+        private const val VIDEO_DIAGNOSTIC_DATAGRAM_INTERVAL = 100L
+        private const val VIDEO_DIAGNOSTIC_RENDER_INTERVAL = 30L
+        private const val CODEC_STALL_DIAGNOSTIC_INTERVAL = 10L
     }
 }
 // SPDX-License-Identifier: AGPL-3.0-only

@@ -27,7 +27,7 @@ class FlightSummaryTest {
         assertEquals(4.0, summary.heightMax!!, .001)
         assertEquals(3, summary.maxYawStep)
         assertNotNull(summary.fractionOfActiveNonZeroYaw)
-        assertEquals(1, summary.perceptionAgeExpiredCount)
+        assertEquals(1, summary.sourceAgeExpiredCount)
         assertEquals(2000L, summary.timeOutsideError15Ms)
         assertEquals(2000L, summary.timeOutsideError20Ms)
     }
@@ -39,7 +39,8 @@ class FlightSummaryTest {
         assertNull(summary.verticalVelocityP95)
         assertNull(summary.ageP50)
         assertNull(summary.fractionOfActiveNonZeroYaw)
-        assertNull(summary.perceptionAgeExpiredPercent)
+        assertNull(summary.sourceAgeExpiredPercent)
+        assertNull(summary.commandHoldExpiredPercent)
         assertTrue(FlightSummaryBuilder.json(summary).contains("\"preview_fps\": null"))
     }
 
@@ -195,6 +196,40 @@ class FlightSummaryTest {
         }
     }
 
+    @Test fun `fresh perception age uses unique control decisions and expirations remain distinct`() {
+        val controls = listOf(
+            measurement(frame = 1, source = 1_000_000_000, decision = 1_010_000_000),
+            measurement(frame = 1, source = 1_000_000_000, decision = 1_900_000_000),
+            measurement(frame = 2, source = 2_000_000_000, decision = 2_020_000_000),
+            measurement(frame = 3, source = 3_000_000_000, decision = 3_100_000_000),
+            // Repeated 50 Hz publications deliberately carry misleading old ages; they must not
+            // contribute to fresh perception latency.
+            publication(4_000_000_000, "AUTONOMOUS_COMMAND_HOLD_EXPIRED", perceptionAge = 900),
+            publication(4_050_000_000, "AUTONOMOUS_COMMAND_HOLD_EXPIRED", perceptionAge = 950),
+            publication(4_100_000_000, "PERCEPTION_AGE_EXPIRED", perceptionAge = 1_000),
+            publication(4_150_000_000, "NONE", perceptionAge = 1_050, yaw = 8),
+            publication(4_200_000_000, "NONE", perceptionAge = 1_100, yaw = 8),
+        )
+
+        val summary = FlightSummaryBuilder.build(emptyList(), controls)
+
+        assertEquals(20.0, summary.ageP50!!, .001)
+        assertEquals(20.0, summary.ageP95!!, .001)
+        assertEquals(100L, summary.ageMax)
+        assertEquals(2, summary.commandHoldExpiredCount)
+        assertEquals(40.0, summary.commandHoldExpiredPercent!!, .001)
+        assertEquals(1, summary.sourceAgeExpiredCount)
+        assertEquals(20.0, summary.sourceAgeExpiredPercent!!, .001)
+        assertEquals(150L, summary.longestExpirationZeroIntervalMs)
+        val json = FlightSummaryBuilder.json(summary)
+        assertTrue(json.contains("\"command_hold_expiration_count\": 2"))
+        assertTrue(json.contains("\"source_age_expiration_count\": 1"))
+    }
+
     private fun trace(time: Long, state: String, inference: Int? = null) = "{\"sourceTimestampNanos\":$time,\"associationState\":\"$state\",\"detector\":{\"inferenceMillis\":${inference ?: "null"}}}"
     private fun control(time: Long, state: String = "ACTIVE", suppression: String = "NONE", reason: String = "ACTIVE", yaw: Int = 0, height: Double = 1.0, lateral: Int = 0, send: String = "NONE", frameSequence: Long = 1, error: Double? = null) = "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"frameSequence\":$frameSequence,\"perceptionAgeMillis\":100,\"yawFollowState\":\"$state\",\"yawFollowReason\":\"$reason\",\"suppressionReason\":\"$suppression\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$send\",\"telemetryHeightMeters\":$height,\"rawYawError\":${error ?: "null"},\"actualSentVector\":{\"lateral\":$lateral,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
+    private fun measurement(frame: Long, source: Long, decision: Long) =
+        "{\"eventType\":\"controlMeasurement\",\"frameSequence\":$frame,\"sourceTimestampNanos\":$source,\"yawDecisionTimestampNanos\":$decision,\"commandTimestampNanos\":$decision,\"yawFollowState\":\"ACTIVE\"}"
+    private fun publication(time: Long, suppression: String, perceptionAge: Long, yaw: Int = 0) =
+        "{\"eventType\":\"rcPublication\",\"commandTimestampNanos\":$time,\"perceptionAgeMillis\":$perceptionAge,\"yawFollowState\":\"ACTIVE\",\"inputKind\":\"AUTONOMOUS_YAW\",\"sendSuppressionReason\":\"$suppression\",\"actualSentVector\":{\"lateral\":0,\"forward\":0,\"vertical\":0,\"yaw\":$yaw}}"
 }

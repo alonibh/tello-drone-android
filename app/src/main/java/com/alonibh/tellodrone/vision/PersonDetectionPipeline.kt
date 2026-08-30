@@ -164,7 +164,10 @@ class PersonDetectionPipeline(
     private val onSnapshot: (PersonDetectionSnapshot) -> Unit,
     private val onInferenceMeasurement: (DetectorInferenceMeasurement) -> Unit = {},
     private val onAnalyzedFrame: (PersonDetectorFrame) -> Unit = {},
-    private val onCorruptFrame: (sequence: Long, timestampNanos: Long, consecutive: Int) -> Unit = { _, _, _ -> },
+    private val onCorruptFrame: (sequence: Long, timestampNanos: Long, consecutive: Int, blackPixelFraction: Float, averageLuminance: Float) -> Unit = { _, _, _, _, _ -> },
+    private val frameQualityAnalyzer: (PersonDetectorFrame) -> FrameQualityMetrics? = { frame ->
+        runCatching { FrameQualityGate.analyze(frame.bitmap) }.getOrNull()
+    },
 ) : DecodedFrameConsumer, AutoCloseable {
     constructor(
         detectorFactory: (DetectorBackendPreference) -> PersonDetector,
@@ -243,25 +246,25 @@ class PersonDetectionPipeline(
     }
 
     override fun onFrame(frame: DecodedVideoFrame) {
-        val bitmap = runCatching { frame.bitmap }.getOrNull()
-        if (bitmap != null && FrameQualityGate.isCorruptBlackFrame(bitmap)) {
-            val count = consecutiveCorruptFrames.incrementAndGet().toInt()
-            corruptFramesRejectedCount.incrementAndGet()
-            onCorruptFrame(frame.metadata.sequence, frame.metadata.captureTimestampNanos, count)
-            return
-        }
-        consecutiveCorruptFrames.set(0)
         process(PersonDetectorFrame(frame.metadata) { frame.bitmap })
     }
 
     fun process(frame: PersonDetectorFrame) {
         val request = activeRequestSnapshot() ?: return
-        val bitmap = runCatching { frame.bitmap }.getOrNull()
-        if (bitmap != null && FrameQualityGate.isCorruptBlackFrame(bitmap)) {
-            val count = consecutiveCorruptFrames.incrementAndGet().toInt()
-            corruptFramesRejectedCount.incrementAndGet()
-            onCorruptFrame(frame.metadata.sequence, frame.metadata.captureTimestampNanos, count)
-            return
+        val quality = frameQualityAnalyzer(frame)
+        if (quality != null) {
+            if (quality.isCorrupt) {
+                val count = consecutiveCorruptFrames.incrementAndGet().toInt()
+                corruptFramesRejectedCount.incrementAndGet()
+                onCorruptFrame(
+                    frame.metadata.sequence,
+                    frame.metadata.captureTimestampNanos,
+                    count,
+                    quality.blackPixelFraction,
+                    quality.averageLuminance,
+                )
+                return
+            }
         }
         consecutiveCorruptFrames.set(0)
         try {

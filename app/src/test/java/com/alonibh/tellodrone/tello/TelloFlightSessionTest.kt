@@ -100,7 +100,6 @@ class TelloFlightSessionTest {
         fixture.transport.emitTelemetry(fixture.clock.value)
         assertTrue(fixture.session.connect())
         runCurrent()
-
         injectOnNextYawCommit = true
         fixture.transport.emitTelemetry(fixture.clock.value + 1L)
         runCurrent()
@@ -410,6 +409,7 @@ class TelloFlightSessionTest {
         fixture.transport.emitTelemetry(fixture.clock.value)
         assertTrue(fixture.session.connect())
         runCurrent()
+        assertEquals(1, recorder.newSessionCount)
 
         val selected = detection(frame = 1L, timestamp = 1_000_000_000L)
         video.publishDetections(1L, 1_000_000_000L, listOf(selected))
@@ -1480,6 +1480,8 @@ class TelloFlightSessionTest {
         val rcPublications = mutableListOf<RcPublicationTrace>()
         val selectedTargets = mutableListOf<com.alonibh.tellodrone.domain.TrackedTarget>()
         val targetSelectionAttempts = mutableListOf<TargetSelectionAttemptTrace>()
+        var newSessionCount = 0
+        override fun startNewSession() { newSessionCount++ }
         override fun onTargetSelected(target: com.alonibh.tellodrone.domain.TrackedTarget) {
             selectedTargets += target
         }

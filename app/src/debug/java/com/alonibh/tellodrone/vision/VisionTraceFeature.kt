@@ -3,15 +3,14 @@ package com.alonibh.tellodrone.vision
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import com.alonibh.tellodrone.domain.TrackedTarget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import java.io.BufferedWriter
 import java.io.File
 import java.io.FileOutputStream
-import java.io.OutputStreamWriter
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 import java.util.zip.ZipEntry
@@ -26,6 +25,10 @@ object VisionTraceFeature {
     }
 
     fun recorder(context: Context): VisionTraceRecorder = manager(context)
+
+    fun startNewSession(context: Context) {
+        manager(context).startNewSession()
+    }
 
     fun export(context: Context, destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) {
         manager(context).export(destinationUri, onComplete)
@@ -53,36 +56,21 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     )
     private data class PendingFrame(val bitmap: Bitmap, val epoch: CaptureEpoch)
     private sealed interface Command {
+        data object StartNewSession : Command
         data class Pair(
             val trace: VisionTraceFrame,
             val bitmap: Bitmap,
             val droppedBeforeFrame: Long,
             val epoch: CaptureEpoch,
         ) : Command
-        data class ControlMeasurement(
-            val trace: YawControlMeasurementTrace,
-            val epoch: CaptureEpoch,
-        ) : Command
-        data class RcPublication(
-            val trace: RcPublicationTrace,
-            val epoch: CaptureEpoch,
-        ) : Command
-        data class SdkCommand(
-            val trace: SdkCommandTrace,
-            val epoch: CaptureEpoch,
-        ) : Command
-        data class FlightTransition(
-            val trace: FlightStateTransitionTrace,
-            val epoch: CaptureEpoch,
-        ) : Command
-        data class ExternalGrounding(
-            val trace: ExternalGroundingTrace,
-            val epoch: CaptureEpoch,
-        ) : Command
-        data class TargetSelectionAttempt(
-            val trace: TargetSelectionAttemptTrace,
-            val epoch: CaptureEpoch,
-        ) : Command
+        data class ControlMeasurement(val trace: YawControlMeasurementTrace) : Command
+        data class RcPublication(val trace: RcPublicationTrace) : Command
+        data class SdkCommand(val trace: SdkCommandTrace) : Command
+        data class FlightTransition(val trace: FlightStateTransitionTrace) : Command
+        data class ExternalGrounding(val trace: ExternalGroundingTrace) : Command
+        data class TargetSelectionAttempt(val trace: TargetSelectionAttemptTrace) : Command
+        data class CorruptFrame(val trace: CorruptFrameTrace) : Command
+        data class VideoDiagnostic(val trace: VideoDiagnosticTrace) : Command
         data class ExportTrace(val destinationUri: String, val callback: (Result<VisionTraceExport>) -> Unit) : Command
         data class ExportSession(
             val destinationUri: String,
@@ -109,11 +97,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     @Volatile private var currentEpoch = CaptureEpoch(0L, VisionCaptureStartReason.DetectionStarted)
     private var capturePaused = false
 
-    private var activeDirectory: File? = null
-    private var traceFile: File? = null
-    private var controlFile: File? = null
-    private var writer: BufferedWriter? = null
-    private var controlWriter: BufferedWriter? = null
+    private val storage = DiagnosticSessionFiles(File(context.cacheDir, "vision-session"))
     private val frames = mutableListOf<VisionSessionFrameEntry>()
     private var activeEpoch: CaptureEpoch? = null
 
@@ -131,6 +115,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     init {
         scope.launch {
             for (command in commands) when (command) {
+                is Command.StartNewSession -> resetWorkerStorage()
                 is Command.Pair -> write(command)
                 is Command.ControlMeasurement -> write(command)
                 is Command.RcPublication -> write(command)
@@ -138,6 +123,8 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                 is Command.FlightTransition -> write(command)
                 is Command.ExternalGrounding -> write(command)
                 is Command.TargetSelectionAttempt -> write(command)
+                is Command.CorruptFrame -> write(command)
+                is Command.VideoDiagnostic -> write(command)
                 is Command.ExportTrace -> exportTrace(command)
                 is Command.ExportSession -> exportSession(command)
                 is Command.ExportFlightDiagnostics -> exportFlightDiagnostics(command)
@@ -145,6 +132,15 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         }
     }
 
+    override fun startNewSession() {
+        synchronized(pendingLock) {
+            pending.values.forEach { it.bitmap.recycle() }
+            pending.clear()
+            currentEpoch = CaptureEpoch(nextGeneration++, VisionCaptureStartReason.DetectionStarted)
+            capturePaused = false
+        }
+        commands.trySend(Command.StartNewSession)
+    }
 
     override fun captureAnalyzedFrame(frameSequence: Long, sourceTimestampNanos: Long, bitmap: Bitmap) {
         val key = FrameKey(frameSequence, sourceTimestampNanos)
@@ -184,55 +180,61 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         }
     }
 
-    override fun onTargetSelected(target: com.alonibh.tellodrone.domain.TrackedTarget) {
+    override fun onTargetSelected(target: TrackedTarget) {
         synchronized(pendingLock) {
             pending.values.forEach { it.bitmap.recycle() }
             pending.clear()
             currentEpoch = CaptureEpoch(nextGeneration++, VisionCaptureStartReason.TargetSelected)
+            capturePaused = false
         }
     }
 
     override fun record(frame: VisionTraceFrame) {
-        synchronized(pendingLock) {
-            val pendingFrame = pending.remove(FrameKey(frame.frameSequence, frame.sourceTimestampNanos))
-                ?: return
-            val dropped = pendingFrame.epoch.drops.consumeSinceLastPair()
-            if (!commands.trySend(Command.Pair(frame, pendingFrame.bitmap, dropped, pendingFrame.epoch)).isSuccess) {
-                pendingFrame.bitmap.recycle()
-                pendingFrame.epoch.drops.restoreSinceLastPair(dropped)
-                pendingFrame.epoch.drops.recordDrop()
-            }
+        val key = FrameKey(frame.frameSequence, frame.sourceTimestampNanos)
+        val pendingFrame = synchronized(pendingLock) { pending.remove(key) } ?: return
+        val dropped = pendingFrame.epoch.drops.consumeSinceLastPair()
+        if (capturePaused) {
+            pendingFrame.bitmap.recycle()
+            pendingFrame.epoch.drops.restoreSinceLastPair(dropped)
+            return
+        }
+        if (!commands.trySend(Command.Pair(frame, pendingFrame.bitmap, dropped, pendingFrame.epoch)).isSuccess) {
+            pendingFrame.bitmap.recycle()
+            pendingFrame.epoch.drops.restoreSinceLastPair(dropped)
+            pendingFrame.epoch.drops.recordDrop()
         }
     }
 
     override fun recordControlMeasurement(trace: YawControlMeasurementTrace) {
-        val epoch = currentEpoch
-        commands.trySend(Command.ControlMeasurement(trace, epoch))
+        commands.trySend(Command.ControlMeasurement(trace))
     }
 
     override fun recordRcPublication(trace: RcPublicationTrace) {
-        val epoch = currentEpoch
-        commands.trySend(Command.RcPublication(trace, epoch))
+        commands.trySend(Command.RcPublication(trace))
     }
 
     override fun recordSdkCommand(trace: SdkCommandTrace) {
-        val epoch = currentEpoch
-        commands.trySend(Command.SdkCommand(trace, epoch))
+        commands.trySend(Command.SdkCommand(trace))
     }
 
     override fun recordFlightStateTransition(trace: FlightStateTransitionTrace) {
-        val epoch = currentEpoch
-        commands.trySend(Command.FlightTransition(trace, epoch))
+        commands.trySend(Command.FlightTransition(trace))
     }
 
     override fun recordExternalGrounding(trace: ExternalGroundingTrace) {
-        val epoch = currentEpoch
-        commands.trySend(Command.ExternalGrounding(trace, epoch))
+        commands.trySend(Command.ExternalGrounding(trace))
     }
 
     override fun recordTargetSelectionAttempt(trace: TargetSelectionAttemptTrace) {
-        val epoch = currentEpoch
-        commands.trySend(Command.TargetSelectionAttempt(trace, epoch))
+        commands.trySend(Command.TargetSelectionAttempt(trace))
+    }
+
+    override fun recordCorruptFrame(trace: CorruptFrameTrace) {
+        commands.trySend(Command.CorruptFrame(trace))
+    }
+
+    override fun recordVideoDiagnostic(trace: VideoDiagnosticTrace) {
+        commands.trySend(Command.VideoDiagnostic(trace))
     }
 
     override fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit) {
@@ -261,12 +263,13 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     private fun write(command: Command.Pair) {
         if (command.epoch.generation < currentEpoch.generation) {
             command.bitmap.recycle()
+            command.epoch.drops.recordDrop()
             return
         }
         prepareEpoch(command.epoch)
-        val directory = ensureSessionDirectory()
-        val index = frames.size + 1
-        val relativePath = "frames/${index.toString().padStart(6, '0')}.jpg"
+        val directory = storage.directory
+        val index = frames.size
+        val relativePath = "frames/%06d.jpg".format(index)
         val frameFile = File(directory, relativePath)
         frameFile.parentFile?.mkdirs()
         val width = command.bitmap.width
@@ -293,24 +296,14 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
             height = height,
         )
         frames += entry
-        ensureWriter().apply {
-            write(VisionTraceJson.encode(command.trace, command.droppedBeforeFrame, relativePath))
-            newLine()
-        }
+        storage.appendTrace(VisionTraceJson.encode(command.trace, command.droppedBeforeFrame, relativePath))
     }
 
     private fun write(command: Command.ControlMeasurement) {
-        if (command.epoch.generation < currentEpoch.generation) return
-        prepareEpoch(command.epoch)
-        ensureControlWriter().apply {
-            write(VisionTraceJson.encodeControlMeasurement(command.trace))
-            newLine()
-        }
+        storage.appendControl(VisionTraceJson.encodeControlMeasurement(command.trace))
     }
 
     private fun write(command: Command.RcPublication) {
-        if (command.epoch.generation < currentEpoch.generation) return
-        prepareEpoch(command.epoch)
         rcPublicationCount++
         if (isAirborne) {
             val timeMillis = command.trace.commandTimestampNanos / 1_000_000L
@@ -327,14 +320,10 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
             }
             lastAirborneRcTimeMillis = timeMillis
         }
-        ensureControlWriter().apply {
-            write(VisionTraceJson.encodeRcPublication(command.trace))
-            newLine()
-        }
+        storage.appendControl(VisionTraceJson.encodeRcPublication(command.trace))
     }
 
     private fun write(command: Command.SdkCommand) {
-        prepareEpoch(command.epoch)
         sdkCommands += command.trace
         if (isAirborne) {
             val prev = lastAirborneOutboundTimeMillis
@@ -344,14 +333,10 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
             }
             lastAirborneOutboundTimeMillis = command.trace.sentAtMonotonicMillis
         }
-        ensureControlWriter().apply {
-            write(VisionTraceJson.encodeSdkCommand(command.trace))
-            newLine()
-        }
+        storage.appendControl(VisionTraceJson.encodeSdkCommand(command.trace))
     }
 
     private fun write(command: Command.FlightTransition) {
-        prepareEpoch(command.epoch)
         transitions += command.trace
         if (command.trace.toState == "Flying") {
             isAirborne = true
@@ -360,37 +345,32 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
         } else if (command.trace.toState in setOf("Grounded", "Landing", "Emergency", "Unknown")) {
             isAirborne = false
         }
-        ensureControlWriter().apply {
-            write(VisionTraceJson.encodeFlightStateTransition(command.trace))
-            newLine()
-        }
+        storage.appendControl(VisionTraceJson.encodeFlightStateTransition(command.trace))
     }
 
     private fun write(command: Command.ExternalGrounding) {
-        prepareEpoch(command.epoch)
         externalGroundings += command.trace
-        ensureControlWriter().apply {
-            write(VisionTraceJson.encodeExternalGrounding(command.trace))
-            newLine()
-        }
+        storage.appendControl(VisionTraceJson.encodeExternalGrounding(command.trace))
     }
 
     private fun write(command: Command.TargetSelectionAttempt) {
-        prepareEpoch(command.epoch)
-        ensureControlWriter().apply {
-            write(VisionTraceJson.encodeTargetSelectionAttempt(command.trace))
-            newLine()
-        }
+        storage.appendControl(VisionTraceJson.encodeTargetSelectionAttempt(command.trace))
     }
 
+    private fun write(command: Command.CorruptFrame) {
+        storage.appendControl(VisionTraceJson.encodeCorruptFrame(command.trace))
+    }
+
+    private fun write(command: Command.VideoDiagnostic) {
+        storage.appendControl(VisionTraceJson.encodeVideoDiagnostic(command.trace))
+    }
 
     private fun exportTrace(command: Command.ExportTrace) {
         val result = runCatching {
-            writer?.flush()
-            controlWriter?.flush()
-            val directory = activeDirectory
-            val sourceTrace = traceFile?.takeIf { it.exists() && it.length() > 0 }
-            val controlSource = ensureControlFile()
+            storage.flush()
+            val directory = storage.directory
+            val sourceTrace = storage.traceFile.takeIf { it.exists() && it.length() > 0 }
+            val controlSource = storage.controlFile
             val traceLines = sourceTrace?.readLines(Charsets.UTF_8) ?: emptyList()
             val controlLines = if (controlSource.exists()) controlSource.readLines(Charsets.UTF_8) else emptyList()
             val summary = FlightSummaryBuilder.build(traceLines, controlLines)
@@ -417,13 +397,16 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                     zip.putNextEntry(ZipEntry("control.jsonl"))
                     controlSource.inputStream().buffered().use { it.copyTo(zip) }
                     zip.closeEntry()
+                    zip.putNextEntry(ZipEntry("session.json"))
+                    storage.sessionFile.inputStream().buffered().use { it.copyTo(zip) }
+                    zip.closeEntry()
                     zip.putNextEntry(ZipEntry("flight_summary.json"))
                     zip.write(FlightSummaryBuilder.json(summary).toByteArray(Charsets.UTF_8))
                     zip.closeEntry()
                     zip.putNextEntry(ZipEntry("flight_summary.txt"))
                     zip.write(FlightSummaryBuilder.text(summary).toByteArray(Charsets.UTF_8))
                     zip.closeEntry()
-                    if (directory != null && frames.isNotEmpty()) {
+                    if (frames.isNotEmpty()) {
                         frames.forEach { frame ->
                             val frameFile = File(directory, frame.file)
                             if (frameFile.exists()) {
@@ -442,10 +425,9 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
 
     private fun exportSession(command: Command.ExportSession) {
         val result = runCatching {
-            writer?.flush()
-            controlWriter?.flush()
-            val directory = activeDirectory ?: throw IllegalStateException("No captured vision frames are available")
-            val sourceTrace = traceFile ?: throw IllegalStateException("No captured trace is available")
+            storage.flush()
+            val directory = storage.directory
+            val sourceTrace = storage.traceFile
             if (frames.isEmpty()) throw IllegalStateException("No captured vision frames are available")
             if (activeEpoch !== command.epoch) throw IllegalStateException("No frames captured for the current session")
             val manifest = VisionSessionManifest(
@@ -455,10 +437,9 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                 captureStartReason = command.epoch.startReason,
                 frames = frames.toList(),
             )
-            // The summary is derived only after the writers are flushed, on this export worker.
             val summary = FlightSummaryBuilder.build(
                 sourceTrace.readLines(Charsets.UTF_8),
-                ensureControlFile().readLines(Charsets.UTF_8),
+                storage.controlFile.readLines(Charsets.UTF_8),
             )
             context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "w")?.use { output ->
                 ZipOutputStream(output.buffered()).use { zip ->
@@ -469,7 +450,10 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                     sourceTrace.inputStream().buffered().use { it.copyTo(zip) }
                     zip.closeEntry()
                     zip.putNextEntry(ZipEntry("control.jsonl"))
-                    ensureControlFile().inputStream().buffered().use { it.copyTo(zip) }
+                    storage.controlFile.inputStream().buffered().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                    zip.putNextEntry(ZipEntry("session.json"))
+                    storage.sessionFile.inputStream().buffered().use { it.copyTo(zip) }
                     zip.closeEntry()
                     zip.putNextEntry(ZipEntry("flight_summary.json"))
                     zip.write(FlightSummaryBuilder.json(summary).toByteArray(Charsets.UTF_8))
@@ -498,7 +482,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
 
     private fun exportFlightDiagnostics(command: Command.ExportFlightDiagnostics) {
         val result = runCatching {
-            controlWriter?.flush()
+            storage.flush()
             val content = buildString {
                 appendLine("{")
                 appendLine("  \"schemaVersion\": 1,")
@@ -529,9 +513,9 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
                 appendLine("  ]")
                 appendLine("}")
             }
-            context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "wt")?.use { output ->
-                output.write(content.toByteArray(Charsets.UTF_8))
-            } ?: throw IllegalStateException("Could not open the selected export destination")
+            context.contentResolver.openOutputStream(Uri.parse(command.destinationUri), "w")?.use { output ->
+                output.bufferedWriter(Charsets.UTF_8).use { it.write(content) }
+            } ?: throw IllegalStateException("Could not open destination URI for flight diagnostics export")
             FlightDiagnosticsExport(
                 transitionsCount = transitions.size,
                 commandsCount = sdkCommands.size,
@@ -550,52 +534,14 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     }
 
     private fun resetVisionEpochStorage() {
-        writer?.close()
-        writer = null
-        traceFile?.delete()
-        traceFile = null
-        activeDirectory?.let { dir ->
-            File(dir, "frames").deleteRecursively()
-        }
+        storage.startVisionEpoch()
         frames.clear()
-    }
-
-    private fun ensureSessionDirectory(): File {
-        activeDirectory?.let { return it }
-        val directory = File(context.cacheDir, "vision-session/active")
-        directory.mkdirs()
-        activeDirectory = directory
-        traceFile = File(directory, "trace.jsonl")
-        controlFile = File(directory, "control.jsonl")
-        return directory
-    }
-
-    private fun ensureWriter(): BufferedWriter = writer ?: run {
-        ensureSessionDirectory()
-        BufferedWriter(OutputStreamWriter(FileOutputStream(traceFile!!, false), Charsets.UTF_8)).also { writer = it }
-    }
-
-    private fun ensureControlFile(): File {
-        ensureSessionDirectory()
-        return requireNotNull(controlFile).also { if (!it.exists()) it.createNewFile() }
-    }
-
-    private fun ensureControlWriter(): BufferedWriter = controlWriter ?: run {
-        BufferedWriter(OutputStreamWriter(FileOutputStream(ensureControlFile(), true), Charsets.UTF_8)).also {
-            controlWriter = it
-        }
     }
 
     private fun resetWorkerStorage() {
-        writer?.close()
-        writer = null
-        controlWriter?.close()
-        controlWriter = null
-        activeDirectory?.deleteRecursively()
-        activeDirectory = null
-        traceFile = null
-        controlFile = null
+        storage.startNewSession()
         frames.clear()
+        activeEpoch = null
         rcPublicationCount = 0
         maxAirborneOutboundGapMillis = null
         maxAirborneRcGapMillis = null
@@ -608,7 +554,7 @@ internal class DebugVisionTraceRecorder(private val context: Context) : VisionTr
     }
 
     private fun rotate(exportedEpoch: CaptureEpoch) {
-        resetWorkerStorage()
+        resetVisionEpochStorage()
         activeEpoch = null
         synchronized(pendingLock) {
             pending.values.forEach { it.bitmap.recycle() }

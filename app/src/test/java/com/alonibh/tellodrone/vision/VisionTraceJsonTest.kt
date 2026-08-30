@@ -17,6 +17,30 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class VisionTraceJsonTest {
+    @Test fun `video recovery diagnostics include buffer pressure and corrupt frame detail`() {
+        val diagnostic = VisionTraceJson.encodeVideoDiagnostic(
+            VideoDiagnosticTrace(
+                timestampNanos = 100L,
+                eventType = "decoder_resync_start",
+                pendingAccessUnits = 7,
+                waitingForIdr = true,
+                codecInputStalls = 3,
+            ),
+        )
+        assertTrue(diagnostic.contains("\"pendingAccessUnits\":7"))
+        assertTrue(diagnostic.contains("\"waitingForIdr\":true"))
+        assertTrue(diagnostic.contains("\"codecInputStalls\":3"))
+
+        val corrupt = VisionTraceJson.encodeCorruptFrame(
+            CorruptFrameTrace(9L, 200L, 3, .98f, 1.5f),
+        )
+        assertTrue(corrupt.contains("\"frameSequence\":9"))
+        assertTrue(corrupt.contains("\"sourceTimestampNanos\":200"))
+        assertTrue(corrupt.contains("\"consecutiveCorruptCount\":3"))
+        assertTrue(corrupt.contains("\"blackPixelFraction\":0.98"))
+        assertTrue(corrupt.contains("\"averageLuminance\":1.5"))
+    }
+
     @Test fun `compact frame line includes detector target association diagnostics and timing`() {
         val detection = PersonDetection(NormalizedBoundingBox(.1f, .2f, .4f, .8f), .62f, 9L, 99L)
         val target = TargetSelection.select(detection)

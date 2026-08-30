@@ -162,6 +162,32 @@ data class ExternalGroundingTrace(
     val sampleCount: Int,
 )
 
+data class CorruptFrameTrace(
+    val frameSequence: Long,
+    val sourceTimestampNanos: Long,
+    val consecutiveCorruptCount: Int,
+    val blackPixelFraction: Float,
+    val averageLuminance: Float,
+)
+
+data class VideoDiagnosticTrace(
+    val timestampNanos: Long,
+    val eventType: String,
+    val detail: String? = null,
+    val udpDatagramsReceived: Long? = null,
+    val droppedAccessUnits: Long? = null,
+    val accessUnitBufferDrops: Long? = null,
+    val pendingAccessUnits: Int? = null,
+    val waitingForIdr: Boolean? = null,
+    val discontinuities: Long? = null,
+    val decoderResets: Long? = null,
+    val codecInputStalls: Long? = null,
+    val corruptFramesRejected: Long? = null,
+    val consecutiveCorruptFrames: Int? = null,
+    val renderedFrames: Long? = null,
+    val recoveryDurationMillis: Long? = null,
+)
+
 data class FlightDiagnosticsExport(
     val transitionsCount: Int,
     val commandsCount: Int,
@@ -176,6 +202,8 @@ interface VisionTraceRecorder {
     fun captureAnalyzedFrame(frameSequence: Long, sourceTimestampNanos: Long, bitmap: Bitmap) = Unit
     /** Starts a fresh diagnostic epoch at the explicit user-selection boundary. */
     fun onTargetSelected(target: TrackedTarget) = Unit
+    /** Resets the entire diagnostic session for a new flight/connect lifecycle. */
+    fun startNewSession() = Unit
     fun record(frame: VisionTraceFrame)
     fun recordControlMeasurement(trace: YawControlMeasurementTrace) = Unit
     fun recordRcPublication(trace: RcPublicationTrace) = Unit
@@ -183,6 +211,8 @@ interface VisionTraceRecorder {
     fun recordFlightStateTransition(trace: FlightStateTransitionTrace) = Unit
     fun recordExternalGrounding(trace: ExternalGroundingTrace) = Unit
     fun recordTargetSelectionAttempt(trace: TargetSelectionAttemptTrace) = Unit
+    fun recordCorruptFrame(trace: CorruptFrameTrace) = Unit
+    fun recordVideoDiagnostic(trace: VideoDiagnosticTrace) = Unit
     fun recordTelemetrySample(batteryPercent: Int?, heightMeters: Float?) = Unit
     fun export(destinationUri: String, onComplete: (Result<VisionTraceExport>) -> Unit)
     fun exportFlightDiagnostics(destinationUri: String, onComplete: (Result<FlightDiagnosticsExport>) -> Unit) {
@@ -369,6 +399,38 @@ internal object VisionTraceJson {
         append('}')
     }
 
+    fun encodeCorruptFrame(trace: CorruptFrameTrace): String = buildString(256) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", "corruptFrameRejected")
+        comma(); field("frameSequence", trace.frameSequence)
+        comma(); field("sourceTimestampNanos", trace.sourceTimestampNanos)
+        comma(); field("consecutiveCorruptCount", trace.consecutiveCorruptCount)
+        comma(); field("blackPixelFraction", trace.blackPixelFraction)
+        comma(); field("averageLuminance", trace.averageLuminance)
+        append('}')
+    }
+
+    fun encodeVideoDiagnostic(trace: VideoDiagnosticTrace): String = buildString(384) {
+        append('{'); field("schemaVersion", 1)
+        comma(); field("eventType", "videoDiagnostic")
+        comma(); field("timestampNanos", trace.timestampNanos)
+        comma(); field("diagnosticEvent", trace.eventType)
+        comma(); field("detail", trace.detail)
+        comma(); field("udpDatagramsReceived", trace.udpDatagramsReceived)
+        comma(); field("droppedAccessUnits", trace.droppedAccessUnits)
+        comma(); field("accessUnitBufferDrops", trace.accessUnitBufferDrops)
+        comma(); field("pendingAccessUnits", trace.pendingAccessUnits)
+        comma(); field("waitingForIdr", trace.waitingForIdr)
+        comma(); field("discontinuities", trace.discontinuities)
+        comma(); field("decoderResets", trace.decoderResets)
+        comma(); field("codecInputStalls", trace.codecInputStalls)
+        comma(); field("corruptFramesRejected", trace.corruptFramesRejected)
+        comma(); field("consecutiveCorruptFrames", trace.consecutiveCorruptFrames)
+        comma(); field("renderedFrames", trace.renderedFrames)
+        comma(); field("recoveryDurationMillis", trace.recoveryDurationMillis)
+        append('}')
+    }
+
 
     private fun StringBuilder.vector(value: RcVector) {
         append('{'); field("lateral", value.lateral)
@@ -486,7 +548,7 @@ internal object VisionTraceJson {
     private fun StringBuilder.field(name: String, value: Int) { name(name); append(value) }
     private fun StringBuilder.field(name: String, value: Int?) { name(name); append(value ?: "null") }
     private fun StringBuilder.field(name: String, value: Float?) { name(name); append(value ?: "null") }
-    private fun StringBuilder.field(name: String, value: Boolean) { name(name); append(value) }
+    private fun StringBuilder.field(name: String, value: Boolean?) { name(name); append(value ?: "null") }
     private fun StringBuilder.string(value: String) {
         append('"')
         value.forEach { char ->

@@ -127,15 +127,10 @@ class TelloFlightSession(
         authorityValidator = { kind, _ ->
             val current = mutableState.value
             when (kind) {
-                RcInputKind.AUTONOMOUS_YAW -> {
-                    when {
-                        current.flight != FlightState.Flying -> RcSendSuppressionReason.FLIGHT_STATE_INACTIVE
-                        current.tracking == TrackingMode.Off ||
-                            current.yawFollowDecision.state != YawFollowState.ACTIVE ->
-                            RcSendSuppressionReason.TRACKING_INACTIVE
-                        else -> null
-                    }
-                }
+                RcInputKind.AUTONOMOUS_YAW -> AutonomousRcSendAuthority.validate(
+                    current,
+                    video?.state?.value?.availability ?: current.video.availability,
+                )
                 RcInputKind.MANUAL -> {
                     if (current.flight != FlightState.Flying &&
                         current.flight != FlightState.TakingOff &&
@@ -151,6 +146,7 @@ class TelloFlightSession(
 
     suspend fun connect(): Boolean = commandStateMutex.withLock {
         if (closed) return@withLock false
+        visionTrace.startNewSession()
         resetRealTracking()
         val yawDecision = resetYawFollowForNewSession()
         takeoffAcknowledged = false
@@ -933,7 +929,11 @@ class TelloFlightSession(
                 }
                 if (!closed && mutableState.value.connection == DroneConnectionState.Connected) rcLoop.setHealthy(true)
                 val currentTelemetry = mutableState.value.telemetry
-                yawFollowGate.observeTelemetry(currentTelemetry.yawDegrees, currentTelemetry.yawRateDegreesPerSecond)
+                yawFollowGate.observeTelemetry(
+                    currentTelemetry.yawDegrees,
+                    currentTelemetry.yawRateDegreesPerSecond,
+                    sample.receivedAtMonotonicMillis,
+                )
                 reconcileSafetyGate()
             }
         }

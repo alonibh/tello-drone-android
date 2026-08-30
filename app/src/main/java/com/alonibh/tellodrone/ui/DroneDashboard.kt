@@ -413,8 +413,10 @@ private fun TrackingOverlay(
         }
     }
     if (com.alonibh.tellodrone.BuildConfig.DEBUG) {
+        val canExport = com.alonibh.tellodrone.domain.isTraceExportAllowed(state.flight)
         TextButton(
             onClick = onExportTrace,
+            enabled = canExport,
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier.fillMaxWidth().heightIn(min = 36.dp).testTag("export_trace"),
         ) {
@@ -485,6 +487,7 @@ private fun VideoCanvas(
     DetectionOverlay(state, viewModel, maxWidth.value, maxHeight.value)
     val message = when {
         state.video.availability == VideoAvailability.Error -> "VIDEO UNAVAILABLE\n${state.video.errorReason ?: "Video pipeline error"}"
+        state.video.availability == VideoAvailability.Recovering -> "RESUMING VIDEO…"
         state.connection in setOf(DroneConnectionState.Connecting, DroneConnectionState.Connected) &&
             state.video.availability == VideoAvailability.Unavailable -> "STARTING VIDEO…"
         state.video.availability == VideoAvailability.Streaming -> null

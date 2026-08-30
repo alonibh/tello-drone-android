@@ -7,7 +7,7 @@ enum class NetworkSelectionState { Idle, PermissionRequired, PermissionDenied, R
 enum class FlightState { Grounded, TakingOff, Flying, Landing, Unknown, Error, Emergency }
 enum class TrackingMode { Off, DetectOnly, TargetLocked, Follow }
 enum class ControlAuthority { Manual, Autonomous }
-enum class VideoAvailability { Unavailable, Streaming, Error }
+enum class VideoAvailability { Unavailable, Streaming, Recovering, Error }
 enum class PersonDetectionState { Off, Starting, Detecting, Error }
 enum class DetectorBackendPreference { Accelerated, Cpu }
 enum class DetectorBackend { Gpu, Cpu }
